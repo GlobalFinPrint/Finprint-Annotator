@@ -93,7 +93,7 @@ class LoginWidget(QWidget):
         self.setLayout(grid)
 
         self.setWindowTitle('User Login')
-        self.setGeometry(100, 100, 100, 100)
+        self.setGeometry(100, 100, 200, 100)
         #self.show()
 
     def _on_login(self):
@@ -129,7 +129,6 @@ class TripLayoutWidget(QWidget):
 
     def _get_font(self):
         font = QFont()
-        #font.setBold(True)
         font.setPointSize(14)
         return font
 
