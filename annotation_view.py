@@ -2,12 +2,32 @@ import numpy as np
 import cv2
 import sys
 from math import floor
+import imutils
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from PyQt4.phonon import Phonon
 
 
-class VideoWidget(QWidget):
+class Highlighter(object):
+    def __init__(self):
+        self._highlight_corner1 = QPoint(0, 0)
+        self._highlight_corner2 = QPoint(0, 0)
+
+    def get_rect(self):
+        return QRect(self._highlight_corner1.x(), self._highlight_corner1.y(), self._highlight_corner2.x() - self._highlight_corner1.x(), self._highlight_corner2.y() - self._highlight_corner1.y())
+
+    def start_rect(self, pos):
+        self._highlight_corner1 = pos
+        self._highlight_corner2 = pos
+
+    def set_rect(self, pos):
+        self._highlight_corner2 = pos
+
+
+
+
+class CvVideoWidget(QWidget):
     def __init__(self, parent=None, onPositionChange=None):
         QWidget.__init__(self, parent)
 
@@ -18,6 +38,7 @@ class VideoWidget(QWidget):
         self._onPositionChange = onPositionChange
 
         self._capture = cv2.VideoCapture("sharkcut.avi")
+
         # Take one frame to query height
         grabbed, frame = self._capture.read()
         #height, width, channels = frame.shape
@@ -32,6 +53,7 @@ class VideoWidget(QWidget):
 
 
     def _build_image(self, frame):
+        frame = imutils.resize(frame, width=1200)
         height, width, channels = frame.shape
         if self._frame is None:
             self._frame = np.zeros((width, height, channels), np.uint8)
@@ -84,7 +106,7 @@ class VideoWidget(QWidget):
     def pause(self):
         self._paused = True
 
-    def resume(self):
+    def play(self):
         self._paused = False
 
     def paused(self):
@@ -93,14 +115,92 @@ class VideoWidget(QWidget):
     def get_position(self):
         return self._capture.get(cv2.CAP_PROP_POS_MSEC)
 
+    def get_length(self):
+        fps = self._capture.get(cv2.CAP_PROP_FPS)
+        num_frames = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
+        return num_frames / fps # Returns seconds as a float
+
+
+class VideoSeekWidget(QSlider):
+    def __init__(self):
+        super(VideoSeekWidget, self).__init__()
+
+        self.setOrientation(Qt.Horizontal)
+        self.setStyleSheet(self.style())
+
+
+    def style(self):
+        return """
+            QSlider::groove:horizontal {
+                border: 1px solid #bbb;
+                background: white;
+                height: 10px;
+                border-radius: 4px;
+            }
+
+            QSlider::sub-page:horizontal {
+                background: qlineargradient(x1: 0, y1: 0,    x2: 0, y2: 1,
+                    stop: 0 #66e, stop: 1 #bbf);
+                background: qlineargradient(x1: 0, y1: 0.2, x2: 1, y2: 1,
+                    stop: 0 #bbf, stop: 1 #55f);
+                border: 1px solid #777;
+                height: 10px;
+                border-radius: 4px;
+            }
+
+            QSlider::add-page:horizontal {
+                background: #fff;
+                border: 1px solid #777;
+                height: 10px;
+                border-radius: 4px;
+            }
+
+            QSlider::handle:horizontal {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #eee, stop:1 #ccc);
+                border: 1px solid #777;
+                width: 13px;
+                margin-top: -2px;
+                margin-bottom: -2px;
+                border-radius: 4px;
+            }
+
+            QSlider::handle:horizontal:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #fff, stop:1 #ddd);
+                border: 1px solid #444;
+                border-radius: 4px;
+            }
+
+            QSlider::sub-page:horizontal:disabled {
+                background: #bbb;
+                border-color: #999;
+            }
+
+            QSlider::add-page:horizontal:disabled {
+                background: #eee;
+                border-color: #999;
+            }
+
+            QSlider::handle:horizontal:disabled {
+                background: #eee;
+                border: 1px solid #aaa;
+                border-radius: 4px;
+            }
+            """
+
 class VideoLayoutWidget(QWidget):
     def __init__(self):
         super(VideoLayoutWidget, self).__init__()
 
         # UI widgets
-        self._video_player = VideoWidget(onPositionChange=self.on_position_change)
+        self.vid_box = None
+        self._video_player = CvVideoWidget(onPositionChange=self.on_position_change)
+        #self._video_player = QtVideoWidget(onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
 
+        self._slider = VideoSeekWidget()
+        self._slider.setMaximum(int(self._video_player.get_length()))
         self._pause_icon = QIcon('images/pause.png')
         self._play_icon = QIcon('images/play.png')
 
@@ -129,9 +229,15 @@ class VideoLayoutWidget(QWidget):
         container.setDirection(QBoxLayout.TopToBottom)
 
         # Main Video Window
-        vid_box = QHBoxLayout()
-        vid_box.addWidget(self._video_player)
-        container.addLayout(vid_box)
+        self.vid_box = QHBoxLayout()
+        self.vid_box.addWidget(self._video_player)
+        container.addLayout(self.vid_box)
+
+        # Seek bar
+        seek_bar_box = QHBoxLayout()
+        seek_bar_box.addWidget(self._slider)
+
+        container.addLayout(seek_bar_box)
 
         # Video control and observation register buttons
         vid_btn_box = QHBoxLayout()
@@ -170,19 +276,24 @@ class VideoLayoutWidget(QWidget):
 
         self.setLayout(container)
 
+
     def observation_selected(self, selected, deselected):
         obs = self._observation_table.get_observation(self._observation_table.currentRow())
         self._video_player.display_observation(obs.position, obs.rect)
 
     def on_pause(self):
         if self._video_player.paused():
-            self._video_player.resume()
+            self._video_player.play()
             self._pause_button.setText('Pause')
             self._pause_button.setIcon(self._pause_icon)
+            # self.vid_box.setCurrentIndex(0)
+            # self._video_player.showImage(False)
         else:
             self._video_player.pause()
             self._pause_button.setText('Resume')
             self._pause_button.setIcon(self._play_icon)
+            # self.vid_box.setCurrentIndex(1)
+            # self._video_player.showImage(True)
 
     def on_observation(self, event):
         obs = Observation()
@@ -211,6 +322,8 @@ class VideoLayoutWidget(QWidget):
 
     def on_position_change(self, pos):
         self._pos_label.setText(self._convert_position(pos))
+        s, m = divmod(floor(pos), 1000)
+        self._slider.setValue(s)
 
 
 # use this for now but should probably be incorporated into a table model
@@ -250,7 +363,7 @@ class ObservationTable(QTableWidget):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
 
-    widget = VideoWidget()
+    widget = CvVideoWidget()
     widget.setWindowTitle('PyQt - OpenCV Test')
     widget.show()
 
