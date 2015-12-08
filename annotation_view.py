@@ -3,6 +3,7 @@ import cv2
 import sys
 from math import floor
 import imutils
+import elasmo_finder
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -37,12 +38,20 @@ class CvVideoWidget(QWidget):
         self._highlight_corner2 = QPoint(0,0)
         self._onPositionChange = onPositionChange
 
-        self._capture = cv2.VideoCapture("sharkcut.avi")
+
+    def load(self, file_name):
+        self._file_name = file_name
+
+
+        self._finder = elasmo_finder.ElasmoFinder()
+        #self._finder.process_video(self._file_name)
+
+        self._capture = cv2.VideoCapture(self._file_name)
+        self.setMinimumSize(1024, 768)
 
         # Take one frame to query height
         grabbed, frame = self._capture.read()
         #height, width, channels = frame.shape
-        self.setMinimumSize(1024, 768)
         #self.setMaximumSize(self.minimumSize())
         self._frame = None
         self._image = self._build_image(frame)
@@ -200,13 +209,17 @@ class VideoLayoutWidget(QWidget):
         self._pos_label = QLabel()
 
         self._slider = VideoSeekWidget()
-        self._slider.setMaximum(int(self._video_player.get_length()))
+        #self._slider.setMaximum(int(self._video_player.get_length()))
         self._pause_icon = QIcon('images/pause.png')
         self._play_icon = QIcon('images/play.png')
+        self._process_icon = QIcon('images/clapperboard.png')
 
 
         self._pause_button = QPushButton('Resume')
         self._pause_button.setIcon(self._play_icon)
+
+        self._process_button = QPushButton('Process')
+        self._process_button.setIcon(self._process_icon)
 
         self._quit_button = QPushButton('Quit')
         self._observation_table = ObservationTable()
@@ -218,9 +231,13 @@ class VideoLayoutWidget(QWidget):
         self.setup_layout()
         self.wire_events()
 
+        self._video_player.load("sharkcut.avi")
+
+
     def wire_events(self):
         self._quit_button.clicked.connect(QCoreApplication.instance().quit)
         self._pause_button.clicked.connect(self.on_pause)
+        self._process_button.clicked.connect(self.on_process)
         self._observation_table.selectionChanged = self.observation_selected
 
     def setup_layout(self):
@@ -244,6 +261,7 @@ class VideoLayoutWidget(QWidget):
         vid_btn_box.addStretch(1)
         vid_btn_box.addWidget(self._pos_label)
         vid_btn_box.addWidget(self._pause_button )
+        vid_btn_box.addWidget(self._process_button)
 
         # Video control and observation register buttons
         obs_btn_box = QHBoxLayout()
@@ -294,6 +312,9 @@ class VideoLayoutWidget(QWidget):
             self._pause_button.setIcon(self._play_icon)
             # self.vid_box.setCurrentIndex(1)
             # self._video_player.showImage(True)
+
+    def on_process(self):
+        self._video_player.load("sharkcut.avi")
 
     def on_observation(self, event):
         obs = Observation()
