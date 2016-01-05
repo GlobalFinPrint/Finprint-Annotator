@@ -14,15 +14,14 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
         self._login_layout = None
         self._vid_layout = None
-        self._trip_layout = None
+        self._set_layout = None
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
         self._init_widgets()
 
         dispatcher.connect(self.on_login, signal='LOGIN', sender=dispatcher.Any)
-        dispatcher.connect(self.trip_selected, signal='TRIP_SELECTED', sender=dispatcher.Any)
+        dispatcher.connect(self.set_selected, signal='SET_SELECTED', sender=dispatcher.Any)
 
-        #self.setWindowState(self.windowState() & Qt.WindowMinimized | Qt.WindowActive)
 
     def _init_widgets(self):
         exitAction = QAction(QIcon('exit.png'), '&Exit', self)
@@ -42,13 +41,20 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self._login_layout)
 
     def on_login(self, signal, sender, value):
-        self._trip_layout = TripLayoutWidget()
-        self.setCentralWidget(self._trip_layout)
-
-    def trip_selected(self):
         self._vid_layout = VideoLayoutWidget()
         self.setCentralWidget(self._vid_layout)
+        self.showMaximized()
 
+        self._set_layout = QVBoxLayout()
+        self._set_list = SetListWidget()
+        self._set_layout.addWidget(self._set_list)
+        self.login_diag = QDialog()
+        self.login_diag.setLayout(self._set_layout)
+        self.login_diag.show()
+
+    def set_selected(self, signal, sender, value):
+        self.login_diag.close()
+        self._vid_layout.load(value)
 
 
 class LoginWidget(QWidget):
@@ -104,28 +110,36 @@ class LoginWidget(QWidget):
             self._on_login()
 
 
-class TripLayoutWidget(QWidget):
-    test_data = [('Belize',[('11:30am', [])]),('West Jamaica',[]),('Roatan',[])]
+class SetListWidget(QWidget):
+    test_data = ['Belize', 'West Jamaica', 'Roatan']
 
     def __init__(self):
-        super(TripLayoutWidget, self).__init__()
+        super(SetListWidget, self).__init__()
 
-        self.tree = QTreeView()
-        self.tree.setWindowTitle('Trip List')
-        self.tree.setMinimumSize(600, 400)
-        self.tree.setHeaderHidden(True)
-        self.tree.setFont(self._get_font())
+        self.set_list = QListWidget()
+        self.set_list.setWindowTitle('Assigned Sets List')
+        self.set_list.setMinimumSize(600, 400)
+        self.set_list.setFont(self._get_font())
+        self.set_list.setSelectionMode(QAbstractItemView.SingleSelection)
 
-        self.model = QStandardItemModel()
+        self.add_test_items()
 
-        self.add_items(self.model, TripLayoutWidget.test_data)
+        self.set_list.doubleClicked.connect(self.on_list_item_clicked)
+        self.list_container = QVBoxLayout()
+        self.list_container.addWidget(self.set_list)
 
-        self.tree.setModel(self.model)
-        self.tree.doubleClicked.connect(self.on_list_item_clicked)
-        tree_container = QVBoxLayout()
-        tree_container.addWidget(self.tree)
+        self.setLayout(self.list_container)
 
-        self.setLayout(tree_container)
+    def add_test_items(self):
+        i = QListWidgetItem()
+        i.setText("Belize")
+        i.setData(Qt.UserRole, "videos/sharkcut.avi")
+        self.set_list.addItem(i)
+
+        i = QListWidgetItem()
+        i.setText("West Jamaica")
+        i.setData(Qt.UserRole, "videos/stitched.avi")
+        self.set_list.addItem(i)
 
     def _get_font(self):
         font = QFont()
@@ -133,16 +147,9 @@ class TripLayoutWidget(QWidget):
         return font
 
     def on_list_item_clicked(self, index):
-        dispatcher.send('TRIP_SELECTED', dispatcher.Anonymous, value=self.model.itemFromIndex(index).text())
+        dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=self.set_list.currentItem().data(Qt.UserRole))
 
-    def add_items(self, parent, elements):
-        for text, children in elements:
-            item = QStandardItem(text)
-            item.setEditable(False)
-            item.setSelectable(True)
-            parent.appendRow(item)
-            if children:
-                self.add_items(item, children)
+
 
 
 def main():
