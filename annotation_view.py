@@ -231,8 +231,6 @@ class VideoLayoutWidget(QWidget):
         self.setup_layout()
         self.wire_events()
 
-        self._video_player.load("sharkcut.avi")
-
 
     def wire_events(self):
         self._quit_button.clicked.connect(QCoreApplication.instance().quit)
@@ -294,6 +292,9 @@ class VideoLayoutWidget(QWidget):
 
         self.setLayout(container)
 
+
+    def load(self, file):
+        self._video_player.load(file)
 
     def observation_selected(self, selected, deselected):
         obs = self._observation_table.get_observation(self._observation_table.currentRow())
