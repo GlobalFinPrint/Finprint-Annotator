@@ -82,6 +82,7 @@ class LoginWidget(QWidget):
 
         self.pwd_edit = QLineEdit()
         self.pwd_edit.setMaximumWidth(200)
+        self.pwd_edit.setEchoMode(QLineEdit.Password)
 
         self.error_label = QLabel()
         self.error_label.setStyleSheet("QLabel {color:red;}")
