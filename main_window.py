@@ -1,6 +1,8 @@
 import sys
-from datetime import datetime, time
-from math import floor
+import logging
+import logging.config
+
+
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
@@ -93,19 +95,12 @@ class LoginWidget(QWidget):
         login_button.keyPressEvent = self._key_press
 
         form = QFormLayout()
-        #form.setSpacing(10)
 
         form.addRow('', logo)
         form.addRow('User Name', self.user_edit)
         form.addRow('Password', self.pwd_edit)
         form.addWidget(self.error_label)
         form.addWidget(login_button)
-
-        # form.addWidget(user, 1, 0)
-        # form.addWidget(user_edit, 1, 1)
-        #
-        # form.addWidget(pwd, 2, 0)
-        # form.addWidget(pwd_edit, 2, 1)
 
         grid = QGridLayout()
         grid.addLayout(form, 40, 40)
@@ -114,7 +109,6 @@ class LoginWidget(QWidget):
 
         self.setWindowTitle('User Login')
         self.setGeometry(100, 100, 200, 100)
-        #self.show()
 
     def _on_login(self):
         self.error_label.setText('')
@@ -129,6 +123,7 @@ class LoginWidget(QWidget):
         if success:
             dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data)
         else:
+            logging.getLogger("Finprint").error("Login Failed: " + data)
             self.error_label.setText(data)
 
     def _key_press(self, e):
@@ -176,13 +171,13 @@ class SetListWidget(QWidget):
         dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=self.set_list.currentItem().data(Qt.UserRole))
 
 
-
-
 def main():
+    logging.config.fileConfig('./config.ini')
+    l = logging.getLogger('finprint')
+    l.info('Finprint Annotator Starting up')
     app = QApplication(sys.argv)
-    r = app.setStyle("Plastique")
+    app.setStyle("Plastique")
     win = MainWindow()
-    #win.showMaximized()
     win.setWindowTitle('Finprint Annotator')
     win.show()
     win.activateWindow()

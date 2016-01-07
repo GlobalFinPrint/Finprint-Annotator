@@ -12,7 +12,7 @@ class Singleton:
 class GlobalFinPrintServer(Singleton):
     def __init__(self):
         Singleton.__init__(self)
-        self.address = global_config.parser['GLOBAL_FINPRINT_SERVER']['address']
+        self.address = global_config.parser['GLOBAL_FINPRINT_SERVER'].get('address', 'http://localhost:8000')
         self.user_name = None
         self.user_token = None
 
