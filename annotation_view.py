@@ -3,12 +3,14 @@ import cv2
 import sys
 from math import floor
 import imutils
-import elasmo_finder
+from threading import Timer, Thread
+import time
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from PyQt4.phonon import Phonon
 
+from elasmo_finder import ElasmoFinder, Hit
 
 class Highlighter(object):
     def __init__(self):
@@ -37,14 +39,13 @@ class CvVideoWidget(QWidget):
         self._highlight_corner1 = QPoint(0,0)
         self._highlight_corner2 = QPoint(0,0)
         self._onPositionChange = onPositionChange
-
+        self.f = True
 
     def load(self, file_name):
         self._file_name = file_name
 
 
-        self._finder = elasmo_finder.ElasmoFinder()
-        #self._finder.process_video(self._file_name)
+        self._finder = ElasmoFinder()
 
         self._capture = cv2.VideoCapture(self._file_name)
         self.setMinimumSize(1024, 768)
@@ -55,10 +56,24 @@ class CvVideoWidget(QWidget):
         #self.setMaximumSize(self.minimumSize())
         self._frame = None
         self._image = self._build_image(frame)
-        # Paint every 50 ms
-        self._timer = QTimer(self)
-        self._timer.timeout.connect(self.on_timer)
-        self._timer.start(33)
+
+        # Use QT timer
+        # self._timer = QTimer(self)
+        # self._timer.timeout.connect(self.on_timer)
+        # self._timer.start(1)
+
+        # self._timer = Timer(1.0, self.on_timer)
+        # self._timer.start()
+        self.last_time = time.perf_counter()
+
+        self._capture_thread = Thread(target=self.thread_start, name="Capture Thread", daemon=True)
+        self._capture_thread.start()
+
+    def thread_start(self):
+        while True:
+            if not self._paused:
+                self.query_frame()
+            #time.sleep(0.033)
 
 
     def _build_image(self, frame):
@@ -80,9 +95,19 @@ class CvVideoWidget(QWidget):
         if not self._paused:
             self.query_frame()
 
+
     def query_frame(self):
         grabbed, frame = self._capture.read()
         if grabbed:
+            t = time.perf_counter()
+            #print("{0:.4f}".format(t - self.last_time))
+            self.last_time = t
+            if self.f:
+                hits = self._finder.check_frame(frame)
+                if len(hits) > 0:
+                    print("Hit!")
+            f = not self.f
+
             self._image = self._build_image(frame)
             self.update()
             if self._onPositionChange is not None:
@@ -128,6 +153,9 @@ class CvVideoWidget(QWidget):
         fps = self._capture.get(cv2.CAP_PROP_FPS)
         num_frames = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
         return num_frames / fps # Returns seconds as a float
+
+    def fast_forward(self):
+        self._capture.set(cv2.CAP_PROP_FPS, 120)
 
 
 class VideoSeekWidget(QSlider):
@@ -205,11 +233,9 @@ class VideoLayoutWidget(QWidget):
         # UI widgets
         self.vid_box = None
         self._video_player = CvVideoWidget(onPositionChange=self.on_position_change)
-        #self._video_player = QtVideoWidget(onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
 
         self._slider = VideoSeekWidget()
-        #self._slider.setMaximum(int(self._video_player.get_length()))
         self._pause_icon = QIcon('images/pause.png')
         self._play_icon = QIcon('images/play.png')
         self._process_icon = QIcon('images/clapperboard.png')
@@ -295,6 +321,7 @@ class VideoLayoutWidget(QWidget):
 
     def load(self, file):
         self._video_player.load(file)
+        self._slider.setMaximum(int(self._video_player.get_length()))
 
     def observation_selected(self, selected, deselected):
         obs = self._observation_table.get_observation(self._observation_table.currentRow())
@@ -315,7 +342,7 @@ class VideoLayoutWidget(QWidget):
             # self._video_player.showImage(True)
 
     def on_process(self):
-        self._video_player.load("sharkcut.avi")
+        self._video_player.fast_forward()
 
     def on_observation(self, event):
         obs = Observation()
