@@ -1,4 +1,4 @@
-import json
+from config import global_config
 import requests
 
 
@@ -10,9 +10,9 @@ class Singleton:
 
 
 class GlobalFinPrintServer(Singleton):
-    def __init__(self, server_address):
+    def __init__(self):
         Singleton.__init__(self)
-        self.address = server_address
+        self.address = global_config.parser['GLOBAL_FINPRINT_SERVER']['address']
         self.user_name = None
         self.user_token = None
 
@@ -22,7 +22,9 @@ class GlobalFinPrintServer(Singleton):
             data = r.json()
             self.user_token = data.user_token #?
             self.user_name = user_name
-            return data.set_list #?
+            return True, data.set_list #?
+        else:
+            return False, r.text
 
     def logout(self):
         r = requests.post(self.address + '/api/logout')

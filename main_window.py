@@ -7,6 +7,7 @@ from PyQt4.QtCore import *
 from pydispatch import dispatcher
 
 from annotation_view import VideoLayoutWidget
+from global_finprint import GlobalFinPrintServer
 
 
 class MainWindow(QMainWindow):
@@ -35,22 +36,30 @@ class MainWindow(QMainWindow):
         fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
 
-        #self.setGeometry(300, 300, 300, 200)
-
-        self._login_layout = LoginWidget()
-        self.setCentralWidget(self._login_layout)
-
-    def on_login(self, signal, sender, value):
         self._vid_layout = VideoLayoutWidget()
         self.setCentralWidget(self._vid_layout)
         self.showMaximized()
+        self._launch_login_dialog()
 
+    def _launch_login_dialog(self):
+        self._login_layout = QVBoxLayout()
+        self._login_widget = LoginWidget()
+        self._login_layout.addWidget(self._login_widget)
+        self.login_diag = QDialog()
+        self.login_diag.setLayout(self._login_layout)
+        self.login_diag.setModal(True)
+        self.login_diag.show()
+
+    def _launch_set_list(self):
         self._set_layout = QVBoxLayout()
         self._set_list = SetListWidget()
         self._set_layout.addWidget(self._set_list)
-        self.login_diag = QDialog()
-        self.login_diag.setLayout(self._set_layout)
-        self.login_diag.show()
+        self.set_diag = QDialog()
+        self.set_diag.setLayout(self._set_layout)
+        self.set_diag.show()
+
+    def on_login(self, signal, sender, value):
+        self._launch_set_list()
 
     def set_selected(self, signal, sender, value):
         self.login_diag.close()
@@ -68,11 +77,14 @@ class LoginWidget(QWidget):
         user = QLabel('User Name')
         pwd = QLabel('Password')
 
-        user_edit = QLineEdit()
-        user_edit.setMaximumWidth(200)
+        self.user_edit = QLineEdit()
+        self.user_edit.setMaximumWidth(200)
 
-        pwd_edit = QLineEdit()
-        pwd_edit.setMaximumWidth(200)
+        self.pwd_edit = QLineEdit()
+        self.pwd_edit.setMaximumWidth(200)
+
+        self.error_label = QLabel()
+        self.error_label.setStyleSheet("QLabel {color:red;}")
 
         login_button = QPushButton('Login')
         login_button.clicked.connect(self._on_login)
@@ -83,8 +95,9 @@ class LoginWidget(QWidget):
         #form.setSpacing(10)
 
         form.addRow('', logo)
-        form.addRow('User Name', user_edit)
-        form.addRow('Password', pwd_edit)
+        form.addRow('User Name', self.user_edit)
+        form.addRow('Password', self.pwd_edit)
+        form.addWidget(self.error_label)
         form.addWidget(login_button)
 
         # form.addWidget(user, 1, 0)
@@ -103,11 +116,23 @@ class LoginWidget(QWidget):
         #self.show()
 
     def _on_login(self):
-        dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value='')
+        self.error_label.setText('')
+
+        try:
+            client = GlobalFinPrintServer()
+            (success, data) = client.login(user_name=self.user_edit.text(), pwd=self.pwd_edit.text())
+        except Exception as ex:
+            success = False
+            data = 'Server could not be reached'
+
+        if success:
+            dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data)
+        else:
+            self.error_label.setText(data)
 
     def _key_press(self, e):
         if e.key() == Qt.Key_Enter:
-            self._on_login()
+                self._on_login()
 
 
 class SetListWidget(QWidget):
