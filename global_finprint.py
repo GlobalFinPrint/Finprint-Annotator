@@ -12,19 +12,26 @@ class Singleton:
 class GlobalFinPrintServer(Singleton):
     def __init__(self):
         Singleton.__init__(self)
-        self.address = global_config.parser['GLOBAL_FINPRINT_SERVER'].get('address', 'http://localhost:8000')
+        self.address = global_config.parser['GLOBAL_FINPRINT_SERVER'].get('address')
         self.user_name = None
         self.user_token = None
 
     def login(self, user_name, pwd):
-        r = requests.post(self.address + '/api/login', user_name, pwd)
+        data = {'user': user_name, 'password': pwd}
+        r = requests.post(self.address + '/api/login', data)
+        success = False
+        data = {}
         if r.status_code == 200:
+            success = True
             data = r.json()
-            self.user_token = data.user_token #?
+            self.user_token = data['token']
             self.user_name = user_name
-            return True, data.set_list #?
+        elif r.status_code == 403:
+            data['msg'] = 'Unknown User'
         else:
-            return False, r.text
+            data['msg'] = 'Unknown status code ' + r.status_code
+
+        return success, data
 
     def logout(self):
         r = requests.post(self.address + '/api/logout')

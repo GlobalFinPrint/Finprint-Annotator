@@ -25,7 +25,6 @@ class MainWindow(QMainWindow):
         dispatcher.connect(self.on_login, signal='LOGIN', sender=dispatcher.Any)
         dispatcher.connect(self.set_selected, signal='SET_SELECTED', sender=dispatcher.Any)
 
-
     def _init_widgets(self):
         exitAction = QAction(QIcon('exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -47,24 +46,27 @@ class MainWindow(QMainWindow):
         self._login_layout = QVBoxLayout()
         self._login_widget = LoginWidget()
         self._login_layout.addWidget(self._login_widget)
-        self.login_diag = QDialog()
+        self.login_diag = QDialog(self, Qt.WindowTitleHint)
         self.login_diag.setLayout(self._login_layout)
         self.login_diag.setModal(True)
+        self.login_diag.setWindowTitle('Login to Global Finprint')
         self.login_diag.show()
 
     def _launch_set_list(self):
         self._set_layout = QVBoxLayout()
         self._set_list = SetListWidget()
         self._set_layout.addWidget(self._set_list)
-        self.set_diag = QDialog()
+        self.set_diag = QDialog(self, Qt.WindowTitleHint)
         self.set_diag.setLayout(self._set_layout)
+        self.set_diag.setWindowTitle('Assigned Sets List')
         self.set_diag.show()
 
     def on_login(self, signal, sender, value):
+        self.login_diag.close()
         self._launch_set_list()
 
     def set_selected(self, signal, sender, value):
-        self.login_diag.close()
+        self.set_diag.close()
         self._vid_layout.load(value)
 
 
@@ -118,12 +120,12 @@ class LoginWidget(QWidget):
             (success, data) = client.login(user_name=self.user_edit.text(), pwd=self.pwd_edit.text())
         except Exception as ex:
             success = False
-            data = 'Server could not be reached'
+            data = {'msg': ex}
 
         if success:
             dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data)
         else:
-            logging.getLogger("Finprint").error("Login Failed: " + data)
+            logging.getLogger("Finprint").error("Login Failed: " + data['msg'])
             self.error_label.setText(data)
 
     def _key_press(self, e):
@@ -138,7 +140,6 @@ class SetListWidget(QWidget):
         super(SetListWidget, self).__init__()
 
         self.set_list = QListWidget()
-        self.set_list.setWindowTitle('Assigned Sets List')
         self.set_list.setMinimumSize(600, 400)
         self.set_list.setFont(self._get_font())
         self.set_list.setSelectionMode(QAbstractItemView.SingleSelection)
