@@ -18,6 +18,7 @@ class MainWindow(QMainWindow):
         self._login_layout = None
         self._vid_layout = None
         self._set_layout = None
+        self._logged_in = False
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
         self._init_widgets()
@@ -26,21 +27,45 @@ class MainWindow(QMainWindow):
         dispatcher.connect(self.set_selected, signal='SET_SELECTED', sender=dispatcher.Any)
 
     def _init_widgets(self):
-        exitAction = QAction(QIcon('exit.png'), '&Exit', self)
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Exit application')
-        exitAction.triggered.connect(QCoreApplication.instance().quit)
-
+        self._set_menus()
         self.statusBar()
-
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
-        fileMenu.addAction(exitAction)
 
         self._vid_layout = VideoLayoutWidget()
         self.setCentralWidget(self._vid_layout)
         self.showMaximized()
         self._launch_login_dialog()
+
+    def _set_menus(self):
+        menubar = QMenuBar()
+        fileMenu = menubar.addMenu('&File')
+
+        if self._logged_in:
+            logOutAction = QAction('Log&out', self)
+            logOutAction.setShortcut('Ctrl+O')
+            logOutAction.setStatusTip('Logout of GlobalFinprint')
+            logOutAction.triggered.connect(self._logout)
+            fileMenu.addAction(logOutAction)
+
+            setListAction = QAction('Set &List...', self)
+            setListAction.setShortcut('Ctrl+S')
+            setListAction.setStatusTip('View Set Lists')
+            setListAction.triggered.connect(self._launch_set_list)
+            fileMenu.addAction(setListAction)
+        else:
+            logInAction = QAction('&Login', self)
+            logInAction.setShortcut('Ctrl+L')
+            logInAction.setStatusTip('Login to GlobalFinprint')
+            logInAction.triggered.connect(self._launch_login_dialog)
+            fileMenu.addAction(logInAction)
+
+
+        exitAction = QAction(QIcon('exit.png'), '&Exit', self)
+        exitAction.setShortcut('Ctrl+Q')
+        exitAction.setStatusTip('Exit application')
+        exitAction.triggered.connect(QCoreApplication.instance().quit)
+        fileMenu.addAction(exitAction)
+        self.setMenuBar(menubar)
+
 
     def _launch_login_dialog(self):
         self._login_layout = QVBoxLayout()
@@ -52,22 +77,37 @@ class MainWindow(QMainWindow):
         self.login_diag.setWindowTitle('Login to Global Finprint')
         self.login_diag.show()
 
-    def _launch_set_list(self):
+    def _launch_set_list(self, sets):
         self._set_layout = QVBoxLayout()
         self._set_list = SetListWidget()
+
+        for s in sets:
+            self._set_list.add_item(s)
+
         self._set_layout.addWidget(self._set_list)
         self.set_diag = QDialog(self, Qt.WindowTitleHint)
         self.set_diag.setLayout(self._set_layout)
         self.set_diag.setWindowTitle('Assigned Sets List')
         self.set_diag.show()
 
+    def _logout(self):
+        client = GlobalFinPrintServer()
+        if client.logout():
+            self._logged_in = False
+            self._set_menus()
+            self._vid_layout.clear()
+
     def on_login(self, signal, sender, value):
         self.login_diag.close()
-        self._launch_set_list()
+        self._logged_in = True
+        self._set_menus()
+        self._launch_set_list(value)
 
     def set_selected(self, signal, sender, value):
         self.set_diag.close()
-        self._vid_layout.load(value)
+        client = GlobalFinPrintServer()
+        data = client.set_detail(value['id'])
+        self._vid_layout.load_set(data['set'])
 
 
 class LoginWidget(QWidget):
@@ -123,7 +163,7 @@ class LoginWidget(QWidget):
             data = {'msg': ex}
 
         if success:
-            dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data)
+            dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data['sets'])
         else:
             logging.getLogger("Finprint").error("Login Failed: " + data['msg'])
             self.error_label.setText(data)
@@ -144,13 +184,19 @@ class SetListWidget(QWidget):
         self.set_list.setFont(self._get_font())
         self.set_list.setSelectionMode(QAbstractItemView.SingleSelection)
 
-        self.add_test_items()
+        #self.add_test_items()
 
         self.set_list.doubleClicked.connect(self.on_list_item_clicked)
         self.list_container = QVBoxLayout()
         self.list_container.addWidget(self.set_list)
 
         self.setLayout(self.list_container)
+
+    def add_item(self, set):
+        i = QListWidgetItem()
+        i.setText(set['file'])
+        i.setData(Qt.UserRole, set)
+        self.set_list.addItem(i)
 
     def add_test_items(self):
         i = QListWidgetItem()
