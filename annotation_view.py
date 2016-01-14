@@ -3,7 +3,7 @@ from math import floor
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-
+from video_player import CvVideoWidget
 
 
 class VideoSeekWidget(QSlider):
