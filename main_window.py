@@ -9,7 +9,7 @@ from PyQt4.QtCore import *
 from pydispatch import dispatcher
 
 from annotation_view import VideoLayoutWidget
-from global_finprint import GlobalFinPrintServer
+from global_finprint import GlobalFinPrintServer, Set
 
 
 class MainWindow(QMainWindow):
@@ -18,7 +18,6 @@ class MainWindow(QMainWindow):
         self._login_layout = None
         self._vid_layout = None
         self._set_layout = None
-        self._logged_in = False
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
         self._init_widgets()
@@ -39,7 +38,7 @@ class MainWindow(QMainWindow):
         menubar = QMenuBar()
         fileMenu = menubar.addMenu('&File')
 
-        if self._logged_in:
+        if GlobalFinPrintServer().logged_in:
             logOutAction = QAction('Log&out', self)
             logOutAction.setShortcut('Ctrl+O')
             logOutAction.setStatusTip('Logout of GlobalFinprint')
@@ -93,21 +92,18 @@ class MainWindow(QMainWindow):
     def _logout(self):
         client = GlobalFinPrintServer()
         if client.logout():
-            self._logged_in = False
             self._set_menus()
             self._vid_layout.clear()
 
     def on_login(self, signal, sender, value):
         self.login_diag.close()
-        self._logged_in = True
         self._set_menus()
         self._launch_set_list(value)
 
     def set_selected(self, signal, sender, value):
         self.set_diag.close()
-        client = GlobalFinPrintServer()
-        data = client.set_detail(value['id'])
-        self._vid_layout.load_set(data['set'])
+        s = Set(value['id'])
+        self._vid_layout.load_set(s)
 
 
 class LoginWidget(QWidget):
