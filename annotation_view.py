@@ -266,14 +266,14 @@ class ObservationTable(QTableWidget):
 
     def contextMenuEvent(self, event):
         menu = QMenu(self)
-        deleteAction = menu.addAction("Delete")
+        delete_action = menu.addAction("Delete")
         row = self.indexAt(event.pos()).row()
-        #action = menu.exec_(self.mapToGlobal(event.pos()))
         if row >= 0:
             action = menu.exec_(event.globalPos())
-            if action == deleteAction:
-                row = self.indexAt(event.pos()).row()
+            if action == delete_action:
                 self.delete_callback(self._observations[row])
+                self._observations.pop(row)
+                self.removeRow(row)
 
 
 
