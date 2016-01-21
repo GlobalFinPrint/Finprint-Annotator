@@ -1,161 +1,10 @@
-import numpy as np
-import cv2
 import sys
 from math import floor
-import imutils
-from threading import Timer, Thread
-import time
-
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from PyQt4.phonon import Phonon
 
-from elasmo_finder import ElasmoFinder, Hit
-
-class Highlighter(object):
-    def __init__(self):
-        self._highlight_corner1 = QPoint(0, 0)
-        self._highlight_corner2 = QPoint(0, 0)
-
-    def get_rect(self):
-        return QRect(self._highlight_corner1.x(), self._highlight_corner1.y(), self._highlight_corner2.x() - self._highlight_corner1.x(), self._highlight_corner2.y() - self._highlight_corner1.y())
-
-    def start_rect(self, pos):
-        self._highlight_corner1 = pos
-        self._highlight_corner2 = pos
-
-    def set_rect(self, pos):
-        self._highlight_corner2 = pos
-
-
-
-
-class CvVideoWidget(QWidget):
-    def __init__(self, parent=None, onPositionChange=None):
-        QWidget.__init__(self, parent)
-
-        self._paused = True
-        self._dragging = False
-        self._highlight_corner1 = QPoint(0,0)
-        self._highlight_corner2 = QPoint(0,0)
-        self._onPositionChange = onPositionChange
-        self.f = True
-
-    def load(self, file_name):
-        self._file_name = file_name
-
-
-        self._finder = ElasmoFinder()
-
-        self._capture = cv2.VideoCapture(self._file_name)
-        self.setMinimumSize(1024, 768)
-
-        # Take one frame to query height
-        grabbed, frame = self._capture.read()
-        #height, width, channels = frame.shape
-        #self.setMaximumSize(self.minimumSize())
-        self._frame = None
-        self._image = self._build_image(frame)
-
-        # Use QT timer
-        # self._timer = QTimer(self)
-        # self._timer.timeout.connect(self.on_timer)
-        # self._timer.start(1)
-
-        # self._timer = Timer(1.0, self.on_timer)
-        # self._timer.start()
-        self.last_time = time.perf_counter()
-
-        self._capture_thread = Thread(target=self.thread_start, name="Capture Thread", daemon=True)
-        self._capture_thread.start()
-
-    def thread_start(self):
-        while True:
-            if not self._paused:
-                self.query_frame()
-            #time.sleep(0.033)
-
-
-    def _build_image(self, frame):
-        frame = imutils.resize(frame, width=1200)
-        height, width, channels = frame.shape
-        if self._frame is None:
-            self._frame = np.zeros((width, height, channels), np.uint8)
-        self._frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        return QImage(self._frame, width, height, QImage.Format_RGB888)
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.drawImage(QPoint(0, 0), self._image)
-        if self._paused:
-            painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
-            painter.drawRect(self.get_highlight())
-
-    def on_timer(self):
-        if not self._paused:
-            self.query_frame()
-
-
-    def query_frame(self):
-        grabbed, frame = self._capture.read()
-        if grabbed:
-            t = time.perf_counter()
-            #print("{0:.4f}".format(t - self.last_time))
-            self.last_time = t
-            if self.f:
-                hits = self._finder.check_frame(frame)
-                if len(hits) > 0:
-                    print("Hit!")
-            f = not self.f
-
-            self._image = self._build_image(frame)
-            self.update()
-            if self._onPositionChange is not None:
-                self._onPositionChange(self.get_position())
-
-    def get_highlight(self):
-        return QRect(self._highlight_corner1.x(), self._highlight_corner1.y(), self._highlight_corner2.x() - self._highlight_corner1.x(), self._highlight_corner2.y() - self._highlight_corner1.y())
-
-    def display_observation(self, pos, rect):
-        self._highlight_corner1 = rect.topLeft()
-        self._highlight_corner2 = rect.bottomRight()
-        self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
-        self.query_frame()
-        self.repaint()
-
-    def mousePressEvent(self, event):
-        self._highlight_corner1 = event.pos()
-        self._highlight_corner2 = event.pos()
-        self.update()
-
-    def mouseMoveEvent(self, event):
-        self._dragging = True
-        self._highlight_corner2 = event.pos()
-        self.update()
-
-    def mouseReleaseEvent(self, event):
-        self._dragging = False
-        self.update()
-
-    def pause(self):
-        self._paused = True
-
-    def play(self):
-        self._paused = False
-
-    def paused(self):
-        return self._paused
-
-    def get_position(self):
-        return self._capture.get(cv2.CAP_PROP_POS_MSEC)
-
-    def get_length(self):
-        fps = self._capture.get(cv2.CAP_PROP_FPS)
-        num_frames = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
-        return num_frames / fps # Returns seconds as a float
-
-    def fast_forward(self):
-        self._capture.set(cv2.CAP_PROP_FPS, 120)
+from video_player import CvVideoWidget
+from global_finprint import Observation, Set
 
 
 class VideoSeekWidget(QSlider):
@@ -164,7 +13,6 @@ class VideoSeekWidget(QSlider):
 
         self.setOrientation(Qt.Horizontal)
         self.setStyleSheet(self.style())
-
 
     def style(self):
         return """
@@ -240,19 +88,23 @@ class VideoLayoutWidget(QWidget):
         self._play_icon = QIcon('images/play.png')
         self._process_icon = QIcon('images/clapperboard.png')
 
-
         self._pause_button = QPushButton('Resume')
         self._pause_button.setIcon(self._play_icon)
 
         self._process_button = QPushButton('Process')
         self._process_button.setIcon(self._process_icon)
 
+        self._obs_btn_box = QHBoxLayout()
+
         self._quit_button = QPushButton('Quit')
-        self._observation_table = ObservationTable()
+        self._observation_table = ObservationTable(self.delete_observation)
+
+        # An annotation seession is in the context of a set.  Track the current set we're annotating
+        self.current_set = None
 
         # Buttons to record an observation of a registered species
         #  This will be dynamic based on each annotation session
-        self._species_buttons = ['Grey Reef', 'Nurse', 'Tiger', 'Jaws']
+        #self._species_buttons = ['Grey Reef', 'Nurse', 'Tiger', 'Jaws']
 
         self.setup_layout()
         self.wire_events()
@@ -287,20 +139,8 @@ class VideoLayoutWidget(QWidget):
         vid_btn_box.addWidget(self._pause_button )
         vid_btn_box.addWidget(self._process_button)
 
-        # Video control and observation register buttons
-        obs_btn_box = QHBoxLayout()
-        for species in self._species_buttons:
-            obsbtn = QPushButton(species)
-            obsbtn.clicked.connect(self.on_observation)
-
-            obs_btn_box.addWidget(obsbtn, alignment=Qt.AlignLeft)
-
-        self._of_interest = QPushButton('Of Interest')
-        self._of_interest.clicked.connect(self.of_interest)
-        obs_btn_box.addWidget(self._of_interest)
-
         btn_box = QHBoxLayout()
-        btn_box.addLayout(obs_btn_box)
+        btn_box.addLayout(self._obs_btn_box)
         btn_box.addLayout(vid_btn_box)
 
         container.addLayout(btn_box)
@@ -318,39 +158,62 @@ class VideoLayoutWidget(QWidget):
 
         self.setLayout(container)
 
+    def load_buttons(self, animals):
+        # Video control and observation register buttons
+        for animal in animals:
+            obsbtn = QPushButton(animal['common_name'])
+            obsbtn.data = animal
+            obsbtn.clicked.connect(self.on_observation)
 
-    def load(self, file):
-        self._video_player.load(file)
+            self._obs_btn_box.addWidget(obsbtn, alignment=Qt.AlignLeft)
+
+        self._of_interest = QPushButton('Of Interest')
+        self._of_interest.clicked.connect(self.of_interest)
+        self._obs_btn_box.addWidget(self._of_interest)
+
+    def load_set(self, set):
+        self.current_set = set
+        self.load_buttons(set.animals)
+        ### TODO: fix absolute path issues
+        file_name = 'c:/temp/' + set.file[2:len(set.file)]
+        self._video_player.load(file_name)
         self._slider.setMaximum(int(self._video_player.get_length()))
+
+        for obs in set.observations:
+            self._observation_table.add_row(obs)
+
+    def clear(self):
+        self._video_player.clear()
+        self.current_set = None
 
     def observation_selected(self, selected, deselected):
         obs = self._observation_table.get_observation(self._observation_table.currentRow())
-        self._video_player.display_observation(obs.position, obs.rect)
+        if hasattr(obs, 'rect'):
+            self._video_player.display_observation(obs.position, obs.rect)
 
     def on_pause(self):
         if self._video_player.paused():
             self._video_player.play()
             self._pause_button.setText('Pause')
             self._pause_button.setIcon(self._pause_icon)
-            # self.vid_box.setCurrentIndex(0)
-            # self._video_player.showImage(False)
         else:
             self._video_player.pause()
             self._pause_button.setText('Resume')
             self._pause_button.setIcon(self._play_icon)
-            # self.vid_box.setCurrentIndex(1)
-            # self._video_player.showImage(True)
 
     def on_process(self):
         self._video_player.fast_forward()
 
     def on_observation(self, event):
+        btn = self.sender()
+        data = btn.data
         obs = Observation()
+        obs.animal_id = data['id']
         obs.species = self.sender().text()
         obs.position = self._video_player.get_position()
         obs.display_position = self._convert_position(obs.position)
         obs.rect = self._video_player.get_highlight()
-        self._observation_table.add_row(obs)
+        self.add_observation(obs)
 
     def of_interest(self):
         obs = Observation()
@@ -362,7 +225,14 @@ class VideoLayoutWidget(QWidget):
         note, ok = dlg.getText(self, 'Observation of Interest', 'Please enter detail of your observation')
         if ok:
             obs.notes = note
-            self._observation_table.add_row(obs)
+            self.add_observation(obs)
+
+    def add_observation(self, obs):
+        self.current_set.add_observation(obs)
+        self._observation_table.add_row(obs)
+
+    def delete_observation(self, obs):
+        self.current_set.delete_observation(obs)
 
     def _convert_position(self, pos):
         s, m = divmod(floor(pos), 1000)
@@ -375,19 +245,13 @@ class VideoLayoutWidget(QWidget):
         self._slider.setValue(s)
 
 
-# use this for now but should probably be incorporated into a table model
-class Observation(object):
-    def __init__(self):
-        self.position = 0
-        self.display_position = ''
-        self.species = ''
-        self.notes = ''
-
 class ObservationTable(QTableWidget):
     column_headers = ['Time', 'Species', 'Notes']
-    def __init__(self, *args):
+
+    def __init__(self, delete_callback, *args):
         super(ObservationTable, self).__init__(*args)
         # Track the rectangle highlights for each observation
+        self.delete_callback = delete_callback
         self._observations = []
         self.set_data()
         self.show()
@@ -400,12 +264,26 @@ class ObservationTable(QTableWidget):
     def get_observation(self, row):
         return self._observations[row]
 
+    def contextMenuEvent(self, event):
+        menu = QMenu(self)
+        delete_action = menu.addAction("Delete")
+        row = self.indexAt(event.pos()).row()
+        if row >= 0:
+            action = menu.exec_(event.globalPos())
+            if action == delete_action:
+                self.delete_callback(self._observations[row])
+                self._observations.pop(row)
+                self.removeRow(row)
+
+
+
     def add_row(self, obs):
         new_row_index = self.rowCount()
         self.setRowCount(new_row_index + 1)
-        self.setItem(new_row_index, 0, QTableWidgetItem(obs.display_position))
-        self.setItem(new_row_index, 1, QTableWidgetItem(obs.species))
-        self.setItem(new_row_index, 2, QTableWidgetItem(obs.notes))
+        self.setItem(new_row_index, 0, QTableWidgetItem(obs.initial_observation_time.strftime('%Y-%m-%dT%I:%M:%S.%fZ')))
+        self.setItem(new_row_index, 1, QTableWidgetItem(obs.animal))
+        self.setItem(new_row_index, 2, QTableWidgetItem(obs.comment))
+
         self._observations.insert(new_row_index, obs)
 
 

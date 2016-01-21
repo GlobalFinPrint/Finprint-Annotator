@@ -1,12 +1,15 @@
 import sys
-from datetime import datetime, time
-from math import floor
+import logging
+import logging.config
+
+
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
 from pydispatch import dispatcher
 
 from annotation_view import VideoLayoutWidget
+from global_finprint import GlobalFinPrintServer, Set
 
 
 class MainWindow(QMainWindow):
@@ -22,39 +25,85 @@ class MainWindow(QMainWindow):
         dispatcher.connect(self.on_login, signal='LOGIN', sender=dispatcher.Any)
         dispatcher.connect(self.set_selected, signal='SET_SELECTED', sender=dispatcher.Any)
 
-
     def _init_widgets(self):
+        self._set_menus()
+        self.statusBar()
+
+        self._vid_layout = VideoLayoutWidget()
+        self.setCentralWidget(self._vid_layout)
+        self.showMaximized()
+        self._launch_login_dialog()
+
+    def _set_menus(self):
+        menubar = QMenuBar()
+        fileMenu = menubar.addMenu('&File')
+
+        if GlobalFinPrintServer().logged_in:
+            logOutAction = QAction('Log&out', self)
+            logOutAction.setShortcut('Ctrl+O')
+            logOutAction.setStatusTip('Logout of GlobalFinprint')
+            logOutAction.triggered.connect(self._logout)
+            fileMenu.addAction(logOutAction)
+
+            setListAction = QAction('Set &List...', self)
+            setListAction.setShortcut('Ctrl+S')
+            setListAction.setStatusTip('View Set Lists')
+            setListAction.triggered.connect(self._launch_set_list)
+            fileMenu.addAction(setListAction)
+        else:
+            logInAction = QAction('&Login', self)
+            logInAction.setShortcut('Ctrl+L')
+            logInAction.setStatusTip('Login to GlobalFinprint')
+            logInAction.triggered.connect(self._launch_login_dialog)
+            fileMenu.addAction(logInAction)
+
+
         exitAction = QAction(QIcon('exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
         exitAction.setStatusTip('Exit application')
         exitAction.triggered.connect(QCoreApplication.instance().quit)
-
-        self.statusBar()
-
-        menubar = self.menuBar()
-        fileMenu = menubar.addMenu('&File')
         fileMenu.addAction(exitAction)
+        self.setMenuBar(menubar)
 
-        #self.setGeometry(300, 300, 300, 200)
 
-        self._login_layout = LoginWidget()
-        self.setCentralWidget(self._login_layout)
-
-    def on_login(self, signal, sender, value):
-        self._vid_layout = VideoLayoutWidget()
-        self.setCentralWidget(self._vid_layout)
-        self.showMaximized()
-
-        self._set_layout = QVBoxLayout()
-        self._set_list = SetListWidget()
-        self._set_layout.addWidget(self._set_list)
-        self.login_diag = QDialog()
-        self.login_diag.setLayout(self._set_layout)
+    def _launch_login_dialog(self):
+        self._login_layout = QVBoxLayout()
+        self._login_widget = LoginWidget()
+        self._login_layout.addWidget(self._login_widget)
+        self.login_diag = QDialog(self, Qt.WindowTitleHint)
+        self.login_diag.setLayout(self._login_layout)
+        self.login_diag.setModal(True)
+        self.login_diag.setWindowTitle('Login to Global Finprint')
         self.login_diag.show()
 
-    def set_selected(self, signal, sender, value):
+    def _launch_set_list(self, sets):
+        self._set_layout = QVBoxLayout()
+        self._set_list = SetListWidget()
+
+        for s in sets:
+            self._set_list.add_item(s)
+
+        self._set_layout.addWidget(self._set_list)
+        self.set_diag = QDialog(self, Qt.WindowTitleHint)
+        self.set_diag.setLayout(self._set_layout)
+        self.set_diag.setWindowTitle('Assigned Sets List')
+        self.set_diag.show()
+
+    def _logout(self):
+        client = GlobalFinPrintServer()
+        if client.logout():
+            self._set_menus()
+            self._vid_layout.clear()
+
+    def on_login(self, signal, sender, value):
         self.login_diag.close()
-        self._vid_layout.load(value)
+        self._set_menus()
+        self._launch_set_list(value)
+
+    def set_selected(self, signal, sender, value):
+        self.set_diag.close()
+        s = Set(value['id'])
+        self._vid_layout.load_set(s)
 
 
 class LoginWidget(QWidget):
@@ -68,11 +117,15 @@ class LoginWidget(QWidget):
         user = QLabel('User Name')
         pwd = QLabel('Password')
 
-        user_edit = QLineEdit()
-        user_edit.setMaximumWidth(200)
+        self.user_edit = QLineEdit()
+        self.user_edit.setMaximumWidth(200)
 
-        pwd_edit = QLineEdit()
-        pwd_edit.setMaximumWidth(200)
+        self.pwd_edit = QLineEdit()
+        self.pwd_edit.setMaximumWidth(200)
+        self.pwd_edit.setEchoMode(QLineEdit.Password)
+
+        self.error_label = QLabel()
+        self.error_label.setStyleSheet("QLabel {color:red;}")
 
         login_button = QPushButton('Login')
         login_button.clicked.connect(self._on_login)
@@ -80,18 +133,12 @@ class LoginWidget(QWidget):
         login_button.keyPressEvent = self._key_press
 
         form = QFormLayout()
-        #form.setSpacing(10)
 
         form.addRow('', logo)
-        form.addRow('User Name', user_edit)
-        form.addRow('Password', pwd_edit)
+        form.addRow('User Name', self.user_edit)
+        form.addRow('Password', self.pwd_edit)
+        form.addWidget(self.error_label)
         form.addWidget(login_button)
-
-        # form.addWidget(user, 1, 0)
-        # form.addWidget(user_edit, 1, 1)
-        #
-        # form.addWidget(pwd, 2, 0)
-        # form.addWidget(pwd_edit, 2, 1)
 
         grid = QGridLayout()
         grid.addLayout(form, 40, 40)
@@ -100,14 +147,26 @@ class LoginWidget(QWidget):
 
         self.setWindowTitle('User Login')
         self.setGeometry(100, 100, 200, 100)
-        #self.show()
 
     def _on_login(self):
-        dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value='')
+        self.error_label.setText('')
+
+        try:
+            client = GlobalFinPrintServer()
+            (success, data) = client.login(user_name=self.user_edit.text(), pwd=self.pwd_edit.text())
+        except Exception as ex:
+            success = False
+            data = {'msg': ex}
+
+        if success:
+            dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data['sets'])
+        else:
+            logging.getLogger("Finprint").error("Login Failed: " + data['msg'])
+            self.error_label.setText(data)
 
     def _key_press(self, e):
         if e.key() == Qt.Key_Enter:
-            self._on_login()
+                self._on_login()
 
 
 class SetListWidget(QWidget):
@@ -117,18 +176,23 @@ class SetListWidget(QWidget):
         super(SetListWidget, self).__init__()
 
         self.set_list = QListWidget()
-        self.set_list.setWindowTitle('Assigned Sets List')
         self.set_list.setMinimumSize(600, 400)
         self.set_list.setFont(self._get_font())
         self.set_list.setSelectionMode(QAbstractItemView.SingleSelection)
 
-        self.add_test_items()
+        #self.add_test_items()
 
         self.set_list.doubleClicked.connect(self.on_list_item_clicked)
         self.list_container = QVBoxLayout()
         self.list_container.addWidget(self.set_list)
 
         self.setLayout(self.list_container)
+
+    def add_item(self, set):
+        i = QListWidgetItem()
+        i.setText(set['file'])
+        i.setData(Qt.UserRole, set)
+        self.set_list.addItem(i)
 
     def add_test_items(self):
         i = QListWidgetItem()
@@ -150,13 +214,13 @@ class SetListWidget(QWidget):
         dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=self.set_list.currentItem().data(Qt.UserRole))
 
 
-
-
 def main():
+    logging.config.fileConfig('./config.ini')
+    l = logging.getLogger('finprint')
+    l.info('Finprint Annotator Starting up')
     app = QApplication(sys.argv)
-    r = app.setStyle("Plastique")
+    app.setStyle("Plastique")
     win = MainWindow()
-    #win.showMaximized()
     win.setWindowTitle('Finprint Annotator')
     win.show()
     win.activateWindow()
