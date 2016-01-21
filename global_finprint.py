@@ -124,13 +124,13 @@ class Set(object):
     def add_observation(self, obs):
         self._connection.add_observation(self.id, obs)
         a = self.get_animal(obs.animal_id)
-        obs.animal = a.animal
+        obs.animal = a['common_name']
 
     def delete_observation(self, obs):
         self._connection.delete_observation(self.id, obs.id)
 
     def get_animal(self, id):
-        a =(animal for animal in self.animals if animal['id'] == id).next()
-        if a:
-            return a
+        a = [animal for animal in self.animals if animal['id'] == id]
+        if len(a):
+            return a[0]
         return None
