@@ -158,6 +158,13 @@ class VideoLayoutWidget(QWidget):
 
         self.setLayout(container)
 
+    def clear_buttons(self):
+        for idx in reversed(range(self._obs_btn_box.count())):
+            widget = self._obs_btn_box.takeAt(idx).widget()
+            if widget is not None:
+                widget.deleteLater()
+
+
     def load_buttons(self, animals):
         # Video control and observation register buttons
         for animal in animals:
@@ -184,6 +191,8 @@ class VideoLayoutWidget(QWidget):
 
     def clear(self):
         self._video_player.clear()
+        self.clear_buttons()
+        self._observation_table.setRowCount(0)
         self.current_set = None
 
     def observation_selected(self, selected, deselected):
@@ -274,8 +283,6 @@ class ObservationTable(QTableWidget):
                 self.delete_callback(self._observations[row])
                 self._observations.pop(row)
                 self.removeRow(row)
-
-
 
     def add_row(self, obs):
         new_row_index = self.rowCount()
