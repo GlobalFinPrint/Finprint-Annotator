@@ -18,11 +18,13 @@ class MainWindow(QMainWindow):
         self._login_layout = None
         self._vid_layout = None
         self._set_layout = None
+        self._has_logged_in = False #if a successful log in has occurred, don't exit app when cancelling login dialog
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
         self._init_widgets()
 
         dispatcher.connect(self.on_login, signal='LOGIN', sender=dispatcher.Any)
+        dispatcher.connect(self.on_login_cancelled, signal='LOGIN_CANCELLED', sender=dispatcher.Any)
         dispatcher.connect(self.set_selected, signal='SET_SELECTED', sender=dispatcher.Any)
 
     def _init_widgets(self):
@@ -56,7 +58,6 @@ class MainWindow(QMainWindow):
             logInAction.setStatusTip('Login to GlobalFinprint')
             logInAction.triggered.connect(self._launch_login_dialog)
             fileMenu.addAction(logInAction)
-
 
         exitAction = QAction(QIcon('exit.png'), '&Exit', self)
         exitAction.setShortcut('Ctrl+Q')
@@ -99,6 +100,13 @@ class MainWindow(QMainWindow):
         self.login_diag.close()
         self._set_menus()
         self._launch_set_list(value)
+        self._has_logged_in = True
+
+    def on_login_cancelled(self, signal, sender, value):
+        self.login_diag.close()
+        #exit application if login box is cancelled before ever loggin in
+        if not self._has_logged_in:
+            QCoreApplication.instance().quit()
 
     def set_selected(self, signal, sender, value):
         self.set_diag.close()
@@ -132,13 +140,22 @@ class LoginWidget(QWidget):
         login_button.autoDefault = True
         login_button.keyPressEvent = self._key_press
 
+        cancel_button = QPushButton('Cancel')
+        cancel_button.clicked.connect(self._login_cancel)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(login_button)
+        button_layout.addWidget(cancel_button)
+
         form = QFormLayout()
 
         form.addRow('', logo)
         form.addRow('User Name', self.user_edit)
         form.addRow('Password', self.pwd_edit)
         form.addWidget(self.error_label)
-        form.addWidget(login_button)
+        form.addRow(button_layout)
+        #form.addWidget(login_button)
+        #form.addWidget(cancel_button)
 
         grid = QGridLayout()
         grid.addLayout(form, 40, 40)
@@ -162,11 +179,14 @@ class LoginWidget(QWidget):
             dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data['sets'])
         else:
             logging.getLogger("Finprint").error("Login Failed: " + data['msg'])
-            self.error_label.setText(data)
+            self.error_label.setText(data['msg'])
 
     def _key_press(self, e):
         if e.key() == Qt.Key_Enter:
                 self._on_login()
+
+    def _login_cancel(self):
+        dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
 
 
 class SetListWidget(QWidget):
