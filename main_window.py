@@ -126,10 +126,10 @@ class LoginWidget(QWidget):
         pwd = QLabel('Password')
 
         self.user_edit = QLineEdit()
-        self.user_edit.setMaximumWidth(200)
+        self.user_edit.setMaximumWidth(300)
 
         self.pwd_edit = QLineEdit()
-        self.pwd_edit.setMaximumWidth(200)
+        self.pwd_edit.setMaximumWidth(300)
         self.pwd_edit.setEchoMode(QLineEdit.Password)
 
         self.error_label = QLabel()
@@ -137,19 +137,22 @@ class LoginWidget(QWidget):
 
         login_button = QPushButton('Login')
         login_button.clicked.connect(self._on_login)
+        login_button.setMaximumWidth(50)
         login_button.autoDefault = True
         login_button.keyPressEvent = self._key_press
 
         cancel_button = QPushButton('Cancel')
         cancel_button.clicked.connect(self._login_cancel)
+        cancel_button.setMaximumWidth(50)
 
         button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignRight)
         button_layout.addWidget(login_button)
         button_layout.addWidget(cancel_button)
 
         form = QFormLayout()
 
-        form.addRow('', logo)
+        form.addRow(logo)
         form.addRow('User Name', self.user_edit)
         form.addRow('Password', self.pwd_edit)
         form.addWidget(self.error_label)
@@ -183,14 +186,13 @@ class LoginWidget(QWidget):
 
     def _key_press(self, e):
         if e.key() == Qt.Key_Enter:
-                self._on_login()
+            self._on_login()
 
     def _login_cancel(self):
         dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
 
 
 class SetListWidget(QWidget):
-    test_data = ['Belize', 'West Jamaica', 'Roatan']
 
     def __init__(self):
         super(SetListWidget, self).__init__()
@@ -199,8 +201,6 @@ class SetListWidget(QWidget):
         self.set_list.setMinimumSize(600, 400)
         self.set_list.setFont(self._get_font())
         self.set_list.setSelectionMode(QAbstractItemView.SingleSelection)
-
-        #self.add_test_items()
 
         self.set_list.doubleClicked.connect(self.on_list_item_clicked)
         self.list_container = QVBoxLayout()
@@ -212,17 +212,6 @@ class SetListWidget(QWidget):
         i = QListWidgetItem()
         i.setText(set['file'])
         i.setData(Qt.UserRole, set)
-        self.set_list.addItem(i)
-
-    def add_test_items(self):
-        i = QListWidgetItem()
-        i.setText("Belize")
-        i.setData(Qt.UserRole, "videos/sharkcut.avi")
-        self.set_list.addItem(i)
-
-        i = QListWidgetItem()
-        i.setText("West Jamaica")
-        i.setData(Qt.UserRole, "videos/stitched.avi")
         self.set_list.addItem(i)
 
     def _get_font(self):
