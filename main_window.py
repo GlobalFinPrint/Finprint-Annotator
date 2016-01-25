@@ -66,7 +66,7 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(exitAction)
         self.setMenuBar(menubar)
 
-
+    # TODO: The login widget should just be the dialog
     def _launch_login_dialog(self):
         self._login_layout = QVBoxLayout()
         self._login_widget = LoginWidget()
@@ -74,8 +74,13 @@ class MainWindow(QMainWindow):
         self.login_diag = QDialog(self, Qt.WindowTitleHint)
         self.login_diag.setLayout(self._login_layout)
         self.login_diag.setModal(True)
+        self.login_diag.closeEvent = self.loginCloseEvent
         self.login_diag.setWindowTitle('Login to Global Finprint')
         self.login_diag.show()
+
+    def loginCloseEvent(self, event):
+        dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
+
 
     def _launch_set_list(self, sets):
         self._set_layout = QVBoxLayout()
@@ -167,6 +172,7 @@ class LoginWidget(QWidget):
 
         self.setWindowTitle('User Login')
         self.setGeometry(100, 100, 200, 100)
+
 
     def _on_login(self):
         self.error_label.setText('')
