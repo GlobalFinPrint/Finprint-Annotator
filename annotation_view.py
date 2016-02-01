@@ -84,11 +84,15 @@ class VideoLayoutWidget(QWidget):
         self._pos_label = QLabel()
 
         self._slider = VideoSeekWidget()
+        self._rew_icon = QIcon('images/rewind.png')
         self._pause_icon = QIcon('images/pause.png')
         self._play_icon = QIcon('images/play.png')
         self._process_icon = QIcon('images/clapperboard.png')
 
-        self._pause_button = QPushButton('Resume')
+        self._rew_button = QPushButton('')
+        self._rew_button.setIcon(self._rew_icon)
+
+        self._pause_button = QPushButton('')
         self._pause_button.setIcon(self._play_icon)
 
         self._process_button = QPushButton('Process')
@@ -114,6 +118,7 @@ class VideoLayoutWidget(QWidget):
         self._quit_button.clicked.connect(QCoreApplication.instance().quit)
         self._pause_button.clicked.connect(self.on_pause)
         self._process_button.clicked.connect(self.on_process)
+        self._rew_button.clicked.connect(self.on_rewind)
         self._observation_table.selectionChanged = self.observation_selected
 
     def setup_layout(self):
@@ -198,7 +203,7 @@ class VideoLayoutWidget(QWidget):
     def observation_selected(self, selected, deselected):
         obs = self._observation_table.get_observation(self._observation_table.currentRow())
         if hasattr(obs, 'rect'):
-            self._video_player.display_observation(obs.position, obs.rect)
+            self._video_player.display_observation(obs.initial_observation_time, obs.rect)
 
     def on_pause(self):
         if self._video_player.paused():
@@ -213,21 +218,24 @@ class VideoLayoutWidget(QWidget):
     def on_process(self):
         self._video_player.fast_forward()
 
+    def on_rewind(self):
+        self._video_player.rewind()
+
     def on_observation(self, event):
         btn = self.sender()
         data = btn.data
         obs = Observation()
         obs.animal_id = data['id']
         obs.species = self.sender().text()
-        obs.position = self._video_player.get_position()
-        obs.display_position = self._convert_position(obs.position)
+        obs.initial_observation_time = int(self._video_player.get_position())
+        #obs.display_position = self._convert_position(obs.position)
         obs.rect = self._video_player.get_highlight()
         self.add_observation(obs)
 
     def of_interest(self):
         obs = Observation()
         obs.position = self._video_player.get_position()
-        obs.display_position = self._convert_position(obs.position)
+        #obs.display_position = self._convert_position(obs.position)
         obs.rect = self._video_player.get_highlight()
         dlg = QInputDialog(self)
         dlg.setInputMode(QInputDialog.TextInput)
@@ -287,7 +295,7 @@ class ObservationTable(QTableWidget):
     def add_row(self, obs):
         new_row_index = self.rowCount()
         self.setRowCount(new_row_index + 1)
-        self.setItem(new_row_index, 0, QTableWidgetItem(obs.initial_observation_time.strftime('%Y-%m-%dT%I:%M:%S.%fZ')))
+        self.setItem(new_row_index, 0, QTableWidgetItem(str(obs.initial_observation_time)))
         self.setItem(new_row_index, 1, QTableWidgetItem(obs.animal))
         self.setItem(new_row_index, 2, QTableWidgetItem(obs.comment))
 

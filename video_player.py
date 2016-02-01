@@ -152,3 +152,5 @@ class CvVideoWidget(QWidget):
     def fast_forward(self):
         self._capture.set(cv2.CAP_PROP_FPS, 120)
 
+    def rewind(self):
+        pass

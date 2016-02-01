@@ -74,7 +74,7 @@ class MainWindow(QMainWindow):
         self.login_diag = QDialog(self, Qt.WindowTitleHint)
         self.login_diag.setLayout(self._login_layout)
         self.login_diag.setModal(True)
-        self.login_diag.closeEvent = self.loginCloseEvent
+        #self.login_diag.closeEvent = self.loginCloseEvent
         self.login_diag.setWindowTitle('Login to Global Finprint')
         self.login_diag.show()
 
@@ -102,10 +102,10 @@ class MainWindow(QMainWindow):
             self._vid_layout.clear()
 
     def on_login(self, signal, sender, value):
+        self._has_logged_in = True
         self.login_diag.close()
         self._set_menus()
         self._launch_set_list(value)
-        self._has_logged_in = True
 
     def on_login_cancelled(self, signal, sender, value):
         self.login_diag.close()
