@@ -5,7 +5,6 @@ import datetime
 class QueryException(Exception):
     pass
 
-
 class Singleton:
     _shared_state = {}
 
@@ -23,7 +22,7 @@ class GlobalFinPrintServer(Singleton):
             self.logged_in = False
             self.user_token = None
             self.user_name = ''
-            self.address = global_config.parser['GLOBAL_FINPRINT_SERVER'].get('address')
+            self.address = global_config.get('GLOBAL_FINPRINT_SERVER', 'address')
 
     def login(self, user_name, pwd):
         data = {'username': user_name, 'password': pwd}
