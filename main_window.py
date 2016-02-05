@@ -2,7 +2,6 @@ import sys
 import logging
 import logging.config
 
-
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
@@ -10,7 +9,6 @@ from pydispatch import dispatcher
 
 from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set
-
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -182,7 +180,7 @@ class LoginWidget(QWidget):
             (success, data) = client.login(user_name=self.user_edit.text(), pwd=self.pwd_edit.text())
         except Exception as ex:
             success = False
-            data = {'msg': ex}
+            data = {'msg': 'Failed to connect to Server'}
 
         if success:
             dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data['sets'])
