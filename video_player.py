@@ -30,7 +30,7 @@ class Highlighter(object):
 class CvVideoWidget(QWidget):
     def __init__(self, parent=None, onPositionChange=None):
         QWidget.__init__(self, parent)
-
+        self._capture = None
         self._paused = True
         self._dragging = False
         self._active = False
@@ -44,7 +44,7 @@ class CvVideoWidget(QWidget):
         self._file_name = file_name
 
         self._capture = cv2.VideoCapture(self._file_name)
-        self.setMinimumSize(1024, 768)
+        self.setMinimumSize(800, 600)
 
         # Take one frame to query height
         grabbed, frame = self._capture.read()
@@ -64,13 +64,14 @@ class CvVideoWidget(QWidget):
 
     def clear(self):
         self._active = False
-        self._capture.release()
+        if self._capture is not None:
+            self._capture.release()
         self._image = QBitmap(800, 600)
         self._image.fill(Qt.black)
         self.update()
 
     def _build_image(self, frame):
-        frame = imutils.resize(frame, width=1200)
+        frame = imutils.resize(frame, width=1024)
         height, width, channels = frame.shape
         if self._frame is None:
             self._frame = np.zeros((width, height, channels), np.uint8)
@@ -137,6 +138,8 @@ class CvVideoWidget(QWidget):
 
     def play(self):
         self._paused = False
+        self._highlight_corner1 = QPoint(0,0)
+        self._highlight_corner2 = QPoint(0,0)
 
     def paused(self):
         return self._paused
