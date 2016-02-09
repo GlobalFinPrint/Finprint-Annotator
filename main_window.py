@@ -77,12 +77,17 @@ class MainWindow(QMainWindow):
         self.login_diag.show()
 
     def loginCloseEvent(self, event):
-        dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
+        pass
+        #dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
 
 
-    def _launch_set_list(self, sets):
+    def _launch_set_list(self, sets=None):
         self._set_layout = QVBoxLayout()
         self._set_list = SetListWidget()
+
+        if sets is None:
+            response = GlobalFinPrintServer().set_list()
+            sets = response['sets']
 
         for s in sets:
             self._set_list.add_item(s)
@@ -214,7 +219,7 @@ class SetListWidget(QWidget):
 
     def add_item(self, set):
         i = QListWidgetItem()
-        i.setText(set['file'])
+        i.setText(set['set_code'])
         i.setData(Qt.UserRole, set)
         self.set_list.addItem(i)
 
