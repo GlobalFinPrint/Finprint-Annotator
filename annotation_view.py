@@ -94,6 +94,7 @@ class VideoLayoutWidget(QWidget):
 
         self._pause_button = QPushButton('')
         self._pause_button.setIcon(self._play_icon)
+        self._pause_button.setText('Resume')
 
         self._process_button = QPushButton('Process')
         self._process_button.setIcon(self._process_icon)
@@ -169,15 +170,26 @@ class VideoLayoutWidget(QWidget):
             if widget is not None:
                 widget.deleteLater()
 
-
     def load_buttons(self, animals):
         # Video control and observation register buttons
+        grouping = {}
         for animal in animals:
-            obsbtn = QPushButton(animal['common_name'])
-            obsbtn.data = animal
-            obsbtn.clicked.connect(self.on_observation)
+            if animal['group'] not in grouping:
+                grouping[animal['group']] = [{'common_name': animal['group']}]
+            grouping[animal['group']].append(animal)
 
+        for group in grouping:
+            # obsbtn = QPushButton(animal['common_name'])
+            # obsbtn.data = animal
+            # obsbtn.clicked.connect(self.on_observation)
+            obsbtn = QComboBox(self)
+            #obsbtn.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            for animal in grouping[group]:
+                obsbtn.addItem(animal['common_name'], animal)
+
+            obsbtn.activated.connect(self.on_observation)
             self._obs_btn_box.addWidget(obsbtn, alignment=Qt.AlignLeft)
+            #obsbtn.adjustSize()
 
         self._of_interest = QPushButton('Of Interest')
         self._of_interest.clicked.connect(self.of_interest)
@@ -221,12 +233,12 @@ class VideoLayoutWidget(QWidget):
     def on_rewind(self):
         self._video_player.rewind()
 
-    def on_observation(self, event):
+    def on_observation(self, index):
         btn = self.sender()
-        data = btn.data
+        data = btn.itemData(index)  # btn.data
         obs = Observation()
         obs.animal_id = data['id']
-        obs.species = self.sender().text()
+        obs.species = data['common_name']
         obs.initial_observation_time = int(self._video_player.get_position())
         #obs.display_position = self._convert_position(obs.position)
         obs.rect = self._video_player.get_highlight()
@@ -263,7 +275,7 @@ class VideoLayoutWidget(QWidget):
 
 
 class ObservationTable(QTableWidget):
-    column_headers = ['Time', 'Species', 'Notes']
+    column_headers = ['Time', 'Species', 'Duration', 'Notes']
 
     def __init__(self, delete_callback, *args):
         super(ObservationTable, self).__init__(*args)
@@ -277,6 +289,10 @@ class ObservationTable(QTableWidget):
     def set_data(self):
         self.setColumnCount(len(ObservationTable.column_headers))
         self.setHorizontalHeaderLabels(ObservationTable.column_headers)
+        self.setColumnWidth(1, 250)
+        self.setColumnWidth(3, 400)
+        #self.setColumnCount(self.columnCount() + 1)
+
 
     def get_observation(self, row):
         return self._observations[row]
