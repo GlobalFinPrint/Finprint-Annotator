@@ -247,7 +247,7 @@ class VideoLayoutWidget(QWidget):
     def of_interest(self):
         obs = Observation()
         obs.position = self._video_player.get_position()
-        #obs.display_position = self._convert_position(obs.position)
+        obs.initial_observation_time = int(self._video_player.get_position())
         obs.rect = self._video_player.get_highlight()
         dlg = QInputDialog(self)
         dlg.setInputMode(QInputDialog.TextInput)
@@ -300,6 +300,7 @@ class ObservationTable(QTableWidget):
     def contextMenuEvent(self, event):
         menu = QMenu(self)
         delete_action = menu.addAction("Delete")
+        set_duration_action = menu.addAction("Set Duration")
         row = self.indexAt(event.pos()).row()
         if row >= 0:
             action = menu.exec_(event.globalPos())
@@ -307,13 +308,16 @@ class ObservationTable(QTableWidget):
                 self.delete_callback(self._observations[row])
                 self._observations.pop(row)
                 self.removeRow(row)
+            if action == set_duration_action:
+                self.setItem(row, 2, QTableWidgetItem('1200'))
+
 
     def add_row(self, obs):
         new_row_index = self.rowCount()
         self.setRowCount(new_row_index + 1)
         self.setItem(new_row_index, 0, QTableWidgetItem(str(obs.initial_observation_time)))
         self.setItem(new_row_index, 1, QTableWidgetItem(obs.animal))
-        self.setItem(new_row_index, 2, QTableWidgetItem(obs.comment))
+        self.setItem(new_row_index, 3, QTableWidgetItem(obs.comment))
 
         self._observations.insert(new_row_index, obs)
 
