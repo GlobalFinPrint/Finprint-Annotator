@@ -68,14 +68,14 @@ class GlobalFinPrintServer(Singleton):
         if r.status_code == 200:
             return r.json()
         else:
-            raise QueryException('Failed to add Observation: status ' + r.status_code)
+            raise QueryException('Failed to add Observation: status {0}'.format(r.status_code))
 
     def delete_observation(self, set_id, obs_id):
         r = requests.delete(self.address + '/api/set/{0}/obs'.format(set_id), params={'obs_id': obs_id, 'token': self.user_token})
         if r.status_code == 200:
             return r.json()
         else:
-            raise QueryException('Failed to delete observation: status ' + r.status_code)
+            raise QueryException('Failed to delete observation: status {0}'.format(r.status_code))
 
     def critters(self, set_id):
         r = requests.get(self.address + '/api/set/{0}/critters'.format(set_id), params={'token': self.user_token})
