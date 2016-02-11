@@ -24,7 +24,8 @@ class Highlighter(object):
     def set_rect(self, pos):
         self._highlight_corner2 = pos
 
-
+    def clear(self):
+        self.start_rect(QPoint(0,0))
 
 
 class CvVideoWidget(QWidget):
@@ -34,8 +35,9 @@ class CvVideoWidget(QWidget):
         self._paused = True
         self._dragging = False
         self._active = False
-        self._highlight_corner1 = QPoint(0,0)
-        self._highlight_corner2 = QPoint(0,0)
+        #self._highlight_corner1 = QPoint(0,0)
+        #self._highlight_corner2 = QPoint(0,0)
+        self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
         self._image = QBitmap(800, 600)
 
@@ -43,6 +45,7 @@ class CvVideoWidget(QWidget):
         self._active = True
         self._file_name = file_name
 
+        self._highlighter.clear()
         self._capture = cv2.VideoCapture(self._file_name)
         self.setMinimumSize(800, 600)
 
@@ -84,13 +87,13 @@ class CvVideoWidget(QWidget):
             painter.drawImage(QPoint(0, 0), self._image)
             if self._paused:
                 painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
-                painter.drawRect(self.get_highlight())
+                #painter.drawRect(self.get_highlight())
+                painter.drawRect(self._highlighter.get_rect())
 
 
     def on_timer(self):
         if not self._paused:
             self.query_frame()
-
 
     def query_frame(self):
         grabbed, frame = self._capture.read()
@@ -110,23 +113,27 @@ class CvVideoWidget(QWidget):
                 self._onPositionChange(self.get_position())
 
     def get_highlight(self):
-        return QRect(self._highlight_corner1.x(), self._highlight_corner1.y(), self._highlight_corner2.x() - self._highlight_corner1.x(), self._highlight_corner2.y() - self._highlight_corner1.y())
+        return self._highlighter.get_rect()
 
     def display_observation(self, pos, rect):
-        self._highlight_corner1 = rect.topLeft()
-        self._highlight_corner2 = rect.bottomRight()
+        #self._highlight_corner1 = rect.topLeft()
+        #self._highlight_corner2 = rect.bottomRight()
+        self._highlighter.start_rect(rect.topLeft())
+        self._highlighter.set_rect(rect.bottomRight())
         self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
         self.query_frame()
         self.repaint()
 
     def mousePressEvent(self, event):
-        self._highlight_corner1 = event.pos()
-        self._highlight_corner2 = event.pos()
+        #self._highlight_corner1 = event.pos()
+        #self._highlight_corner2 = event.pos()
+        self._highlighter.start_rect(event.pos())
         self.update()
 
     def mouseMoveEvent(self, event):
         self._dragging = True
-        self._highlight_corner2 = event.pos()
+        #self._highlight_corner2 = event.pos()
+        self._highlighter.set_rect(event.pos())
         self.update()
 
     def mouseReleaseEvent(self, event):
@@ -138,8 +145,9 @@ class CvVideoWidget(QWidget):
 
     def play(self):
         self._paused = False
-        self._highlight_corner1 = QPoint(0,0)
-        self._highlight_corner2 = QPoint(0,0)
+        #self._highlight_corner1 = QPoint(0,0)
+        #self._highlight_corner2 = QPoint(0,0)
+        self._highlighter.clear()
 
     def paused(self):
         return self._paused
