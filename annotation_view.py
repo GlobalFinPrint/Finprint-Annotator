@@ -84,12 +84,17 @@ class VideoLayoutWidget(QWidget):
         self._pos_label = QLabel()
 
         self._slider = VideoSeekWidget()
+        self._rew_icon = QIcon('images/rewind.png')
         self._pause_icon = QIcon('images/pause.png')
         self._play_icon = QIcon('images/play.png')
         self._process_icon = QIcon('images/clapperboard.png')
 
-        self._pause_button = QPushButton('Resume')
+        self._rew_button = QPushButton('')
+        self._rew_button.setIcon(self._rew_icon)
+
+        self._pause_button = QPushButton('')
         self._pause_button.setIcon(self._play_icon)
+        self._pause_button.setText('Resume')
 
         self._process_button = QPushButton('Process')
         self._process_button.setIcon(self._process_icon)
@@ -114,6 +119,7 @@ class VideoLayoutWidget(QWidget):
         self._quit_button.clicked.connect(QCoreApplication.instance().quit)
         self._pause_button.clicked.connect(self.on_pause)
         self._process_button.clicked.connect(self.on_process)
+        self._rew_button.clicked.connect(self.on_rewind)
         self._observation_table.selectionChanged = self.observation_selected
 
     def setup_layout(self):
@@ -158,14 +164,32 @@ class VideoLayoutWidget(QWidget):
 
         self.setLayout(container)
 
+    def clear_buttons(self):
+        for idx in reversed(range(self._obs_btn_box.count())):
+            widget = self._obs_btn_box.takeAt(idx).widget()
+            if widget is not None:
+                widget.deleteLater()
+
     def load_buttons(self, animals):
         # Video control and observation register buttons
+        grouping = {}
         for animal in animals:
-            obsbtn = QPushButton(animal['common_name'])
-            obsbtn.data = animal
-            obsbtn.clicked.connect(self.on_observation)
+            if animal['group'] not in grouping:
+                grouping[animal['group']] = [{'common_name': animal['group']}]
+            grouping[animal['group']].append(animal)
 
+        for group in grouping:
+            # obsbtn = QPushButton(animal['common_name'])
+            # obsbtn.data = animal
+            # obsbtn.clicked.connect(self.on_observation)
+            obsbtn = QComboBox(self)
+            #obsbtn.setSizeAdjustPolicy(QComboBox.AdjustToContents)
+            for animal in grouping[group]:
+                obsbtn.addItem(animal['common_name'], animal)
+
+            obsbtn.activated.connect(self.on_observation)
             self._obs_btn_box.addWidget(obsbtn, alignment=Qt.AlignLeft)
+            #obsbtn.adjustSize()
 
         self._of_interest = QPushButton('Of Interest')
         self._of_interest.clicked.connect(self.of_interest)
@@ -184,12 +208,14 @@ class VideoLayoutWidget(QWidget):
 
     def clear(self):
         self._video_player.clear()
+        self.clear_buttons()
+        self._observation_table.setRowCount(0)
         self.current_set = None
 
     def observation_selected(self, selected, deselected):
         obs = self._observation_table.get_observation(self._observation_table.currentRow())
         if hasattr(obs, 'rect'):
-            self._video_player.display_observation(obs.position, obs.rect)
+            self._video_player.display_observation(obs.initial_observation_time, obs.rect)
 
     def on_pause(self):
         if self._video_player.paused():
@@ -204,21 +230,24 @@ class VideoLayoutWidget(QWidget):
     def on_process(self):
         self._video_player.fast_forward()
 
-    def on_observation(self, event):
+    def on_rewind(self):
+        self._video_player.rewind()
+
+    def on_observation(self, index):
         btn = self.sender()
-        data = btn.data
+        data = btn.itemData(index)  # btn.data
         obs = Observation()
         obs.animal_id = data['id']
-        obs.species = self.sender().text()
-        obs.position = self._video_player.get_position()
-        obs.display_position = self._convert_position(obs.position)
+        obs.species = data['common_name']
+        obs.initial_observation_time = int(self._video_player.get_position())
+        #obs.display_position = self._convert_position(obs.position)
         obs.rect = self._video_player.get_highlight()
         self.add_observation(obs)
 
     def of_interest(self):
         obs = Observation()
         obs.position = self._video_player.get_position()
-        obs.display_position = self._convert_position(obs.position)
+        obs.initial_observation_time = int(self._video_player.get_position())
         obs.rect = self._video_player.get_highlight()
         dlg = QInputDialog(self)
         dlg.setInputMode(QInputDialog.TextInput)
@@ -246,7 +275,7 @@ class VideoLayoutWidget(QWidget):
 
 
 class ObservationTable(QTableWidget):
-    column_headers = ['Time', 'Species', 'Notes']
+    column_headers = ['Time', 'Species', 'Duration', 'Notes']
 
     def __init__(self, delete_callback, *args):
         super(ObservationTable, self).__init__(*args)
@@ -260,6 +289,10 @@ class ObservationTable(QTableWidget):
     def set_data(self):
         self.setColumnCount(len(ObservationTable.column_headers))
         self.setHorizontalHeaderLabels(ObservationTable.column_headers)
+        self.setColumnWidth(1, 250)
+        self.setColumnWidth(3, 400)
+        #self.setColumnCount(self.columnCount() + 1)
+
 
     def get_observation(self, row):
         return self._observations[row]
@@ -267,6 +300,7 @@ class ObservationTable(QTableWidget):
     def contextMenuEvent(self, event):
         menu = QMenu(self)
         delete_action = menu.addAction("Delete")
+        set_duration_action = menu.addAction("Set Duration")
         row = self.indexAt(event.pos()).row()
         if row >= 0:
             action = menu.exec_(event.globalPos())
@@ -274,15 +308,16 @@ class ObservationTable(QTableWidget):
                 self.delete_callback(self._observations[row])
                 self._observations.pop(row)
                 self.removeRow(row)
-
+            if action == set_duration_action:
+                self.setItem(row, 2, QTableWidgetItem('1200'))
 
 
     def add_row(self, obs):
         new_row_index = self.rowCount()
         self.setRowCount(new_row_index + 1)
-        self.setItem(new_row_index, 0, QTableWidgetItem(obs.initial_observation_time.strftime('%Y-%m-%dT%I:%M:%S.%fZ')))
+        self.setItem(new_row_index, 0, QTableWidgetItem(str(obs.initial_observation_time)))
         self.setItem(new_row_index, 1, QTableWidgetItem(obs.animal))
-        self.setItem(new_row_index, 2, QTableWidgetItem(obs.comment))
+        self.setItem(new_row_index, 3, QTableWidgetItem(obs.comment))
 
         self._observations.insert(new_row_index, obs)
 
