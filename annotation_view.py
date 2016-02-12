@@ -142,6 +142,7 @@ class VideoLayoutWidget(QWidget):
         vid_btn_box = QHBoxLayout()
         vid_btn_box.addStretch(1)
         vid_btn_box.addWidget(self._pos_label)
+        vid_btn_box.addWidget(self._rew_button )
         vid_btn_box.addWidget(self._pause_button )
         vid_btn_box.addWidget(self._process_button)
 
@@ -309,7 +310,8 @@ class ObservationTable(QTableWidget):
                 self._observations.pop(row)
                 self.removeRow(row)
             if action == set_duration_action:
-                self.setItem(row, 2, QTableWidgetItem('1200'))
+                pass
+                #self.setItem(row, 2, QTableWidgetItem('1200'))
 
 
     def add_row(self, obs):

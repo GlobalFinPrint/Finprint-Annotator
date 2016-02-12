@@ -3,6 +3,7 @@ import cv2
 import imutils
 from threading import Thread
 import time
+from enum import Enum
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -27,22 +28,29 @@ class Highlighter(object):
     def clear(self):
         self.start_rect(QPoint(0,0))
 
+class PlayState(Enum):
+    Playing = 1
+    Paused = 2
+    SeekBack = 3
+    SeekForward = 4
+    NotReady = 5
 
 class CvVideoWidget(QWidget):
     def __init__(self, parent=None, onPositionChange=None):
         QWidget.__init__(self, parent)
         self._capture = None
         self._paused = True
+        self._play_state = PlayState.NotReady
+
         self._dragging = False
         self._active = False
-        #self._highlight_corner1 = QPoint(0,0)
-        #self._highlight_corner2 = QPoint(0,0)
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
         self._image = QBitmap(800, 600)
 
     def load(self, file_name):
         self._active = True
+        self._play_state = PlayState.Paused
         self._file_name = file_name
 
         self._highlighter.clear()
@@ -61,8 +69,8 @@ class CvVideoWidget(QWidget):
 
     def thread_start(self):
         while self._active:
-            if not self._paused:
-                self.query_frame()
+            #self.query_frame()
+            self.update()
             time.sleep(0.03)
 
     def clear(self):
@@ -82,57 +90,49 @@ class CvVideoWidget(QWidget):
         return QImage(self._frame, width, height, QImage.Format_RGB888)
 
     def paintEvent(self, event):
-        if self._active:
-            painter = QPainter(self)
-            painter.drawImage(QPoint(0, 0), self._image)
-            if self._paused:
-                painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
-                #painter.drawRect(self.get_highlight())
-                painter.drawRect(self._highlighter.get_rect())
+        painter = QPainter(self)
+
+        if self._play_state == PlayState.Playing:
+            grabbed, frame = self._capture.read()
+            if grabbed:
+                #t = time.perf_counter()
+                #print("{0:.4f}".format(t - self.last_time))
+                #self.last_time = t
+                self._image = self._build_image(frame)
+
+        elif self._play_state == PlayState.SeekBack:
+            pos = self.get_position()
+            pos -= 120
+            self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+            grabbed, frame = self._capture.read()
+            if grabbed:
+                self._image = self._build_image(frame)
+
+        painter.drawImage(QPoint(0, 0), self._image)
+        if self._play_state == PlayState.Paused:
+            painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
+            painter.drawRect(self._highlighter.get_rect())
+        else:
+            self._onPositionChange(self.get_position())
 
 
-    def on_timer(self):
-        if not self._paused:
-            self.query_frame()
-
-    def query_frame(self):
-        grabbed, frame = self._capture.read()
-        if grabbed:
-            #t = time.perf_counter()
-            #print("{0:.4f}".format(t - self.last_time))
-            #self.last_time = t
-            # if self.f:
-            #     hits = self._finder.check_frame(frame)
-            #     if len(hits) > 0:
-            #         print("Hit!")
-            # f = not self.f
-
-            self._image = self._build_image(frame)
-            self.update()
-            if self._onPositionChange is not None:
-                self._onPositionChange(self.get_position())
 
     def get_highlight(self):
         return self._highlighter.get_rect()
 
     def display_observation(self, pos, rect):
-        #self._highlight_corner1 = rect.topLeft()
-        #self._highlight_corner2 = rect.bottomRight()
         self._highlighter.start_rect(rect.topLeft())
         self._highlighter.set_rect(rect.bottomRight())
         self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
-        self.query_frame()
+        #self.query_frame()
         self.repaint()
 
     def mousePressEvent(self, event):
-        #self._highlight_corner1 = event.pos()
-        #self._highlight_corner2 = event.pos()
         self._highlighter.start_rect(event.pos())
         self.update()
 
     def mouseMoveEvent(self, event):
         self._dragging = True
-        #self._highlight_corner2 = event.pos()
         self._highlighter.set_rect(event.pos())
         self.update()
 
@@ -141,16 +141,14 @@ class CvVideoWidget(QWidget):
         self.update()
 
     def pause(self):
-        self._paused = True
+        self._play_state = PlayState.Paused
 
     def play(self):
-        self._paused = False
-        #self._highlight_corner1 = QPoint(0,0)
-        #self._highlight_corner2 = QPoint(0,0)
+        self._play_state = PlayState.Playing
         self._highlighter.clear()
 
     def paused(self):
-        return self._paused
+        return self._play_state == PlayState.Paused
 
     def get_position(self):
         return self._capture.get(cv2.CAP_PROP_POS_MSEC)
@@ -164,4 +162,4 @@ class CvVideoWidget(QWidget):
         self._capture.set(cv2.CAP_PROP_FPS, 120)
 
     def rewind(self):
-        pass
+        self._play_state = PlayState.SeekBack
