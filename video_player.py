@@ -41,6 +41,7 @@ class CvVideoWidget(QWidget):
         self._capture = None
         self._paused = True
         self._play_state = PlayState.NotReady
+        self._frame = None
 
         self._dragging = False
         self._active = False
@@ -58,9 +59,7 @@ class CvVideoWidget(QWidget):
         self.setMinimumSize(800, 600)
 
         # Take one frame to query height
-        grabbed, frame = self._capture.read()
-        self._frame = None
-        self._image = self._build_image(frame)
+        self.set_position(0)
 
         self.last_time = time.perf_counter()
 
@@ -69,7 +68,6 @@ class CvVideoWidget(QWidget):
 
     def thread_start(self):
         while self._active:
-            #self.query_frame()
             self.update()
             time.sleep(0.03)
 
@@ -93,20 +91,12 @@ class CvVideoWidget(QWidget):
         painter = QPainter(self)
 
         if self._play_state == PlayState.Playing:
-            grabbed, frame = self._capture.read()
-            if grabbed:
-                #t = time.perf_counter()
-                #print("{0:.4f}".format(t - self.last_time))
-                #self.last_time = t
-                self._image = self._build_image(frame)
-
+            self.load_frame()
         elif self._play_state == PlayState.SeekBack:
             pos = self.get_position()
             pos -= 120
             self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
-            grabbed, frame = self._capture.read()
-            if grabbed:
-                self._image = self._build_image(frame)
+            self.load_frame()
 
         painter.drawImage(QPoint(0, 0), self._image)
         if self._play_state == PlayState.Paused:
@@ -115,7 +105,13 @@ class CvVideoWidget(QWidget):
         else:
             self._onPositionChange(self.get_position())
 
-
+    def load_frame(self):
+        grabbed, frame = self._capture.read()
+        if grabbed:
+            #t = time.perf_counter()
+            #print("{0:.4f}".format(t - self.last_time))
+            #self.last_time = t
+            self._image = self._build_image(frame)
 
     def get_highlight(self):
         return self._highlighter.get_rect()
@@ -123,9 +119,13 @@ class CvVideoWidget(QWidget):
     def display_observation(self, pos, rect):
         self._highlighter.start_rect(rect.topLeft())
         self._highlighter.set_rect(rect.bottomRight())
-        self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
-        #self.query_frame()
+        self.set_position(pos)
         self.repaint()
+
+    def set_position(self, pos):
+        self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+        self.load_frame()
+        self._onPositionChange(self.get_position())
 
     def mousePressEvent(self, event):
         self._highlighter.start_rect(event.pos())
@@ -156,10 +156,13 @@ class CvVideoWidget(QWidget):
     def get_length(self):
         fps = self._capture.get(cv2.CAP_PROP_FPS)
         num_frames = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
-        return num_frames / fps # Returns seconds as a float
+        return (num_frames / fps) * 1000 # Returns milliseconds as a float
 
     def fast_forward(self):
         self._capture.set(cv2.CAP_PROP_FPS, 120)
 
     def rewind(self):
-        self._play_state = PlayState.SeekBack
+        if self._play_state == PlayState.SeekBack:
+            self._play_state = PlayState.Playing
+        else:
+            self._play_state = PlayState.SeekBack

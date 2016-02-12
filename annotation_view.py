@@ -8,11 +8,33 @@ from global_finprint import Observation, Set
 
 
 class VideoSeekWidget(QSlider):
-    def __init__(self):
+    def __init__(self, player):
         super(VideoSeekWidget, self).__init__()
+
+        self._player = player
 
         self.setOrientation(Qt.Horizontal)
         self.setStyleSheet(self.style())
+
+        self.sliderPressed.connect(self._pressed)
+        #self.sliderMoved.connect(self._moved)
+        self.sliderReleased.connect(self._released)
+
+    def _pressed(self):
+        self._player.pause()
+
+    #def _moved(self, pos):
+    #    pass
+        #self._player.set_position(pos)
+
+    def _released(self):
+        self._player.set_position(self.value())
+        self._player.play()
+
+    def setMaximum(self, value):
+        super(VideoSeekWidget, self).setMaximum(value)
+        max = self.maximum()
+        pass
 
     def style(self):
         return """
@@ -83,7 +105,7 @@ class VideoLayoutWidget(QWidget):
         self._video_player = CvVideoWidget(onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
 
-        self._slider = VideoSeekWidget()
+        self._slider = VideoSeekWidget(self._video_player)
         self._rew_icon = QIcon('images/rewind.png')
         self._pause_icon = QIcon('images/pause.png')
         self._play_icon = QIcon('images/play.png')
@@ -271,8 +293,8 @@ class VideoLayoutWidget(QWidget):
 
     def on_position_change(self, pos):
         self._pos_label.setText(self._convert_position(pos))
-        s, m = divmod(floor(pos), 1000)
-        self._slider.setValue(s)
+        #s, m = divmod(floor(pos), 1000)
+        self._slider.setValue(int(pos))
 
 
 class ObservationTable(QTableWidget):
