@@ -1,14 +1,17 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-# Created by: python.exe -m py2exe main_window.py -W mysetup.py
 
 import sys
 import os
-import os.path
+from os.path import isdir, islink
 import shutil
 import glob
 from distutils.core import setup
-import py2exe
+from py2exe.distutils_buildexe import py2exe
+import win32api, win32con
+import config
+
+
 
 INNOSETUP_COMPILER = r'C:\InnoSetup\ISCC.exe'
 
@@ -23,7 +26,7 @@ class InnoScript:
                  windows_exe_files=[],
                  service_exe_files=[],
                  lib_files=[],
-                 version="1.0"):
+                 version=config.__version_string__):
         self.lib_dir = lib_dir
         self.dist_dir = dist_dir
         if not self.dist_dir[-1] in "\\/":
@@ -33,12 +36,13 @@ class InnoScript:
         self.console_exe_files = [self.chop(p) for p in console_exe_files]
         self.windows_exe_files = [self.chop(p) for p in windows_exe_files]
         self.service_exe_files = [self.chop(p) for p in service_exe_files]
-        self.lib_files = [self.chop(p) for p in lib_files]
+        self.lib_files = [p for p in lib_files]
         self.files_to_delete = []
 
     def chop(self, pathname):
-        assert pathname.startswith(self.dist_dir)
-        return pathname[len(self.dist_dir):]
+        if pathname.startswith(self.dist_dir):
+            return pathname[len(self.dist_dir):]
+        return pathname
 
     def create(self, pathname=None):
         if not pathname:
@@ -152,23 +156,154 @@ manifest_template = '''<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 </assembly>
 '''
 
-main_window = Target(
+
+class BuildInstaller(py2exe):
+    # This class first builds the exe file(s), then creates a Windows installer.
+    # You need InnoSetup for it.
+
+    def delete_helper(func, path, exc_info):
+        print('Clearing attributes: %s' % path)
+        win32api.SetFileAttributes(path, win32con.FILE_ATTRIBUTE_NORMAL)
+        func(path)
+
+    def pre_run(self):
+        print('#################### pre_run ##################')
+        if 'clean' in sys.argv:
+            if os.path.exists('build'):
+                print('Deleting build dir')
+                shutil.rmtree('build', onerror=self.delete_helper)
+            if os.path.exists(self.dist_dir):
+                print('Deleting dist dir')
+                #shutil.rmtree(self.dist_dir, onerror=self.delete_helper)
+        print('################## end pre_run ################')
+
+    def run(self):
+        self.pre_run()
+
+        # let py2exe do it's work.
+        py2exe.run(self)
+
+        self.post_run()
+
+        # create the Installer, using the files py2exe has created.
+        script = InnoScript("Finprint-Annotator",
+                            self.lib_dir,
+                            self.dist_dir,
+                            self.console_exe_files,
+                            self.windows_exe_files,
+                            self.service_exe_files,
+                            self.lib_files,
+                            config.__version_string__)
+        print("*** creating the inno setup script***")
+        script.create()
+        print("*** compiling the inno setup script***")
+        script.compile()
+
+        self.post_installer()
+
+    def post_run(self):
+        print('#################### post_run ##################')
+
+        # we don't need w9xpopen.exe
+        temp_path = os.path.join(self.dist_dir, 'w9xpopen.exe')
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+        # copy template ini files into dist dir, make sure they're editable
+        shutil.copy('config.example.ini',
+                    'dist/config.ini')
+        win32api.SetFileAttributes('dist/config.ini',
+                                    win32con.FILE_ATTRIBUTE_NORMAL)
+
+        # include the ini files in lib_files so they end up in the installer
+        files = ['config.ini']
+        files = [os.path.join(self.dist_dir, path) for path in files]
+        #todo create the lib_files,   console_exe_files, windows_exe_files, service_exe_files
+        self.lib_dir = "dist\\lib"
+        self.lib_files = [] #self.getdatafiles()
+        for path_tuple in (self.distribution.data_files):
+            for path in path_tuple[1]:
+                self.lib_files.append(path)
+
+
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip']#['dist\\LQAdmin.exe','dist\\LQMonitor.exe','dist\\LQCopy.exe','dist\\LQChecker.exe','dist\\LQSync.exe','dist\\LQVisaCopy.exe','dist\\LeQueueServer.exe']
+        self.windows_exe_files = []
+        self.service_exe_files = []#['dist\\LeQueueService.exe']
+        #self.lib_files.extend(files)
+        print('################## end post_run ################')
+
+    def post_installer(self):
+        print('#################### post_installer ##################')
+        print('Clearing out Distribution dir')
+        output = 'Distribution'
+        root = os.path.join(output, config.__version_string__ + '-dev')
+        binary = os.path.join(root, 'Binary')
+
+        if os.path.exists(root):
+            shutil.rmtree(root, onerror=self.delete_helper)
+        print('Moving files into Distribution dir: %s' % root)
+        os.makedirs(root)
+        shutil.copytree('dist', binary)
+
+        setup_files = glob.glob(binary + '/*_Setup.exe')
+        for file in setup_files:
+            shutil.move(file, root)
+        print('################## end post_installer ################')
+
+def globr(pattern):
+    """ Recursive glob implementation """
+    candidates = glob.glob(pattern)
+    files = []
+    for candidate in candidates:
+        if isdir(candidate):
+            files.extend(globr(os.path.join(candidate, "*")))
+        elif islink(candidate):
+            files.extend(globr(os.readlink(candidate)))
+        else:
+            files.append(candidate)
+    return files
+
+def getdatafiles():
+    data_files = []
+    excluded_dirs = []
+    excluded_file_extensions = ['.pyc', '.log']
+    static_files = globr('images\\*')
+    static_files_dict = {}
+    for f in static_files:
+        ex = False
+        for excluded in excluded_dirs:
+            if f.startswith(excluded):
+                ex = True
+                continue
+        for excluded in excluded_file_extensions:
+            if f.endswith(excluded):
+                ex = True
+                continue
+        if ex is True:
+            continue
+        dirname = os.path.dirname(f)
+        if dirname not in static_files_dict:
+            static_files_dict[dirname] = []
+        static_files_dict[dirname].append(f)
+    for key in static_files_dict:
+        data_files.append((key, static_files_dict[key]))
+    return data_files
+
+
+app_target = Target(
         # We can extend or override the VersionInfo of the base class:
         # version = "1.0",
         # file_description = "File Description",
         # comments = "Some Comments",
         # internal_name = "spam",
 
-        script="main_window.py",  # path of the main script
-
-        # Allows to specify the basename of the executable, if different from 'main_window'
-        # dest_base = "main_window",
+        script="finprint_annotator.py",  # path of the main script
 
         # Icon resources:[(resource_id, path to .ico file), ...]
-        # icon_resources=[(1, r"main_window.ico")]
+        icon_resources=[(1, r"images/shark-icon.ico")],
 
         other_resources=[
-            (RT_MANIFEST, 1, (manifest_template % dict(prog="main_window", level="asInvoker")).encode("utf-8")),
+            (RT_MANIFEST, 1, (manifest_template % dict(prog="finprint_annotator", level="asInvoker")).encode("utf-8")),
             # for bitmap resources, the first 14 bytes must be skipped when reading the file:
             #                    (RT_BITMAP, 1, open("bitmap.bmp", "rb").read()[14:]),
             ]
@@ -223,13 +358,15 @@ py2exe_options = dict(
         optimize=0,
         compressed=False,  # uncompressed may or may not have a faster startup
         bundle_files=0,
-        dist_dir='dist',
-        includes=["sip"]
+        #dist_dir='.\\dist',
+        includes=["sip"],
+        excludes=[],
+        dll_excludes=[]
 )
 
 setup(
         name='finprint-annotator',
-        version='1.0.0',
+        version=config.__version_string__,
         packages=[''],
         url='',
         license='',
@@ -237,27 +374,16 @@ setup(
         author_email='',
         description='',
         # console based executables
-        console=[main_window],
-
+        console=[app_target],
+        data_files = getdatafiles(),
         # windows subsystem executables (no console)
         windows=[],
 
         # py2exe options
         zipfile="lib/shared.zip",
         options={"py2exe": py2exe_options},
+        cmdclass={"py2exe": BuildInstaller}
 
 )
 
-# Some options can be overridden by command line options...
 
-setup(name="name",
-      # console based executables
-      console=[main_window],
-
-      # windows subsystem executables (no console)
-      windows=[],
-
-      # py2exe options
-      zipfile=None,
-      options={"py2exe": py2exe_options},
-      )
