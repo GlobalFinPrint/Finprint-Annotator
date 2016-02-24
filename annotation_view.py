@@ -96,6 +96,47 @@ class VideoSeekWidget(QSlider):
             }
             """
 
+
+class MenuButton(QPushButton):
+    item_select = pyqtSignal(dict)
+
+    def __init__(self, menuDict, *args, **kw):
+        QPushButton.__init__(self, *args, **kw)
+        self.last_mouse_pos = None
+        self.menus = []
+        self.menu_dict = menuDict
+        self.clicked.connect(self.popup_menu)
+
+    def mousePressEvent(self, event):
+        self.last_mouse_pos = event.pos()
+        QPushButton.mousePressEvent(self, event)
+
+    def mouseReleaseEvent(self, event):
+        self.last_mouse_pos = event.pos()
+        QPushButton.mouseReleaseEvent(self, event)
+
+    def get_last_pos(self):
+        if self.last_mouse_pos:
+            return self.mapToGlobal(self.last_mouse_pos)
+        else:
+            return None
+
+    def popup_menu(self):
+        def _make_action(data):
+            return lambda: self.item_select.emit(data)
+
+        top_menu = QMenu('Critters')
+        for group in self.menu_dict:
+            obsmenu = QMenu(group)
+            for animal in self.menu_dict[group]:
+                title = "{0} - {1}".format(animal['common_name'], animal['species'])
+                obsmenu.addAction(title).triggered.connect(_make_action(animal))
+            self.menus.append(obsmenu)
+            top_menu.addMenu(obsmenu)
+
+        top_menu.exec_(self.get_last_pos())
+
+
 class VideoLayoutWidget(QWidget):
     def __init__(self):
         super(VideoLayoutWidget, self).__init__()
@@ -125,6 +166,9 @@ class VideoLayoutWidget(QWidget):
 
         self._quit_button = QPushButton('Quit')
         self._observation_table = ObservationTable(self.delete_observation)
+
+        self.grouping = {}
+
 
         # An annotation seession is in the context of a set.  Track the current set we're annotating
         self.current_set = None
@@ -195,28 +239,20 @@ class VideoLayoutWidget(QWidget):
 
     def load_buttons(self, animals):
         # Video control and observation register buttons
-        grouping = {}
+        self.grouping = {}
         for animal in animals:
-            if animal['group'] not in grouping:
-                grouping[animal['group']] = [{'common_name': animal['group']}]
-            grouping[animal['group']].append(animal)
+            if animal['group'] not in self.grouping:
+                self.grouping[animal['group']] = []
+            self.grouping[animal['group']].append(animal)
 
-        for group in grouping:
-            # obsbtn = QPushButton(animal['common_name'])
-            # obsbtn.data = animal
-            # obsbtn.clicked.connect(self.on_observation)
-            obsbtn = QComboBox(self)
-            #obsbtn.setSizeAdjustPolicy(QComboBox.AdjustToContents)
-            for animal in grouping[group]:
-                obsbtn.addItem(animal['common_name'], animal)
-
-            obsbtn.activated.connect(self.on_observation)
-            self._obs_btn_box.addWidget(obsbtn, alignment=Qt.AlignLeft)
-            #obsbtn.adjustSize()
+        self.critter_button = MenuButton(self.grouping, "Critters")
+        self.critter_button.item_select.connect(self.on_observation)
+        self._obs_btn_box.addWidget(self.critter_button)
 
         self._of_interest = QPushButton('Of Interest')
         self._of_interest.clicked.connect(self.of_interest)
         self._obs_btn_box.addWidget(self._of_interest)
+
 
     def load_set(self, set):
         self.current_set = set
@@ -256,9 +292,7 @@ class VideoLayoutWidget(QWidget):
     def on_rewind(self):
         self._video_player.rewind()
 
-    def on_observation(self, index):
-        btn = self.sender()
-        data = btn.itemData(index)  # btn.data
+    def on_observation(self, data):
         obs = Observation()
         obs.animal_id = data['id']
         obs.species = data['common_name']
