@@ -129,7 +129,7 @@ class MenuButton(QPushButton):
         for group in self.menu_dict:
             obsmenu = QMenu(group)
             for animal in self.menu_dict[group]:
-                title = "{0} - {1}".format(animal['common_name'], animal['species'])
+                title = "{0} ({1} {2})".format(animal['common_name'], animal['genus'], animal['species'])
                 obsmenu.addAction(title).triggered.connect(_make_action(animal))
             self.menus.append(obsmenu)
             top_menu.addMenu(obsmenu)
