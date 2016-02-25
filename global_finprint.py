@@ -82,6 +82,11 @@ class GlobalFinPrintServer(Singleton):
         return r.json
 
 
+class Animals(object):
+    def load(self, animal_dict):
+        self._animal_dict = animal_dict
+
+
 class Observation(object):
     def __init__(self):
         self.id = None
@@ -128,7 +133,7 @@ class Set(object):
         result = self._connection.add_observation(self.id, obs)
         obs.id = result['observations'][0]['id']
         a = self.get_animal(obs.animal_id)
-        obs.animal = a['common_name']
+        obs.animal = "{0} ({1} {2})".format(a['common_name'], a['genus'], a['species'])
         self.observations.append(obs)
 
     def delete_observation(self, obs):
@@ -139,3 +144,5 @@ class Set(object):
         if len(a):
             return a[0]
         return None
+
+
