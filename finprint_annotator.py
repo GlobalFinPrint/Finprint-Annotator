@@ -81,11 +81,11 @@ class MainWindow(QMainWindow):
         #dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
 
 
-    def _launch_set_list(self, sets=None):
+    def _launch_set_list(self, sets=False):
         self._set_layout = QVBoxLayout()
         self._set_list = SetListWidget()
 
-        if sets is None:
+        if not sets:
             response = GlobalFinPrintServer().set_list()
             sets = response['sets']
 
