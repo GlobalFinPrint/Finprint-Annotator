@@ -1,11 +1,13 @@
-import sys
+import sys, os
+import os.path
 from math import floor
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 from video_player import CvVideoWidget
 from global_finprint import Observation, Set
-
+from config import global_config
+from logging import getLogger
 
 class VideoSeekWidget(QSlider):
     def __init__(self, player):
@@ -210,7 +212,7 @@ class VideoLayoutWidget(QWidget):
         vid_btn_box.addWidget(self._pos_label)
         vid_btn_box.addWidget(self._rew_button )
         vid_btn_box.addWidget(self._pause_button )
-        vid_btn_box.addWidget(self._process_button)
+        #vid_btn_box.addWidget(self._process_button)
 
         btn_box = QHBoxLayout()
         btn_box.addLayout(self._obs_btn_box)
@@ -253,13 +255,30 @@ class VideoLayoutWidget(QWidget):
         self._of_interest.clicked.connect(self.of_interest)
         self._obs_btn_box.addWidget(self._of_interest)
 
+    def get_local_file(self, orig_file_name):
+        (dir, file_name) = os.path.split(orig_file_name)
+        search_dir = global_config.get('VIDEOS', 'alt_media_dir')
+        for root, dirnames, filenames in os.walk(search_dir):
+            for filename in filenames:
+                if filename.lower() == file_name.lower():
+                    return os.path.join(root, filename)
+
+        getLogger('finprint').info('File not found in local media store.  Using original path {0}'.format(orig_file_name))
+        return orig_file_name
 
     def load_set(self, set):
+        self.clear()
         self.current_set = set
         self.load_buttons(set.animals)
-        ### TODO: fix absolute path issues
-        file_name = 'c:/temp/' + set.file[2:len(set.file)]
-        self._video_player.load(file_name)
+
+        file_name = self.get_local_file(set.file)
+        if not self._video_player.load(file_name):
+            msgbox = QMessageBox()
+            msgbox.setText("Could not load file: {0}".format(file_name))
+            #msgbox.setInformativeText("working dir: {0}\nreal dir: {1}".format(os.getcwd(), os.path.dirname(os.path.realpath(__file__))))
+            msgbox.setWindowTitle("Error Loading Video")
+            msgbox.exec_()
+
         self._slider.setMaximum(int(self._video_player.get_length()))
 
         for obs in set.observations:
