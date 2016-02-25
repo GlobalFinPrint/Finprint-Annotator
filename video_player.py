@@ -1,4 +1,5 @@
 import numpy as np
+from logging import getLogger
 import cv2
 import imutils
 from threading import Thread
@@ -50,13 +51,21 @@ class CvVideoWidget(QWidget):
         self._image = QBitmap(800, 600)
 
     def load(self, file_name):
-        self._active = True
-        self._play_state = PlayState.Paused
         self._file_name = file_name
 
         self._highlighter.clear()
-        self._capture = cv2.VideoCapture(self._file_name)
+
+        try:
+            self._capture = cv2.VideoCapture(self._file_name)
+            if not self._capture.isOpened():
+                raise Exception("Could not open file")
+        except Exception as ex:
+            getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
+            return False
+
         self.setMinimumSize(800, 600)
+        self._active = True
+        self._play_state = PlayState.Paused
 
         # Take one frame to query height
         self.set_position(0)
@@ -65,6 +74,7 @@ class CvVideoWidget(QWidget):
 
         self._capture_thread = Thread(target=self.thread_start, name="Capture Thread", daemon=True)
         self._capture_thread.start()
+        return True
 
     def thread_start(self):
         while self._active:
