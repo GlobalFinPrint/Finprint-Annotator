@@ -82,10 +82,34 @@ class GlobalFinPrintServer(Singleton):
         return r.json
 
 
-class Animals(object):
+class Animal(object):
+    def __init__(self):
+        self._animal_dict = None
+        self.id = None
+        self.group = None
+        self.group_id = 0
+        self.rank = 0
+        self.genus = ''
+        self.species = ''
+        self.common_name = 'Unspecified'
+        self.sealifebase_key = None
+        self.fishbase_key = None
+        self.family = None
+
     def load(self, animal_dict):
         self._animal_dict = animal_dict
+        self.id = animal_dict['id']
+        self.group = animal_dict['group']
+        self.rank = animal_dict['rank']
+        self.genus = animal_dict['genus']
+        self.species = animal_dict['species']
+        self.common_name = animal_dict['common_name']
+        self.sealifebase_key = animal_dict['sealifebase_key']
+        self.fishbase_key = animal_dict['fishbase_key']
+        self.family = animal_dict['family']
 
+    def __str__(self):
+        return "{0} ({1} {2})".format(self.common_name, self.genus, self.species)
 
 class Observation(object):
     def __init__(self):
@@ -99,7 +123,7 @@ class Observation(object):
 
     def load(self, obs_dict):
         self.id = obs_dict['id']
-        self.animal = obs_dict['animal']
+        self.animal_id = obs_dict['animal_id']
         self.comment = obs_dict['comment']
         self.initial_observation_time = int(obs_dict['initial_observation_time'])
 
@@ -123,24 +147,35 @@ class Set(object):
             data = self._connection.set_detail(id)
             self.id = data['set']['id']
             self.file = data['set']['file']
-            self.animals = data['set']['animals']
+            self.animals = []
+            for animal in data['set']['animals']:
+                a = Animal()
+                a.load(animal)
+                self.animals.append(a)
+
             for obs in data['set']['observations']:
                 o = Observation()
                 o.load(obs)
                 self.observations.append(o)
 
+            #Don't like this.  Do something better in the future
+            for o in self.observations:
+                if o.animal_id is not None:
+                    o.animal = self.get_animal(o.animal_id)
+
     def add_observation(self, obs):
         result = self._connection.add_observation(self.id, obs)
         obs.id = result['observations'][0]['id']
-        a = self.get_animal(obs.animal_id)
-        obs.animal = "{0} ({1} {2})".format(a['common_name'], a['genus'], a['species'])
+        obs.animal = Animal()
+        if obs.animal_id is not None:
+            obs.animal = self.get_animal(obs.animal_id)
         self.observations.append(obs)
 
     def delete_observation(self, obs):
         self._connection.delete_observation(self.id, obs.id)
 
     def get_animal(self, id):
-        a = [animal for animal in self.animals if animal['id'] == id]
+        a = [animal for animal in self.animals if animal.id == id]
         if len(a):
             return a[0]
         return None
