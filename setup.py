@@ -85,6 +85,7 @@ class InnoScript:
 excludes = ["Tkinter"]
 
 
+
 class Target(object):
     '''Target is the baseclass for all executables that are created.
     It defines properties that are shared by all of them.
@@ -161,7 +162,7 @@ class BuildInstaller(py2exe):
     # This class first builds the exe file(s), then creates a Windows installer.
     # You need InnoSetup for it.
 
-    def delete_helper(func, path, exc_info):
+    def delete_helper(func, path, exc_info, test):
         print('Clearing attributes: %s' % path)
         win32api.SetFileAttributes(path, win32con.FILE_ATTRIBUTE_NORMAL)
         func(path)
@@ -215,8 +216,13 @@ class BuildInstaller(py2exe):
         win32api.SetFileAttributes('dist/config.ini',
                                     win32con.FILE_ATTRIBUTE_NORMAL)
 
+        shutil.copy('lib/opencv_ffmpeg300.dll',
+                    'dist/opencv_ffmpeg300.dll')
+        win32api.SetFileAttributes('dist/opencv_ffmpeg300.dll',
+                                    win32con.FILE_ATTRIBUTE_NORMAL)
+
         # include the ini files in lib_files so they end up in the installer
-        files = ['config.ini']
+        files = ['config.ini', 'opencv_ffmpeg300.dll']
         files = [os.path.join(self.dist_dir, path) for path in files]
         #todo create the lib_files,   console_exe_files, windows_exe_files, service_exe_files
         self.lib_dir = "dist\\lib"
@@ -226,7 +232,7 @@ class BuildInstaller(py2exe):
                 self.lib_files.append(path)
 
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip']#['dist\\LQAdmin.exe','dist\\LQMonitor.exe','dist\\LQCopy.exe','dist\\LQChecker.exe','dist\\LQSync.exe','dist\\LQVisaCopy.exe','dist\\LeQueueServer.exe']
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'lib/shared.zip']#['dist\\LQAdmin.exe','dist\\LQMonitor.exe','dist\\LQCopy.exe','dist\\LQChecker.exe','dist\\LQSync.exe','dist\\LQVisaCopy.exe','dist\\LeQueueServer.exe']
         self.windows_exe_files = []
         self.service_exe_files = []#['dist\\LeQueueService.exe']
         #self.lib_files.extend(files)
