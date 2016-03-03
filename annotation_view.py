@@ -127,8 +127,8 @@ class MenuButton(QPushButton):
         def _make_action(data):
             return lambda: self.item_select.emit(data)
 
-        top_menu = QMenu('Critters')
-        for group in self.animal_menu:
+        top_menu = QMenu('Organisms')
+        for group in self.menu_dict:
             obsmenu = QMenu(group)
             for animal in self.animal_menu[group]:
                 obsmenu.addAction(str(animal)).triggered.connect(_make_action(animal))
@@ -249,7 +249,7 @@ class VideoLayoutWidget(QWidget):
                 self.grouping[animal.group] = []
             self.grouping[animal.group].append(animal)
 
-        self.critter_button = MenuButton(self.grouping, "Critters")
+        self.critter_button = MenuButton(self.grouping, "Organisms")
         self.critter_button.item_select.connect(self.on_observation)
         self._obs_btn_box.addWidget(self.critter_button)
 
