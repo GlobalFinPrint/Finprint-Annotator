@@ -128,7 +128,7 @@ class MenuButton(QPushButton):
             return lambda: self.item_select.emit(data)
 
         top_menu = QMenu('Organisms')
-        for group in self.menu_dict:
+        for group in self.animal_menu:
             obsmenu = QMenu(group)
             for animal in self.animal_menu[group]:
                 obsmenu.addAction(str(animal)).triggered.connect(_make_action(animal))
@@ -190,7 +190,7 @@ class VideoLayoutWidget(QWidget):
 
         self._observation_table.observationRowDeleted.connect(self.delete_observation)
         self._observation_table.durationClicked.connect(self.set_duration)
-        self._observation_table.selectionChanged = self.observation_selected
+        #self._observation_table.selectionChanged = self.observation_selected
 
     def setup_layout(self):
         # Main container going top to bottom
@@ -292,8 +292,8 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.setRowCount(0)
         self.current_set = None
 
-    def observation_selected(self, selected, deselected):
-        obs = self._observation_table.get_observation(self._observation_table.currentRow())
+    def observation_selected(self, row, obs):
+        #obs = self._observation_table.get_observation(self._observation_table.currentRow())
         if hasattr(obs, 'rect'):
             self._video_player.display_observation(obs.initial_observation_time, obs.rect)
 
@@ -323,8 +323,8 @@ class VideoLayoutWidget(QWidget):
             msgbox.exec_()
         else:
             observation.duration = duration
+            self.current_set.edit_observation(observation)
             self._observation_table.update_row(row)
-
 
     def on_observation(self, animal):
         obs = Observation()
@@ -340,7 +340,7 @@ class VideoLayoutWidget(QWidget):
         obs = Observation()
         obs.position = self._video_player.get_position()
         obs.initial_observation_time = int(self._video_player.get_position())
-        obs.animal_id = '1'
+        obs.type = "I"
         obs.rect = self._video_player.get_highlight()
         dlg = QInputDialog(self)
         dlg.setInputMode(QInputDialog.TextInput)
@@ -370,6 +370,7 @@ class VideoLayoutWidget(QWidget):
 class ObservationTable(QTableWidget):
     observationRowDeleted = pyqtSignal(Observation)
     durationClicked = pyqtSignal(int, Observation)
+    goToObservation = pyqtSignal(int, Observation)
     column_headers = ['Time', 'Critter', 'Duration', 'Notes']
 
     def __init__(self, *args):
@@ -393,6 +394,7 @@ class ObservationTable(QTableWidget):
         menu = QMenu(self)
         delete_action = menu.addAction("Delete")
         set_duration_action = menu.addAction("Set Duration")
+        go_to_observation_action = menu.addAction("Go To Observation")
         row = self.indexAt(event.pos()).row()
         if row >= 0:
             action = menu.exec_(event.globalPos())
@@ -405,6 +407,8 @@ class ObservationTable(QTableWidget):
                 # TODO: Fire an event so the video widget can determine duration and update the table
                 obs = self._observations[row]
                 self.durationClicked.emit(row, self._observations[row])
+            if action == go_to_observation_action:
+                self.goToObservation.emit(row, self._observations[row])
 
     def update_row(self, row):
         obs = self._observations[row]
