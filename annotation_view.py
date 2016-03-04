@@ -333,7 +333,7 @@ class VideoLayoutWidget(QWidget):
         obs.animal = animal
         obs.initial_observation_time = int(self._video_player.get_position())
         #obs.display_position = self._convert_position(obs.position)
-        obs.rect = self._video_player.get_highlight()
+        obs.extent = self._video_player.get_highlight_as_list()
         self.add_observation(obs)
 
     def of_interest(self):
@@ -341,7 +341,7 @@ class VideoLayoutWidget(QWidget):
         obs.position = self._video_player.get_position()
         obs.initial_observation_time = int(self._video_player.get_position())
         obs.type = "I"
-        obs.rect = self._video_player.get_highlight()
+        obs.extent = self._video_player.get_highlight_as_list()
         dlg = QInputDialog(self)
         dlg.setInputMode(QInputDialog.TextInput)
         comment, ok = dlg.getText(self, 'Observation of Interest', 'Please enter detail of your observation')

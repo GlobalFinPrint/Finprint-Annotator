@@ -126,6 +126,10 @@ class CvVideoWidget(QWidget):
     def get_highlight(self):
         return self._highlighter.get_rect()
 
+    def get_highlight_as_list(self):
+        r = self._highlighter.get_rect()
+        return list(r.getCoords())
+
     def display_observation(self, pos, rect):
         self._highlighter.start_rect(rect.topLeft())
         self._highlighter.set_rect(rect.bottomRight())
