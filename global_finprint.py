@@ -70,6 +70,15 @@ class GlobalFinPrintServer(Singleton):
         else:
             raise QueryException('Failed to add Observation: status {0}'.format(r.status_code))
 
+    def edit_observation(self, set_id, observation):
+        data = observation.to_dict()
+        data['token'] = self.user_token
+        r = requests.post(self.address + '/api/set/{0}/obs/{1}'.format(set_id, observation.id), data)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise QueryException('Failed to update Observation: status {0}'.format(r.status_code))
+
     def delete_observation(self, set_id, obs_id):
         r = requests.delete(self.address + '/api/set/{0}/obs'.format(set_id), params={'obs_id': obs_id, 'token': self.user_token})
         if r.status_code == 200:
@@ -120,17 +129,21 @@ class Observation(object):
         self.comment = ''
         self.duration = 0
         self.animal = ''
+        self.type = 'A'
 
     def load(self, obs_dict):
         self.id = obs_dict['id']
         self.animal_id = obs_dict['animal_id']
         self.comment = obs_dict['comment']
         self.initial_observation_time = int(obs_dict['initial_observation_time'])
+        self.duration = obs_dict['duration']
+        self.type = obs_dict['type']
 
     def to_dict(self):
-        return {'initial_observation_time': self.initial_observation_time,
+        return {'id': self.id,
+                'initial_observation_time': self.initial_observation_time,
                 'animal_id': self.animal_id,
-                'behavior_id': self.behavior_id,
+                'type': self.type,
                 'comment': self.comment,
                 'duration': self.duration}
 
@@ -170,6 +183,9 @@ class Set(object):
         if obs.animal_id is not None:
             obs.animal = self.get_animal(obs.animal_id)
         self.observations.append(obs)
+
+    def edit_observation(self, obs):
+        self._connection.edit_observation(self.id, obs)
 
     def delete_observation(self, obs):
         self._connection.delete_observation(self.id, obs.id)
