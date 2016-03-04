@@ -1,6 +1,6 @@
 from configparser import ConfigParser
 
-__version__ = (0, 1, 0, 0)
+__version__ = (0, 1, 1, 0)
 __version_string__ = '%s.%s.%s.%s' % __version__
 
 
