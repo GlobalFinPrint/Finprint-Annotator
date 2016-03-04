@@ -130,6 +130,7 @@ class Observation(object):
         self.duration = 0
         self.animal = ''
         self.type = 'A'
+        self.extent = [0, 0, 0, 0]
 
     def load(self, obs_dict):
         self.id = obs_dict['id']
@@ -138,6 +139,8 @@ class Observation(object):
         self.initial_observation_time = int(obs_dict['initial_observation_time'])
         self.duration = obs_dict['duration']
         self.type = obs_dict['type']
+        if 'extent' in obs_dict:
+            self.extent = obs_dict['extent']
 
     def to_dict(self):
         return {'id': self.id,
@@ -146,6 +149,7 @@ class Observation(object):
                 'type': self.type,
                 'comment': self.comment,
                 'duration': self.duration}
+                #'extent': self.extent}
 
 
 class Set(object):
