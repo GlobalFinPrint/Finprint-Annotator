@@ -118,7 +118,10 @@ class Animal(object):
         self.family = animal_dict['family']
 
     def __str__(self):
-        return "{0} ({1} {2})".format(self.common_name, self.genus, self.species)
+        if self.id is not None:
+            return "{0} ({1} {2})".format(self.common_name, self.genus, self.species)
+        else:
+            return ''
 
 class Observation(object):
     def __init__(self):
@@ -128,19 +131,21 @@ class Observation(object):
         self.behavior_id = None
         self.comment = ''
         self.duration = 0
-        self.animal = ''
+        self.animal = Animal()
         self.type = 'A'
         self.extent = [0, 0, 0, 0]
 
     def load(self, obs_dict):
+        self.type = obs_dict['type']
         self.id = obs_dict['id']
-        self.animal_id = obs_dict['animal_id']
         self.comment = obs_dict['comment']
         self.initial_observation_time = int(obs_dict['initial_observation_time'])
         self.duration = obs_dict['duration']
-        self.type = obs_dict['type']
         if 'extent' in obs_dict:
             self.extent = obs_dict['extent']
+
+        if self.type == 'A':
+            self.animal_id = obs_dict['animal_id']
 
     def to_dict(self):
         return {'id': self.id,
