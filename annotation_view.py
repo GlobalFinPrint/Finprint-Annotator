@@ -371,7 +371,7 @@ class ObservationTable(QTableWidget):
     observationRowDeleted = pyqtSignal(Observation)
     durationClicked = pyqtSignal(int, Observation)
     goToObservation = pyqtSignal(int, Observation)
-    column_headers = ['Time', 'Critter', 'Duration', 'Notes']
+    column_headers = ['Time', 'Organism', 'Duration', 'Notes']
 
     def __init__(self, *args):
         super(ObservationTable, self).__init__(*args)
@@ -413,6 +413,7 @@ class ObservationTable(QTableWidget):
     def update_row(self, row):
         obs = self._observations[row]
         self.setItem(row, 0, QTableWidgetItem(str(obs.initial_observation_time)))
+
         self.setItem(row, 1, QTableWidgetItem(str(obs.animal)))
         self.setItem(row, 2, QTableWidgetItem(str(obs.duration)))
         self.setItem(row, 3, QTableWidgetItem(obs.comment))
