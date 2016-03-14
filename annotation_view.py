@@ -146,6 +146,7 @@ class VideoLayoutWidget(QWidget):
         self.vid_box = None
         self._video_player = CvVideoWidget(onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
+        self._data_loading = False
 
         self._slider = VideoSeekWidget(self._video_player)
         self._rew_icon = QIcon('images/rewind.png')
@@ -190,6 +191,7 @@ class VideoLayoutWidget(QWidget):
 
         self._observation_table.observationRowDeleted.connect(self.delete_observation)
         self._observation_table.durationClicked.connect(self.set_duration)
+        self._observation_table.itemChanged.connect(self.item_changed)
         #self._observation_table.selectionChanged = self.observation_selected
 
     def setup_layout(self):
@@ -269,6 +271,9 @@ class VideoLayoutWidget(QWidget):
         return orig_file_name
 
     def load_set(self, set):
+        getLogger('finprint').info("Loading Set {0}".format(set.code))
+
+        self._data_loading = True
         self.clear()
         self.current_set = set
         self.load_buttons(set.animals)
@@ -285,6 +290,7 @@ class VideoLayoutWidget(QWidget):
 
         for obs in set.observations:
             self._observation_table.add_row(obs)
+        self._data_loading = False
 
     def clear(self):
         self._video_player.clear()
@@ -324,7 +330,14 @@ class VideoLayoutWidget(QWidget):
         else:
             observation.duration = duration
             self.current_set.edit_observation(observation)
+            self._data_loading = False
             self._observation_table.update_row(row)
+            self._data_loading = True
+
+    def item_changed(self, tableItem):
+        if not self._data_loading and tableItem.column() == 3:
+            print('changed row {0} {1}'.format(tableItem.row(), tableItem.text()))
+
 
     def on_observation(self, animal):
         obs = Observation()
@@ -350,8 +363,10 @@ class VideoLayoutWidget(QWidget):
             self.add_observation(obs)
 
     def add_observation(self, obs):
+        self._data_loading = True
         self.current_set.add_observation(obs)
         self._observation_table.add_row(obs)
+        self._data_loading = False
 
     def delete_observation(self, obs):
         self.current_set.delete_observation(obs)
