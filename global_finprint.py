@@ -164,11 +164,13 @@ class Set(object):
         self.file = ''
         self.animals = []
         self.observations = []
+        self.code = ''
 
         if id is not None:
             data = self._connection.set_detail(id)
             self.id = data['set']['id']
             self.file = data['set']['file']
+            self.code = data['set']['set_code']
             self.animals = []
             for animal in data['set']['animals']:
                 a = Animal()
