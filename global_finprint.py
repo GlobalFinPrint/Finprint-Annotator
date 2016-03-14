@@ -1,5 +1,6 @@
 from config import global_config
 import requests
+import json
 import datetime
 
 class QueryException(Exception):
@@ -64,7 +65,7 @@ class GlobalFinPrintServer(Singleton):
     def add_observation(self, set_id, observation):
         data = observation.to_dict()
         data['token'] = self.user_token
-        r = requests.post(self.address + '/api/set/{0}/obs'.format(set_id), data)
+        r = requests.post(self.address + '/api/set/{0}/obs'.format(set_id), data=data)
         if r.status_code == 200:
             return r.json()
         else:
@@ -123,6 +124,7 @@ class Animal(object):
         else:
             return ''
 
+
 class Observation(object):
     def __init__(self):
         self.id = None
@@ -132,11 +134,11 @@ class Observation(object):
         self.comment = ''
         self.duration = 0
         self.animal = Animal()
-        self.type = 'A'
+        self.type_choice = 'A'
         self.extent = [0, 0, 0, 0]
 
     def load(self, obs_dict):
-        self.type = obs_dict['type']
+        self.type_choice = obs_dict['type_choice']
         self.id = obs_dict['id']
         self.comment = obs_dict['comment']
         self.initial_observation_time = int(obs_dict['initial_observation_time'])
@@ -144,14 +146,15 @@ class Observation(object):
         if 'extent' in obs_dict:
             self.extent = obs_dict['extent']
 
-        if self.type == 'A':
+        if self.type_choice == 'A':
             self.animal_id = obs_dict['animal_id']
 
     def to_dict(self):
         return {'id': self.id,
                 'initial_observation_time': self.initial_observation_time,
                 'animal_id': self.animal_id,
-                'type': self.type,
+                'type_choice': self.type_choice,
+                'type': self.type_choice, #TODO band-aid till the backend gets fixed
                 'comment': self.comment,
                 'duration': self.duration}
                 #'extent': self.extent}

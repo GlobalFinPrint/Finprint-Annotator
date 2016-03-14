@@ -190,13 +190,15 @@ class CvVideoWidget(QWidget):
         self._onPositionChange(self.get_position())
 
     def mousePressEvent(self, event):
-        self._highlighter.start_rect(event.pos())
-        self.update()
+        if self.paused():
+            self._highlighter.start_rect(event.pos())
+            self.update()
 
     def mouseMoveEvent(self, event):
-        self._dragging = True
-        self._highlighter.set_rect(event.pos())
-        self.update()
+        if self.paused():
+            self._dragging = True
+            self._highlighter.set_rect(event.pos())
+            self.update()
 
     def mouseReleaseEvent(self, event):
         self._dragging = False
@@ -240,7 +242,7 @@ class CvVideoWidget(QWidget):
 
     def rewind(self):
         if self._play_state == PlayState.SeekBack:
-            self._play_state = PlayState.Playing
+            self.pause()
         else:
             self._play_state = PlayState.SeekBack
         self.playStateChanged.emit(self._play_state)

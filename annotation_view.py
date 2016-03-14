@@ -9,6 +9,15 @@ from global_finprint import Observation, Set, Animal
 from config import global_config
 from logging import getLogger
 
+
+def convert_position(pos):
+    s, m = divmod(floor(pos), 1000)
+    h, s = divmod(s, 60)
+    return "{0:02}:{1:02}:{2:03}".format(h, s, m)
+
+
+
+
 class VideoSeekWidget(QSlider):
     def __init__(self, player):
         super(VideoSeekWidget, self).__init__()
@@ -31,7 +40,7 @@ class VideoSeekWidget(QSlider):
 
     def _released(self):
         self._player.set_position(self.value())
-        self._player.play()
+        #self._player.play()
 
     def setMaximum(self, value):
         super(VideoSeekWidget, self).setMaximum(value)
@@ -330,8 +339,15 @@ class VideoLayoutWidget(QWidget):
             self._data_loading = True
 
     def item_changed(self, tableItem):
-        if not self._data_loading and tableItem.column() == 3:
+        if not self._data_loading:
             print('changed row {0} {1}'.format(tableItem.row(), tableItem.text()))
+            obs = self._observation_table.get_observation(tableItem.row())
+            if tableItem.column() == 2:
+                obs.duration = int(tableItem.text())
+            elif tableItem.column() == 3:
+                obs.comment = tableItem.text()
+            self.current_set.edit_observation(obs)
+
 
 
     def on_observation(self, animal):
@@ -340,7 +356,6 @@ class VideoLayoutWidget(QWidget):
         obs.animal_id = animal.id
         obs.animal = animal
         obs.initial_observation_time = int(self._video_player.get_position())
-        #obs.display_position = self._convert_position(obs.position)
         obs.extent = self._video_player.get_highlight_as_list()
         self.add_observation(obs)
 
@@ -348,7 +363,7 @@ class VideoLayoutWidget(QWidget):
         obs = Observation()
         obs.position = self._video_player.get_position()
         obs.initial_observation_time = int(self._video_player.get_position())
-        obs.type = "I"
+        obs.type_choice = "I"
         obs.extent = self._video_player.get_highlight_as_list()
         dlg = QInputDialog(self)
         dlg.setInputMode(QInputDialog.TextInput)
@@ -366,14 +381,8 @@ class VideoLayoutWidget(QWidget):
     def delete_observation(self, obs):
         self.current_set.delete_observation(obs)
 
-    def _convert_position(self, pos):
-        s, m = divmod(floor(pos), 1000)
-        h, s = divmod(s, 60)
-        return "{0:02}:{1:02}:{2:03}".format(h, s, m)
-
     def on_position_change(self, pos):
-        self._pos_label.setText(self._convert_position(pos))
-        #s, m = divmod(floor(pos), 1000)
+        self._pos_label.setText(convert_position(pos))
         self._slider.setValue(int(pos))
 
 
@@ -381,6 +390,7 @@ class ObservationTable(QTableWidget):
     observationRowDeleted = pyqtSignal(Observation)
     durationClicked = pyqtSignal(int, Observation)
     goToObservation = pyqtSignal(int, Observation)
+    observationUpdated = pyqtSignal(int, Observation)
     column_headers = ['Time', 'Organism', 'Duration', 'Notes']
 
     def __init__(self, *args):
@@ -422,9 +432,13 @@ class ObservationTable(QTableWidget):
 
     def update_row(self, row):
         obs = self._observations[row]
-        self.setItem(row, 0, QTableWidgetItem(str(obs.initial_observation_time)))
+        i = QTableWidgetItem(str(obs.initial_observation_time))
+        i.setFlags(i.flags() & ~Qt.ItemIsEditable)
+        self.setItem(row, 0, i)
 
-        self.setItem(row, 1, QTableWidgetItem(str(obs.animal)))
+        i = QTableWidgetItem(str(obs.animal))
+        i.setFlags(i.flags() & ~Qt.ItemIsEditable)
+        self.setItem(row, 1, i)
         self.setItem(row, 2, QTableWidgetItem(str(obs.duration)))
         self.setItem(row, 3, QTableWidgetItem(obs.comment))
 
