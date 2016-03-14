@@ -5,10 +5,10 @@ import imutils
 from threading import Thread
 import time
 from enum import Enum
+from collections import deque
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-
 
 
 class Highlighter(object):
@@ -36,6 +36,41 @@ class PlayState(Enum):
     SeekForward = 4
     NotReady = 5
 
+## <<-went back to using a timer so this class isn't currently used-->>
+## OpenCV isn't a true media player so we need to manage our own
+##  frame rate.  The goal is the framerate we're trying to attain
+class FrameRateAdjuster(object):
+    def __init__(self, goal):
+        self._max_values =  15
+        self.goal = goal
+        self._data = deque()
+        self._last_result = goal
+
+    ## We're returning the amount of time to sleep between
+    ##   grabbing frames.
+    def adjust(self):
+        avg = 0
+        for i in self._data:
+            avg += i
+        avg /= len(self._data)
+        if avg > self.goal:
+            self._last_result = self.goal - (avg - self.goal)
+        else:
+            self._last_result = self.goal + (self.goal - avg)
+        return self._last_result
+
+    ## The data we're collecting is the current amount
+    ## of time between frame grabs.  We do an average of
+    ## a series to smooth it out a bit
+    def add(self, value):
+        self._data.append(value)
+        if len(self._data) < self._max_values:
+            return self.goal
+
+        self._data.popleft()
+        return self.adjust()
+
+
 class CvVideoWidget(QWidget):
     def __init__(self, parent=None, onPositionChange=None):
         QWidget.__init__(self, parent)
@@ -45,10 +80,12 @@ class CvVideoWidget(QWidget):
         self._frame = None
 
         self._dragging = False
-        self._active = False
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
+        self.last_time = time.perf_counter()
         self._image = QBitmap(800, 600)
+        self._timer = QTimer(self)
+        self._timer.timeout.connect(self.on_timer)
 
     def load(self, file_name):
         self._file_name = file_name
@@ -64,7 +101,6 @@ class CvVideoWidget(QWidget):
             return False
 
         self.setMinimumSize(800, 600)
-        self._active = True
         self._play_state = PlayState.Paused
 
         # Take one frame to query height
@@ -72,17 +108,14 @@ class CvVideoWidget(QWidget):
 
         self.last_time = time.perf_counter()
 
-        self._capture_thread = Thread(target=self.thread_start, name="Capture Thread", daemon=True)
-        self._capture_thread.start()
+        self._timer.start(33)
         return True
 
-    def thread_start(self):
-        while self._active:
-            self.update()
-            time.sleep(0.03)
+    def on_timer(self):
+        self.update()
 
     def clear(self):
-        self._active = False
+        self._timer.stop()
         if self._capture is not None:
             self._capture.release()
         self._image = QBitmap(800, 600)
@@ -90,11 +123,18 @@ class CvVideoWidget(QWidget):
         self.update()
 
     def _build_image(self, frame):
-        frame = imutils.resize(frame, width=1024)
-        height, width, channels = frame.shape
-        if self._frame is None:
-            self._frame = np.zeros((width, height, channels), np.uint8)
-        self._frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        try:
+            # getLogger('finprint').info(frame.shape)
+            # getLogger('finprint').info(frame)
+            frame = imutils.resize(frame, width=1024)
+            height, width, channels = frame.shape
+            if self._frame is None:
+                self._frame = np.zeros((width, height, channels), np.uint8)
+
+            self._frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        except Exception as ex:
+            getLogger('finprint').exception('Exception building image')
+
         return QImage(self._frame, width, height, QImage.Format_RGB888)
 
     def paintEvent(self, event):
@@ -119,7 +159,8 @@ class CvVideoWidget(QWidget):
         grabbed, frame = self._capture.read()
         if grabbed:
             #t = time.perf_counter()
-            #print("{0:.4f}".format(t - self.last_time))
+            #diff = t - self.last_time
+            #print("diff {0:.4f}".format(diff))
             #self.last_time = t
             self._image = self._build_image(frame)
 
@@ -170,7 +211,12 @@ class CvVideoWidget(QWidget):
     def get_length(self):
         fps = self._capture.get(cv2.CAP_PROP_FPS)
         num_frames = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
-        return (num_frames / fps) * 1000 # Returns milliseconds as a float
+
+        if fps == 0 or num_frames == 0:
+            getLogger('finprint').exception("Failed to calculate length")
+            return 0
+        else:
+            return (num_frames / fps) * 1000 # Returns milliseconds as a float
 
     def fast_forward(self):
         self._capture.set(cv2.CAP_PROP_FPS, 120)
