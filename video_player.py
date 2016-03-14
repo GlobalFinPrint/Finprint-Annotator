@@ -35,6 +35,7 @@ class PlayState(Enum):
     SeekBack = 3
     SeekForward = 4
     NotReady = 5
+    EndOfStream = 6
 
 ## <<-went back to using a timer so this class isn't currently used-->>
 ## OpenCV isn't a true media player so we need to manage our own
@@ -72,6 +73,8 @@ class FrameRateAdjuster(object):
 
 
 class CvVideoWidget(QWidget):
+    playStateChanged = pyqtSignal(PlayState)
+
     def __init__(self, parent=None, onPositionChange=None):
         QWidget.__init__(self, parent)
         self._capture = None
@@ -163,6 +166,10 @@ class CvVideoWidget(QWidget):
             #print("diff {0:.4f}".format(diff))
             #self.last_time = t
             self._image = self._build_image(frame)
+        else:
+            # Hit the end
+            self._play_state = PlayState.EndOfStream
+            self.playStateChanged.emit(self._play_state)
 
     def get_highlight(self):
         return self._highlighter.get_rect()
@@ -195,12 +202,22 @@ class CvVideoWidget(QWidget):
         self._dragging = False
         self.update()
 
+    def toggle_play(self):
+        if self._play_state == PlayState.Paused or self._play_state == PlayState.EndOfStream:
+            self.play()
+        else:
+            self.pause()
+
     def pause(self):
         self._play_state = PlayState.Paused
+        self.playStateChanged.emit(self._play_state)
 
     def play(self):
+        if self._play_state == PlayState.EndOfStream:
+            self.set_position(0)
         self._play_state = PlayState.Playing
         self._highlighter.clear()
+        self.playStateChanged.emit(self._play_state)
 
     def paused(self):
         return self._play_state == PlayState.Paused
@@ -226,3 +243,4 @@ class CvVideoWidget(QWidget):
             self._play_state = PlayState.Playing
         else:
             self._play_state = PlayState.SeekBack
+        self.playStateChanged.emit(self._play_state)

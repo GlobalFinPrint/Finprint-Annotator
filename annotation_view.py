@@ -4,7 +4,7 @@ from math import floor
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from video_player import CvVideoWidget
+from video_player import CvVideoWidget, PlayState
 from global_finprint import Observation, Set, Animal
 from config import global_config
 from logging import getLogger
@@ -159,7 +159,7 @@ class VideoLayoutWidget(QWidget):
 
         self._pause_button = QPushButton('')
         self._pause_button.setIcon(self._play_icon)
-        self._pause_button.setText('Resume')
+        self._pause_button.setText('Play')
 
         self._process_button = QPushButton('Process')
         self._process_button.setIcon(self._process_icon)
@@ -188,6 +188,8 @@ class VideoLayoutWidget(QWidget):
         self._pause_button.clicked.connect(self.on_pause)
         self._process_button.clicked.connect(self.on_process)
         self._rew_button.clicked.connect(self.on_rewind)
+
+        self._video_player.playStateChanged.connect(self.on_playstate_changed)
 
         self._observation_table.observationRowDeleted.connect(self.delete_observation)
         self._observation_table.durationClicked.connect(self.set_duration)
@@ -292,6 +294,15 @@ class VideoLayoutWidget(QWidget):
             self._observation_table.add_row(obs)
         self._data_loading = False
 
+    def on_playstate_changed(self, play_state):
+        if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
+            self._pause_button.setText('Play')
+            self._pause_button.setIcon(self._play_icon)
+        else:
+            self._pause_button.setText('Pause')
+            self._pause_button.setIcon(self._pause_icon)
+
+
     def clear(self):
         self._video_player.clear()
         self.clear_buttons()
@@ -304,14 +315,15 @@ class VideoLayoutWidget(QWidget):
             self._video_player.display_observation(obs.initial_observation_time, obs.rect)
 
     def on_pause(self):
-        if self._video_player.paused():
-            self._video_player.play()
-            self._pause_button.setText('Pause')
-            self._pause_button.setIcon(self._pause_icon)
-        else:
-            self._video_player.pause()
-            self._pause_button.setText('Resume')
-            self._pause_button.setIcon(self._play_icon)
+        self._video_player.toggle_play()
+        # if self._video_player.paused():
+        #     self._video_player.play()
+        #     self._pause_button.setText('Pause')
+        #     self._pause_button.setIcon(self._pause_icon)
+        # else:
+        #     self._video_player.pause()
+        #     self._pause_button.setText('Play')
+        #     self._pause_button.setIcon(self._play_icon)
 
     def on_process(self):
         self._video_player.fast_forward()
