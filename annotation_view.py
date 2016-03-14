@@ -152,17 +152,13 @@ class VideoLayoutWidget(QWidget):
         self._rew_icon = QIcon('images/rewind.png')
         self._pause_icon = QIcon('images/pause.png')
         self._play_icon = QIcon('images/play.png')
-        self._process_icon = QIcon('images/clapperboard.png')
 
         self._rew_button = QPushButton('')
         self._rew_button.setIcon(self._rew_icon)
 
-        self._pause_button = QPushButton('')
-        self._pause_button.setIcon(self._play_icon)
-        self._pause_button.setText('Play')
-
-        self._process_button = QPushButton('Process')
-        self._process_button.setIcon(self._process_icon)
+        self._toggle_play_button = QPushButton('')
+        self._toggle_play_button.setIcon(self._play_icon)
+        self._toggle_play_button.setText('Play')
 
         self._obs_btn_box = QHBoxLayout()
 
@@ -185,8 +181,7 @@ class VideoLayoutWidget(QWidget):
 
     def wire_events(self):
         self._quit_button.clicked.connect(QCoreApplication.instance().quit)
-        self._pause_button.clicked.connect(self.on_pause)
-        self._process_button.clicked.connect(self.on_process)
+        self._toggle_play_button.clicked.connect(self.on_toggle_play)
         self._rew_button.clicked.connect(self.on_rewind)
 
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
@@ -217,8 +212,7 @@ class VideoLayoutWidget(QWidget):
         vid_btn_box.addStretch(1)
         vid_btn_box.addWidget(self._pos_label)
         vid_btn_box.addWidget(self._rew_button )
-        vid_btn_box.addWidget(self._pause_button )
-        #vid_btn_box.addWidget(self._process_button)
+        vid_btn_box.addWidget(self._toggle_play_button )
 
         btn_box = QHBoxLayout()
         btn_box.addLayout(self._obs_btn_box)
@@ -296,11 +290,11 @@ class VideoLayoutWidget(QWidget):
 
     def on_playstate_changed(self, play_state):
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
-            self._pause_button.setText('Play')
-            self._pause_button.setIcon(self._play_icon)
+            self._toggle_play_button.setText('Play')
+            self._toggle_play_button.setIcon(self._play_icon)
         else:
-            self._pause_button.setText('Pause')
-            self._pause_button.setIcon(self._pause_icon)
+            self._toggle_play_button.setText('Pause')
+            self._toggle_play_button.setIcon(self._pause_icon)
 
 
     def clear(self):
@@ -311,22 +305,11 @@ class VideoLayoutWidget(QWidget):
 
     def observation_selected(self, row, obs):
         #obs = self._observation_table.get_observation(self._observation_table.currentRow())
-        if hasattr(obs, 'rect'):
-            self._video_player.display_observation(obs.initial_observation_time, obs.rect)
+        if hasattr(obs, 'extent'):
+            self._video_player.display_observation(obs.initial_observation_time, obs.extent)
 
-    def on_pause(self):
+    def on_toggle_play(self):
         self._video_player.toggle_play()
-        # if self._video_player.paused():
-        #     self._video_player.play()
-        #     self._pause_button.setText('Pause')
-        #     self._pause_button.setIcon(self._pause_icon)
-        # else:
-        #     self._video_player.pause()
-        #     self._pause_button.setText('Play')
-        #     self._pause_button.setIcon(self._play_icon)
-
-    def on_process(self):
-        self._video_player.fast_forward()
 
     def on_rewind(self):
         self._video_player.rewind()
