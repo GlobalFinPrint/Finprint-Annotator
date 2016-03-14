@@ -19,28 +19,30 @@ def convert_position(pos):
 
 
 class VideoSeekWidget(QSlider):
+    item_select = pyqtSignal(Animal)
+
     def __init__(self, player):
         super(VideoSeekWidget, self).__init__()
 
+        self.dragging = False
         self._player = player
-
         self.setOrientation(Qt.Horizontal)
         self.setStyleSheet(self.style())
 
         self.sliderPressed.connect(self._pressed)
-        #self.sliderMoved.connect(self._moved)
+        self.sliderMoved.connect(self._moved)
         self.sliderReleased.connect(self._released)
 
     def _pressed(self):
+        self.dragging = True
         self._player.pause()
 
-    #def _moved(self, pos):
-    #    pass
-        #self._player.set_position(pos)
+    def _moved(self, pos):
+        QToolTip.showText(QCursor.pos(), convert_position(pos))
 
     def _released(self):
+        self.dragging = False
         self._player.set_position(self.value())
-        #self._player.play()
 
     def setMaximum(self, value):
         super(VideoSeekWidget, self).setMaximum(value)
