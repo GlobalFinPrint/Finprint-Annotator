@@ -350,8 +350,6 @@ class VideoLayoutWidget(QWidget):
                 obs.comment = tableItem.text()
             self.current_set.edit_observation(obs)
 
-
-
     def on_observation(self, animal):
         obs = Observation()
         ## Cheese... Still haven't sorted out animal look ups for observations
@@ -434,7 +432,7 @@ class ObservationTable(QTableWidget):
 
     def update_row(self, row):
         obs = self._observations[row]
-        i = QTableWidgetItem(str(obs.initial_observation_time))
+        i = QTableWidgetItem(convert_position(obs.initial_observation_time))
         i.setFlags(i.flags() & ~Qt.ItemIsEditable)
         self.setItem(row, 0, i)
 
