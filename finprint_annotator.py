@@ -9,6 +9,7 @@ from pydispatch import dispatcher
 
 from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set
+import config
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -19,6 +20,7 @@ class MainWindow(QMainWindow):
         self._has_logged_in = False #if a successful log in has occurred, don't exit app when cancelling login dialog
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
+        self.setWindowTitle('Finprint Annotator {0}'.format(config.__version_string__))
         self._init_widgets()
 
         dispatcher.connect(self.on_login, signal='LOGIN', sender=dispatcher.Any)
@@ -239,7 +241,6 @@ def main():
     app = QApplication(sys.argv)
     app.setStyle("Plastique")
     win = MainWindow()
-    win.setWindowTitle('Finprint Annotator')
     win.show()
     win.activateWindow()
     sys.exit(app.exec_())
