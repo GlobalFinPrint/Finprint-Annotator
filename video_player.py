@@ -10,6 +10,8 @@ from collections import deque
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+from global_finprint import Extent
+
 
 class Highlighter(object):
     def __init__(self):
@@ -106,8 +108,16 @@ class CvVideoWidget(QWidget):
         self.setMinimumSize(800, 600)
         self._play_state = PlayState.Paused
 
+
+        getLogger('finprint').debug("frame height {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+        getLogger('finprint').debug("frame width {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)))
+        getLogger('finprint').debug("widget height {0}".format(self.height()))
+        getLogger('finprint').debug("widget width {0}".format(self.width()))
+
         # Take one frame to query height
         self.set_position(0)
+        getLogger('finprint').debug("image height {0}".format(self._image.height()))
+        getLogger('finprint').debug("image width {0}".format(self._image.width()))
 
         # Base line for measuring frame rate
         self.last_time = time.perf_counter()
@@ -168,14 +178,17 @@ class CvVideoWidget(QWidget):
             self._play_state = PlayState.EndOfStream
             self.playStateChanged.emit(self._play_state)
 
-    def get_highlight(self):
-        return self._highlighter.get_rect()
+    def get_highlight_extent(self):
+        ext = Extent()
+        ext.setRect(self._highlighter.get_rect(), self._image.height(), self._image.width())
+        return ext
 
     def get_highlight_as_list(self):
         r = self._highlighter.get_rect()
         return list(r.getCoords())
 
-    def display_observation(self, pos, rect):
+    def display_observation(self, pos, extent):
+        rect = extent.getRect(self._image.height(), self._image.width())
         self._highlighter.start_rect(rect.topLeft())
         self._highlighter.set_rect(rect.bottomRight())
         self.set_position(pos)

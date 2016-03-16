@@ -200,6 +200,7 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.observationRowDeleted.connect(self.delete_observation)
         self._observation_table.durationClicked.connect(self.set_duration)
         self._observation_table.itemChanged.connect(self.item_changed)
+        self._observation_table.goToObservation.connect(self.observation_selected)
         #self._observation_table.selectionChanged = self.observation_selected
 
     def setup_layout(self):
@@ -307,7 +308,6 @@ class VideoLayoutWidget(QWidget):
             self._toggle_play_button.setText('Pause')
             self._toggle_play_button.setIcon(self._pause_icon)
 
-
     def clear(self):
         self._video_player.clear()
         self.clear_buttons()
@@ -356,7 +356,7 @@ class VideoLayoutWidget(QWidget):
         obs.animal_id = animal.id
         obs.animal = animal
         obs.initial_observation_time = int(self._video_player.get_position())
-        obs.extent = self._video_player.get_highlight_as_list()
+        obs.extent = self._video_player.get_highlight_extent()
         self.add_observation(obs)
 
     def of_interest(self):
@@ -364,7 +364,7 @@ class VideoLayoutWidget(QWidget):
         obs.position = self._video_player.get_position()
         obs.initial_observation_time = int(self._video_player.get_position())
         obs.type_choice = "I"
-        obs.extent = self._video_player.get_highlight_as_list()
+        obs.extent = self._video_player.get_highlight_extent()
         dlg = QInputDialog(self)
         dlg.setInputMode(QInputDialog.TextInput)
         comment, ok = dlg.getText(self, 'Observation of Interest', 'Please enter detail of your observation')

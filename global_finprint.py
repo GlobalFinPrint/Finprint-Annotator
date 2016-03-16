@@ -1,10 +1,12 @@
 from config import global_config
 import requests
-import json
-import datetime
+from PyQt4.QtCore import *
+import re
+
 
 class QueryException(Exception):
     pass
+
 
 class Singleton:
     _shared_state = {}
@@ -125,6 +127,51 @@ class Animal(object):
             return ''
 
 
+class Extent(object):
+    def __init__(self):
+        self.rect = QRect(QPoint(0, 0), QPoint(0, 0))
+        self.height = 1
+        self.width = 1
+        self.numbers = []
+
+    def getRect(self, h, w):
+        self.height = h
+        self.width = w
+        if len(self.numbers) == 10:
+            self.rect = QRect(QPoint(self._adjustX(float(self.numbers[0])), self._adjustY(float(self.numbers[1]))),
+                              QPoint(self._adjustX(float(self.numbers[4])), self._adjustY(float(self.numbers[5]))))
+        return self.rect
+
+    def setRect(self, r, h, w):
+        self.rect = r
+        self.height = h
+        self.width = w
+
+    def from_wkt(self, wkt_polygon):
+        ## Comes in SRID=4356;POLYGON ((X1 Y1, X2 Y1, X2 Y2, X1 Y2, X1 Y1))
+        self.numbers = re.findall(r'\d+(?:\.\d*)?', wkt_polygon.partition(';')[2])
+        pass
+
+    def _adjustX(self, x):
+        return x * self.width
+
+    def _adjustY(self, y):
+        return y * self.height
+
+    def _normalizeX(self, x):
+        return x/self.width
+
+    def _normalizeY(self, y):
+        return y/self.height
+
+    def to_wkt(self):
+        return "POLYGON (({0:.5f} {1:.5f}, {2:.5f} {3:.5f}, {4:.5f} {5:.5f}, {6:.5f} {7:.5f}, {8:.5f} {9:.5f}))".format(self._normalizeX(self.rect.topLeft().x()), self._normalizeY(self.rect.topLeft().y()),
+                                                                       self._normalizeX(self.rect.topRight().x()), self._normalizeY(self.rect.topRight().y() ),
+                                                                       self._normalizeX(self.rect.bottomRight().x()), self._normalizeY(self.rect.bottomRight().y()),
+                                                                       self._normalizeX(self.rect.bottomLeft().x()), self._normalizeY(self.rect.bottomLeft().y()),
+                                                                       self._normalizeX(self.rect.topLeft().x()), self._normalizeY(self.rect.topLeft().y()))
+
+
 class Observation(object):
     def __init__(self):
         self.id = None
@@ -135,7 +182,7 @@ class Observation(object):
         self.duration = 0
         self.animal = Animal()
         self.type_choice = 'A'
-        self.extent = [0, 0, 0, 0]
+        self.extent = Extent()
 
     def load(self, obs_dict):
         self.type_choice = obs_dict['type_choice']
@@ -143,11 +190,12 @@ class Observation(object):
         self.comment = obs_dict['comment']
         self.initial_observation_time = int(obs_dict['initial_observation_time'])
         self.duration = obs_dict['duration']
-        if 'extent' in obs_dict:
-            self.extent = obs_dict['extent']
+        if 'extent' in obs_dict and obs_dict['extent']:
+            self.extent.from_wkt(obs_dict['extent'])
 
         if self.type_choice == 'A':
             self.animal_id = obs_dict['animal_id']
+
 
     def to_dict(self):
         return {'id': self.id,
@@ -156,8 +204,8 @@ class Observation(object):
                 'type_choice': self.type_choice,
                 'type': self.type_choice, #TODO band-aid till the backend gets fixed
                 'comment': self.comment,
-                'duration': self.duration}
-                #'extent': self.extent}
+                'duration': self.duration,
+                'extent': self.extent.to_wkt()}
 
 
 class Set(object):

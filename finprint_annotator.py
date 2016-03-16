@@ -167,8 +167,6 @@ class LoginWidget(QWidget):
         form.addRow('Password', self.pwd_edit)
         form.addWidget(self.error_label)
         form.addRow(button_layout)
-        #form.addWidget(login_button)
-        #form.addWidget(cancel_button)
 
         grid = QGridLayout()
         grid.addLayout(form, 40, 40)
