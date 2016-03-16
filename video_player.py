@@ -109,12 +109,20 @@ class CvVideoWidget(QWidget):
         # Take one frame to query height
         self.set_position(0)
 
+        # Base line for measuring frame rate
         self.last_time = time.perf_counter()
-
         self._timer.start(33)
         return True
 
     def on_timer(self):
+        if self._play_state == PlayState.Playing:
+            self.load_frame()
+        elif self._play_state == PlayState.SeekBack:
+            pos = self.get_position()
+            pos -= 120
+            self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+            self.load_frame()
+
         self.update()
 
     def clear(self):
@@ -127,8 +135,6 @@ class CvVideoWidget(QWidget):
 
     def _build_image(self, frame):
         try:
-            # getLogger('finprint').info(frame.shape)
-            # getLogger('finprint').info(frame)
             frame = imutils.resize(frame, width=1024)
             height, width, channels = frame.shape
             if self._frame is None:
@@ -143,29 +149,20 @@ class CvVideoWidget(QWidget):
     def paintEvent(self, event):
         painter = QPainter(self)
 
-        if self._play_state == PlayState.Playing:
-            self.load_frame()
-        elif self._play_state == PlayState.SeekBack:
-            pos = self.get_position()
-            pos -= 120
-            self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
-            self.load_frame()
-
         painter.drawImage(QPoint(0, 0), self._image)
         if self._play_state == PlayState.Paused:
             painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
             painter.drawRect(self._highlighter.get_rect())
-        else:
-            self._onPositionChange(self.get_position())
 
     def load_frame(self):
         grabbed, frame = self._capture.read()
         if grabbed:
-            #t = time.perf_counter()
-            #diff = t - self.last_time
-            #print("diff {0:.4f}".format(diff))
-            #self.last_time = t
+            t = time.perf_counter()
+            diff = t - self.last_time
+            self.last_time = t
+            getLogger('finprint').debug("frame load diff {0:.4f}".format(diff))
             self._image = self._build_image(frame)
+            self._onPositionChange(self.get_position())
         else:
             # Hit the end
             self._play_state = PlayState.EndOfStream
@@ -186,6 +183,7 @@ class CvVideoWidget(QWidget):
 
     def set_position(self, pos):
         self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+        getLogger('finprint').debug('Setting position to {0}'.format(pos))
         self.load_frame()
         self._onPositionChange(self.get_position())
 
