@@ -130,7 +130,7 @@ class LoginWidget(QWidget):
 
         logo = QLabel()
         logo.setGeometry(100, 100, 130, 130)
-        logo.setPixmap(QPixmap("./images/Fin-Print-Horizontal-Logo-5.png"))
+        logo.setPixmap(QPixmap("./images/logo.png"))
 
         user = QLabel('User Name')
         pwd = QLabel('Password')
