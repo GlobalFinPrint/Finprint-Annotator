@@ -139,8 +139,8 @@ class CvVideoWidget(QWidget):
         self._timer.stop()
         if self._capture is not None:
             self._capture.release()
-        self._image = QBitmap(800, 600)
-        self._image.fill(Qt.black)
+        #self._image = QBitmap(800, 600)
+        #self._image.fill(Qt.black)
         self.update()
 
     def _build_image(self, frame):
