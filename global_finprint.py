@@ -45,8 +45,8 @@ class GlobalFinPrintServer(Singleton):
 
     def logout(self):
         r = requests.post(self.address + '/api/logout', {'token': self.user_token})
-        self.logged_in = r.status_code == 200
-        return self.logged_in
+        self.logged_in = not r.status_code == 200
+        return not self.logged_in
 
     def set_list(self):
         r = requests.get(self.address + '/api/set', params={'token': self.user_token})
