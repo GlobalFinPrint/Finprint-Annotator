@@ -113,12 +113,9 @@ class VideoSeekWidget(QSlider):
 class MenuButton(QPushButton):
     item_select = pyqtSignal(Animal)
 
-    def __init__(self, animalMenu, *args, **kw):
+    def __init__(self, *args, **kw):
         QPushButton.__init__(self, *args, **kw)
         self.last_mouse_pos = None
-        self.menus = []
-        self.animal_menu = animalMenu
-        self.clicked.connect(self.popup_menu)
 
     def mousePressEvent(self, event):
         self.last_mouse_pos = event.pos()
@@ -134,7 +131,16 @@ class MenuButton(QPushButton):
         else:
             return None
 
-    def popup_menu(self):
+
+class OrganismSelector(QObject):
+    item_select = pyqtSignal(Animal)
+
+    def __init__(self, animal_menu):
+        super(QObject, self).__init__()
+        self.menus = []
+        self.animal_menu = animal_menu
+
+    def popup_menu(self, pos):
         def _make_action(data):
             return lambda: self.item_select.emit(data)
 
@@ -146,7 +152,7 @@ class MenuButton(QPushButton):
             self.menus.append(obsmenu)
             top_menu.addMenu(obsmenu)
 
-        top_menu.exec_(self.get_last_pos())
+        top_menu.exec_(pos)
 
 
 class VideoLayoutWidget(QWidget):
@@ -173,18 +179,16 @@ class VideoLayoutWidget(QWidget):
 
         self._obs_btn_box = QHBoxLayout()
 
+        self.organism_selector = None
+        self.critter_button = None
+
         self._quit_button = QPushButton('Quit')
         self._observation_table = ObservationTable()
 
         self.grouping = {}
 
-
         # An annotation seession is in the context of a set.  Track the current set we're annotating
         self.current_set = None
-
-        # Buttons to record an observation of a registered species
-        #  This will be dynamic based on each annotation session
-        #self._species_buttons = ['Grey Reef', 'Nurse', 'Tiger', 'Jaws']
 
         self.setup_layout()
         self.wire_events()
@@ -259,13 +263,20 @@ class VideoLayoutWidget(QWidget):
                 self.grouping[animal.group] = []
             self.grouping[animal.group].append(animal)
 
-        self.critter_button = MenuButton(self.grouping, "Organisms")
-        self.critter_button.item_select.connect(self.on_observation)
+        self.critter_button = MenuButton("Organisms")
+        self.critter_button.clicked.connect(self.menu_button_click)
+
+        self.organism_selector = OrganismSelector(self.grouping)
+        self.organism_selector.item_select.connect(self.on_observation)
+
         self._obs_btn_box.addWidget(self.critter_button)
 
         self._of_interest = QPushButton('Of Interest')
         self._of_interest.clicked.connect(self.of_interest)
         self._obs_btn_box.addWidget(self._of_interest)
+
+    def menu_button_click(self, evt):
+        self.organism_selector.popup_menu(self.critter_button.get_last_pos())
 
     def get_local_file(self, orig_file_name):
         (dir, file_name) = os.path.split(orig_file_name)
