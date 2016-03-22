@@ -423,7 +423,7 @@ class ObservationTable(QTableWidget):
     durationClicked = pyqtSignal(int, Observation)
     goToObservation = pyqtSignal(int, Observation)
     observationUpdated = pyqtSignal(int, Observation)
-    column_headers = ['Time', 'Organism', 'Duration', 'Notes']
+    column_headers = ['Time', 'Organism', 'Duration (ms)', 'Notes']
 
     def __init__(self, *args):
         super(ObservationTable, self).__init__(*args)
