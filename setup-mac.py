@@ -38,6 +38,7 @@ OPTIONS = {
     'resources': 'images',
     'includes': 'sip',
     'packages': 'PyQt4',
+    'frameworks': '/usr/local/Cellar/hdf5/1.8.16_1/lib/libhdf5.10.dylib',
 }
 
 setup(
