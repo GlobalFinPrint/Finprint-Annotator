@@ -133,22 +133,22 @@ class MenuButton(QPushButton):
 
 
 class OrganismSelector(QObject):
-    item_select = pyqtSignal(Animal)
+    item_select = pyqtSignal(Animal, int)
 
     def __init__(self, animal_menu):
         super(QObject, self).__init__()
         self.menus = []
         self.animal_menu = animal_menu
 
-    def popup_menu(self, pos):
-        def _make_action(data):
-            return lambda: self.item_select.emit(data)
+    def popup_menu(self, pos, row = -1):
+        def _make_action(data, row):
+            return lambda: self.item_select.emit(data, row)
 
         top_menu = QMenu('Organisms')
         for group in self.animal_menu:
             obsmenu = QMenu(group)
             for animal in self.animal_menu[group]:
-                obsmenu.addAction(str(animal)).triggered.connect(_make_action(animal))
+                obsmenu.addAction(str(animal)).triggered.connect(_make_action(animal, row))
             self.menus.append(obsmenu)
             top_menu.addMenu(obsmenu)
 
@@ -179,7 +179,7 @@ class VideoLayoutWidget(QWidget):
 
         self._obs_btn_box = QHBoxLayout()
 
-        self.organism_selector = None
+        self.organism_selector_button = None
         self.critter_button = None
 
         self._quit_button = QPushButton('Quit')
@@ -205,6 +205,7 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.durationClicked.connect(self.set_duration)
         self._observation_table.itemChanged.connect(self.item_changed)
         self._observation_table.goToObservation.connect(self.observation_selected)
+        self._observation_table.cellClicked.connect(self.on_table_cell_click)
         #self._observation_table.selectionChanged = self.observation_selected
 
     def setup_layout(self):
@@ -244,7 +245,7 @@ class VideoLayoutWidget(QWidget):
         # App buttons
         btn_box = QHBoxLayout()
         btn_box.addStretch(1)
-        btn_box.addWidget(self._quit_button )
+        btn_box.addWidget(self._quit_button)
         container.addLayout(btn_box)
 
         self.setLayout(container)
@@ -266,8 +267,13 @@ class VideoLayoutWidget(QWidget):
         self.critter_button = MenuButton("Organisms")
         self.critter_button.clicked.connect(self.menu_button_click)
 
-        self.organism_selector = OrganismSelector(self.grouping)
-        self.organism_selector.item_select.connect(self.on_observation)
+        # <sigh> Creating two instances of the selector at the moment to
+        # better track where it was used from (button or table cell)
+        self.organism_selector_button = OrganismSelector(self.grouping)
+        self.organism_selector_button.item_select.connect(self.on_observation)
+
+        self.organism_selector_table = OrganismSelector(self.grouping)
+        self.organism_selector_table.item_select.connect(self.on_organism_cell_changed)
 
         self._obs_btn_box.addWidget(self.critter_button)
 
@@ -276,7 +282,7 @@ class VideoLayoutWidget(QWidget):
         self._obs_btn_box.addWidget(self._of_interest)
 
     def menu_button_click(self, evt):
-        self.organism_selector.popup_menu(self.critter_button.get_last_pos())
+        self.organism_selector_button.popup_menu(self.critter_button.get_last_pos())
 
     def get_local_file(self, orig_file_name):
         (dir, file_name) = os.path.split(orig_file_name)
@@ -353,7 +359,7 @@ class VideoLayoutWidget(QWidget):
 
     def item_changed(self, tableItem):
         if not self._data_loading:
-            print('changed row {0} {1}'.format(tableItem.row(), tableItem.text()))
+            #print('changed row {0} {1}'.format(tableItem.row(), tableItem.text()))
             obs = self._observation_table.get_observation(tableItem.row())
             if tableItem.column() == 2:
                 obs.duration = int(tableItem.text())
@@ -369,6 +375,21 @@ class VideoLayoutWidget(QWidget):
         obs.initial_observation_time = int(self._video_player.get_position())
         obs.extent = self._video_player.get_highlight_extent()
         self.add_observation(obs)
+
+    def on_organism_cell_changed(self, animal, row):
+        obs = self._observation_table.get_observation(row)
+        obs.animal_id = animal.id
+        obs.animal = animal
+        self.current_set.edit_observation(obs)
+        self._data_loading = False
+        self._observation_table.update_row(row)
+        self._data_loading = True
+
+
+    def on_table_cell_click(self, row, col):
+        if col == 1:
+            self.organism_selector_table.popup_menu(QCursor.pos(), row)
+
 
     def of_interest(self):
         obs = Observation()
