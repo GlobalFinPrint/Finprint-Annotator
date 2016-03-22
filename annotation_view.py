@@ -359,7 +359,6 @@ class VideoLayoutWidget(QWidget):
 
     def item_changed(self, tableItem):
         if not self._data_loading:
-            #print('changed row {0} {1}'.format(tableItem.row(), tableItem.text()))
             obs = self._observation_table.get_observation(tableItem.row())
             if tableItem.column() == 2:
                 obs.duration = int(tableItem.text())
@@ -409,6 +408,7 @@ class VideoLayoutWidget(QWidget):
         self.current_set.add_observation(obs)
         self._observation_table.add_row(obs)
         self._data_loading = False
+        self._observation_table.scrollToBottom()
 
     def delete_observation(self, obs):
         self.current_set.delete_observation(obs)
