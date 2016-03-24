@@ -208,6 +208,9 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.cellClicked.connect(self.on_table_cell_click)
         #self._observation_table.selectionChanged = self.observation_selected
 
+        self._observation_table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self._observation_table.customContextMenuRequested.connect(self._observation_table.customContextMenu)
+
     def setup_layout(self):
         # Main container going top to bottom
         container = QVBoxLayout()
@@ -442,14 +445,14 @@ class ObservationTable(QTableWidget):
     def get_observation(self, row):
         return self._observations[row]
 
-    def contextMenuEvent(self, event):
+    def customContextMenu(self, pos):
         menu = QMenu(self)
         delete_action = menu.addAction("Delete")
         set_duration_action = menu.addAction("Set Duration")
         go_to_observation_action = menu.addAction("Go To Observation")
-        row = self.indexAt(event.pos()).row()
+        row = self.indexAt(pos).row()
         if row >= 0:
-            action = menu.exec_(event.globalPos())
+            action = menu.exec_(self.mapToGlobal(pos))
             if action == delete_action:
                 self.observationRowDeleted.emit(self._observations[row])
 
