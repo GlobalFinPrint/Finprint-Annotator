@@ -384,11 +384,9 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.update_row(row)
         self._data_loading = True
 
-
     def on_table_cell_click(self, row, col):
-        if col == 1:
+        if col == 1 and self._observation_table.item(row, col).text() != '':
             self.organism_selector_table.popup_menu(QCursor.pos(), row)
-
 
     def of_interest(self):
         obs = Observation()
@@ -432,6 +430,8 @@ class ObservationTable(QTableWidget):
         self.set_data()
         self.show()
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self._disabled_color = QColor(Qt.lightGray)
+        self._disabled_color.setAlphaF(0.5)
 
     def set_data(self):
         self.setColumnCount(len(ObservationTable.column_headers))
@@ -470,6 +470,8 @@ class ObservationTable(QTableWidget):
 
         i = QTableWidgetItem(str(obs.animal))
         i.setFlags(i.flags() & ~Qt.ItemIsEditable)
+        if obs.animal.id is None:
+            i.setBackgroundColor(self._disabled_color)
         self.setItem(row, 1, i)
         self.setItem(row, 2, QTableWidgetItem(str(obs.duration)))
         self.setItem(row, 3, QTableWidgetItem(obs.comment))
