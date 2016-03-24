@@ -92,6 +92,14 @@ class CvVideoWidget(QWidget):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.on_timer)
 
+    # listen for any spacebar touches for play/pause
+    def eventFilter(self, obj, evt):
+        if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit:
+            if evt.key() == Qt.Key_Space:
+                self.toggle_play()
+                return True
+        return False
+
     def load(self, file_name):
         self._file_name = file_name
 
@@ -108,6 +116,8 @@ class CvVideoWidget(QWidget):
         self.setMinimumSize(800, 600)
         self._play_state = PlayState.Paused
 
+        # don't start listening for spacebar until video is loaded and playable
+        QCoreApplication.instance().installEventFilter(self)
 
         getLogger('finprint').debug("frame height {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         getLogger('finprint').debug("frame width {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)))
