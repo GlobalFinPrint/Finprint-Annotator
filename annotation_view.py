@@ -285,6 +285,7 @@ class VideoLayoutWidget(QWidget):
         self._obs_btn_box.addWidget(self._of_interest)
 
     def menu_button_click(self, evt):
+        self._video_player.pause()
         self.organism_selector_button.popup_menu(self.critter_button.get_last_pos())
 
     def get_local_file(self, orig_file_name):
@@ -392,6 +393,7 @@ class VideoLayoutWidget(QWidget):
             self.organism_selector_table.popup_menu(QCursor.pos(), row)
 
     def of_interest(self):
+        self._video_player.pause()
         obs = Observation()
         obs.position = self._video_player.get_position()
         obs.initial_observation_time = int(self._video_player.get_position())
