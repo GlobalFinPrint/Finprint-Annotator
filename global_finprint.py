@@ -60,6 +60,11 @@ class GlobalFinPrintServer(Singleton):
         r = requests.post(self.address + '/api/set/{0}/done'.format(set_id), {'token': self.user_token})
         return r.status_code == 200
 
+    def update_progress(self, set_id, progress):
+        r = requests.post(self.address + '/api/set/{0}/progress'.format(set_id),
+                          {'token': self.user_token, 'progress': progress})
+        return r.status_code == 200
+
     def observations(self, set_id):
         r = requests.get(self.address + '/api/set/{0}/obs'.format(set_id), params={'token': self.user_token})
         return r.json()
@@ -258,4 +263,5 @@ class Set(object):
             return a[0]
         return None
 
-
+    def update_progress(self, progress):
+        GlobalFinPrintServer().update_progress(self.id, progress)
