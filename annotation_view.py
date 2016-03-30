@@ -195,7 +195,7 @@ class VideoLayoutWidget(QWidget):
 
 
     def wire_events(self):
-        self._quit_button.clicked.connect(QCoreApplication.instance().quit)
+        self._quit_button.clicked.connect(self.on_quit)
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
         self._rew_button.clicked.connect(self.on_rewind)
 
@@ -346,6 +346,10 @@ class VideoLayoutWidget(QWidget):
 
     def on_rewind(self):
         self._video_player.rewind()
+
+    def on_quit(self):
+        self.current_set.update_progress(int(self._video_player.get_position() // 1000))  # update position on quit
+        QCoreApplication.instance().quit()
 
     def set_duration(self, row, observation):
         pos = self._video_player.get_position()
