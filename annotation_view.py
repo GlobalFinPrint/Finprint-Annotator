@@ -200,6 +200,7 @@ class VideoLayoutWidget(QWidget):
         self._rew_button.clicked.connect(self.on_rewind)
 
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
+        self._video_player.progressUpdate.connect(self.on_progress_update)
 
         self._observation_table.observationRowDeleted.connect(self.delete_observation)
         self._observation_table.durationClicked.connect(self.set_duration)
@@ -329,6 +330,9 @@ class VideoLayoutWidget(QWidget):
         else:
             self._toggle_play_button.setText('Pause')
             self._toggle_play_button.setIcon(self._pause_icon)
+
+    def on_progress_update(self, progress):
+        self.current_set.update_progress(progress)
 
     def clear(self):
         self._video_player.clear()

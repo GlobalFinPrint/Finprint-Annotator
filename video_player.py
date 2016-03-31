@@ -12,6 +12,8 @@ from PyQt4.QtGui import *
 
 from global_finprint import Extent
 
+PROGRESS_UPDATE_INTERVAL = 30000
+
 
 class Highlighter(object):
     def __init__(self):
@@ -76,6 +78,7 @@ class FrameRateAdjuster(object):
 
 class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
+    progressUpdate = pyqtSignal(int)
 
     def __init__(self, parent=None, onPositionChange=None):
         QWidget.__init__(self, parent)
@@ -91,6 +94,7 @@ class CvVideoWidget(QWidget):
         self._image = QBitmap(800, 600)
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.on_timer)
+        self._last_progress = 0
 
     # listen for any spacebar touches for play/pause
     def eventFilter(self, obj, evt):
@@ -135,10 +139,13 @@ class CvVideoWidget(QWidget):
         return True
 
     def on_timer(self):
+        pos = self.get_position()
         if self._play_state == PlayState.Playing:
+            if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
+                self._last_progress = pos
+                self.progressUpdate.emit(pos)
             self.load_frame()
         elif self._play_state == PlayState.SeekBack:
-            pos = self.get_position()
             pos -= 120
             self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
             self.load_frame()
