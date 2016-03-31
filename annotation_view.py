@@ -324,7 +324,7 @@ class VideoLayoutWidget(QWidget):
 
     def on_playstate_changed(self, play_state):
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
-            self.current_set.update_progress(int(self._video_player.get_position() // 1000))  # update position on pause
+            self.current_set.update_progress(self._video_player.get_position())  # update position on pause
             self._toggle_play_button.setText('Play')
             self._toggle_play_button.setIcon(self._play_icon)
         else:
@@ -352,7 +352,7 @@ class VideoLayoutWidget(QWidget):
         self._video_player.rewind()
 
     def on_quit(self):
-        self.current_set.update_progress(int(self._video_player.get_position() // 1000))  # update position on quit
+        self.current_set.update_progress(self._video_player.get_position())  # update position on quit
         QCoreApplication.instance().quit()
 
     def set_duration(self, row, observation):
