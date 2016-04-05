@@ -5,7 +5,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 from video_player import CvVideoWidget, PlayState
-from global_finprint import Observation, Set, Animal
+from global_finprint import Observation, Animal, GlobalFinPrintServer
 from config import global_config
 from logging import getLogger
 
@@ -28,6 +28,7 @@ class VideoSeekWidget(QSlider):
         self._player = player
         self.setOrientation(Qt.Horizontal)
         self.setStyleSheet(self.style())
+        self.allowed_progress = None
 
         self.sliderPressed.connect(self._pressed)
         self.sliderMoved.connect(self._moved)
@@ -35,6 +36,7 @@ class VideoSeekWidget(QSlider):
 
     def _pressed(self):
         self.dragging = True
+        self.allowed_progress = max(self.value(), self.allowed_progress)
         self._player.pause()
 
     def _moved(self, pos):
@@ -42,12 +44,17 @@ class VideoSeekWidget(QSlider):
 
     def _released(self):
         self.dragging = False
-        self._player.set_position(self.value())
+        # do not allow fast forward for non-leads
+        if GlobalFinPrintServer().is_lead() or self.allowed_progress is None:
+            self._player.set_position(self.value())
+        else:
+            self._player.set_position(min(self.value(), self.allowed_progress))
 
     def setMaximum(self, value):
         super(VideoSeekWidget, self).setMaximum(value)
-        max = self.maximum()
-        pass
+
+    def set_allowed_progress(self, progress):
+        self.allowed_progress = progress
 
     def style(self):
         return """
@@ -317,6 +324,7 @@ class VideoLayoutWidget(QWidget):
             msgbox.exec_()
 
         self._slider.setMaximum(int(self._video_player.get_length()))
+        self._slider.set_allowed_progress(set.progress)
 
         for obs in set.observations:
             self._observation_table.add_row(obs)

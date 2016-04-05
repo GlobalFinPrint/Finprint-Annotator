@@ -28,6 +28,9 @@ class GlobalFinPrintServer(Singleton):
             self.user_name = ''
             self.address = global_config.get('GLOBAL_FINPRINT_SERVER', 'address')
 
+    def is_lead(self):
+        return self.user_role == 'lead'
+
     def login(self, user_name, pwd):
         data = {'username': user_name, 'password': pwd}
         r = requests.post(self.address + '/api/login', data)
