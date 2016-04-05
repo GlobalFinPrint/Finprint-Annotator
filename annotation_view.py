@@ -184,6 +184,9 @@ class VideoLayoutWidget(QWidget):
         self._toggle_play_button.setIcon(self._play_icon)
         self._toggle_play_button.setText('Play')
 
+        self._submit_button = QPushButton('Submit for Review')
+        self._submit_button.setDisabled(True)
+
         self._obs_btn_box = QHBoxLayout()
 
         self.organism_selector_button = None
@@ -204,6 +207,7 @@ class VideoLayoutWidget(QWidget):
     def wire_events(self):
         self._quit_button.clicked.connect(self.on_quit)
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
+        self._submit_button.clicked.connect(self.on_submit)
         self._rew_button.clicked.connect(self.on_rewind)
 
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
@@ -239,8 +243,9 @@ class VideoLayoutWidget(QWidget):
         vid_btn_box = QHBoxLayout()
         vid_btn_box.addStretch(1)
         vid_btn_box.addWidget(self._pos_label)
-        vid_btn_box.addWidget(self._rew_button )
-        vid_btn_box.addWidget(self._toggle_play_button )
+        vid_btn_box.addWidget(self._rew_button)
+        vid_btn_box.addWidget(self._toggle_play_button)
+        vid_btn_box.addWidget(self._submit_button)
 
         btn_box = QHBoxLayout()
         btn_box.addLayout(self._obs_btn_box)
@@ -341,6 +346,9 @@ class VideoLayoutWidget(QWidget):
             self._toggle_play_button.setText('Pause')
             self._toggle_play_button.setIcon(self._pause_icon)
 
+        if play_state == PlayState.EndOfStream:
+            self._submit_button.setDisabled(False)
+
     def on_progress_update(self, progress):
         self.current_set.update_progress(progress)
 
@@ -357,6 +365,10 @@ class VideoLayoutWidget(QWidget):
 
     def on_toggle_play(self):
         self._video_player.toggle_play()
+
+    def on_submit(self):
+        self.current_set.mark_as_done()
+        # TODO clear screen and bring up set list
 
     def on_rewind(self):
         self._video_player.rewind()
