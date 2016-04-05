@@ -315,6 +315,8 @@ class VideoLayoutWidget(QWidget):
         self.current_set = set
         self.load_buttons(set.animals)
 
+        self._observation_table.set_data()
+
         file_name = self.get_local_file(set.file)
         if not self._video_player.load(file_name):
             msgbox = QMessageBox()
@@ -443,23 +445,23 @@ class ObservationTable(QTableWidget):
     durationClicked = pyqtSignal(int, Observation)
     goToObservation = pyqtSignal(int, Observation)
     observationUpdated = pyqtSignal(int, Observation)
-    column_headers = ['Time', 'Organism', 'Duration (ms)', 'Notes']
 
     def __init__(self, *args):
         super(ObservationTable, self).__init__(*args)
         # Track the rectangle highlights for each observation
         self._observations = []
-        self.set_data()
-        self.show()
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self._disabled_color = QColor(Qt.lightGray)
         self._disabled_color.setAlphaF(0.5)
 
     def set_data(self):
-        self.setColumnCount(len(ObservationTable.column_headers))
-        self.setHorizontalHeaderLabels(ObservationTable.column_headers)
+        column_headers = ['Time', 'Organism', 'Duration (ms)', 'Notes'] if GlobalFinPrintServer().is_lead() \
+            else ['Time', 'Organism', 'Notes']
+        self.setColumnCount(len(column_headers))
+        self.setHorizontalHeaderLabels(column_headers)
         self.setColumnWidth(1, 250)
-        self.setColumnWidth(3, 400)
+        self.setColumnWidth(3 if GlobalFinPrintServer().is_lead() else 2, 400)
+        self.show()
 
     def get_observation(self, row):
         return self._observations[row]
@@ -467,7 +469,7 @@ class ObservationTable(QTableWidget):
     def customContextMenu(self, pos):
         menu = QMenu(self)
         delete_action = menu.addAction("Delete")
-        set_duration_action = menu.addAction("Set Duration")
+        set_duration_action = menu.addAction("Set Duration") if GlobalFinPrintServer().is_lead() else None
         go_to_observation_action = menu.addAction("Go To Observation")
         row = self.indexAt(pos).row()
         if row >= 0:
@@ -495,8 +497,11 @@ class ObservationTable(QTableWidget):
         if obs.animal.id is None:
             i.setBackgroundColor(self._disabled_color)
         self.setItem(row, 1, i)
-        self.setItem(row, 2, QTableWidgetItem(str(obs.duration)))
-        self.setItem(row, 3, QTableWidgetItem(obs.comment))
+        if GlobalFinPrintServer().is_lead():
+            self.setItem(row, 2, QTableWidgetItem(str(obs.duration)))
+            self.setItem(row, 3, QTableWidgetItem(obs.comment))
+        else:
+            self.setItem(row, 2, QTableWidgetItem(obs.comment))
 
     def add_row(self, obs):
         new_row_index = self.rowCount()
