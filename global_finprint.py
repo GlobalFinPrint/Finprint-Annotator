@@ -24,6 +24,7 @@ class GlobalFinPrintServer(Singleton):
             self.instantiated = True
             self.logged_in = False
             self.user_token = None
+            self.user_role = None
             self.user_name = ''
             self.address = global_config.get('GLOBAL_FINPRINT_SERVER', 'address')
 
@@ -35,6 +36,7 @@ class GlobalFinPrintServer(Singleton):
             self.logged_in = True
             data = r.json()
             self.user_token = data['token']
+            self.user_role = data['role']
             self.user_name = user_name
         elif r.status_code == 403:
             raise QueryException('Unknown user or user not assigned to proper role')
