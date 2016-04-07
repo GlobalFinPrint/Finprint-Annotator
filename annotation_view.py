@@ -374,7 +374,8 @@ class VideoLayoutWidget(QWidget):
         self._video_player.rewind()
 
     def on_quit(self):
-        self.current_set.update_progress(self._video_player.get_position())  # update position on quit
+        if self.current_set is not None:  # update position on quit
+            self.current_set.update_progress(self._video_player.get_position())
         QCoreApplication.instance().quit()
 
     def set_duration(self, row, observation):
