@@ -163,8 +163,10 @@ class OrganismSelector(QObject):
 
 
 class VideoLayoutWidget(QWidget):
-    def __init__(self):
+    def __init__(self, main_window):
         super(VideoLayoutWidget, self).__init__()
+
+        self._main_window = main_window
 
         # UI widgets
         self.vid_box = None
@@ -318,6 +320,9 @@ class VideoLayoutWidget(QWidget):
         self._data_loading = True
         self.clear()
         self.current_set = set
+
+        self._rew_button.setDisabled(False)
+        self._toggle_play_button.setDisabled(False)
         self.load_buttons(set.animals)
 
         self._observation_table.set_data()
@@ -339,7 +344,7 @@ class VideoLayoutWidget(QWidget):
 
     def on_playstate_changed(self, play_state):
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
-            self.current_set.update_progress(self._video_player.get_position())  # update position on pause
+            self.on_progress_update(self._video_player.get_position())  # update position on pause
             self._toggle_play_button.setText('Play')
             self._toggle_play_button.setIcon(self._play_icon)
         else:
@@ -350,11 +355,15 @@ class VideoLayoutWidget(QWidget):
             self._submit_button.setDisabled(False)
 
     def on_progress_update(self, progress):
-        self.current_set.update_progress(progress)
+        if self.current_set is not None:
+            self.current_set.update_progress(progress)
 
     def clear(self):
         self._video_player.clear()
         self.clear_buttons()
+        self._submit_button.setDisabled(True)
+        self._rew_button.setDisabled(True)
+        self._toggle_play_button.setDisabled(True)
         self._observation_table.setRowCount(0)
         self.current_set = None
 
@@ -368,14 +377,14 @@ class VideoLayoutWidget(QWidget):
 
     def on_submit(self):
         self.current_set.mark_as_done()
-        # TODO clear screen and bring up set list
+        self.clear()
+        self._main_window._launch_set_list()
 
     def on_rewind(self):
         self._video_player.rewind()
 
     def on_quit(self):
-        if self.current_set is not None:  # update position on quit
-            self.current_set.update_progress(self._video_player.get_position())
+        self.on_progress_update(self._video_player.get_position())  # update position on quit
         QCoreApplication.instance().quit()
 
     def set_duration(self, row, observation):

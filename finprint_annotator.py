@@ -31,7 +31,7 @@ class MainWindow(QMainWindow):
         self._set_menus()
         self.statusBar()
 
-        self._vid_layout = VideoLayoutWidget()
+        self._vid_layout = VideoLayoutWidget(self)
         self.setCentralWidget(self._vid_layout)
         self.showMaximized()
         self._launch_login_dialog()

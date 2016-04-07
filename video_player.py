@@ -157,7 +157,7 @@ class CvVideoWidget(QWidget):
         if self._capture is not None:
             self._capture.release()
         #self._image = QBitmap(800, 600)
-        #self._image.fill(Qt.black)
+        self._image.fill(Qt.black)
         self.update()
 
     def _build_image(self, frame):
@@ -253,7 +253,7 @@ class CvVideoWidget(QWidget):
         return self._play_state == PlayState.Paused
 
     def get_position(self):
-        return self._capture.get(cv2.CAP_PROP_POS_MSEC)
+        return self._capture.get(cv2.CAP_PROP_POS_MSEC) if self._capture is not None else None
 
     def get_length(self):
         fps = self._capture.get(cv2.CAP_PROP_FPS)
