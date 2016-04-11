@@ -41,12 +41,6 @@ class MainWindow(QMainWindow):
         fileMenu = menubar.addMenu('&File')
 
         if GlobalFinPrintServer().logged_in:
-            logOutAction = QAction('Log&out', self)
-            logOutAction.setShortcut('Ctrl+O')
-            logOutAction.setStatusTip('Logout of GlobalFinprint')
-            logOutAction.triggered.connect(self._logout)
-            fileMenu.addAction(logOutAction)
-
             setListAction = QAction('Set &List...', self)
             setListAction.setShortcut('Ctrl+S')
             setListAction.setStatusTip('View Set Lists')
@@ -99,12 +93,6 @@ class MainWindow(QMainWindow):
         self.set_diag.setLayout(self._set_layout)
         self.set_diag.setWindowTitle('Assigned Sets List')
         self.set_diag.show()
-
-    def _logout(self):
-        client = GlobalFinPrintServer()
-        if client.logout():
-            self._set_menus()
-            self._vid_layout.clear()
 
     def on_login(self, signal, sender, value):
         self._has_logged_in = True
