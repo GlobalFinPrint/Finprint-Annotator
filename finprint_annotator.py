@@ -207,7 +207,10 @@ class SetListWidget(QWidget):
 
     def add_item(self, set):
         i = QListWidgetItem()
-        i.setText(set['set_code'])
+        if GlobalFinPrintServer().is_lead():
+            i.setText('{0} - {1}'.format(set['set_code'], set['assigned_to']['user']))
+        else:
+            i.setText(set['set_code'])
         i.setData(Qt.UserRole, set)
         self.set_list.addItem(i)
 

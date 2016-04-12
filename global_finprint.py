@@ -26,6 +26,7 @@ class GlobalFinPrintServer(Singleton):
             self.user_token = None
             self.user_role = None
             self.user_name = ''
+            self.user_id = None
             self.address = global_config.get('GLOBAL_FINPRINT_SERVER', 'address')
 
     def is_lead(self):
@@ -41,6 +42,7 @@ class GlobalFinPrintServer(Singleton):
             self.user_token = data['token']
             self.user_role = data['role']
             self.user_name = user_name
+            self.user_id = data['user_id']
         elif r.status_code == 403:
             raise QueryException('Unknown user or user not assigned to proper role')
         else:
@@ -232,6 +234,7 @@ class Set(object):
             self.id = data['set']['id']
             self.file = data['set']['file']
             self.code = data['set']['set_code']
+            self.assigned_to = data['set']['assigned_to']
             self.progress = data['set']['progress']
             self.animals = []
             for animal in data['set']['animals']:
@@ -274,3 +277,6 @@ class Set(object):
 
     def mark_as_done(self):
         GlobalFinPrintServer().mark_set_done(self.id)
+
+    def assigned_to_current(self):
+        return GlobalFinPrintServer().user_id == self.assigned_to['id']
