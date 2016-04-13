@@ -273,7 +273,8 @@ class Set(object):
         return None
 
     def update_progress(self, progress):
-        GlobalFinPrintServer().update_progress(self.id, progress)
+        if self.assigned_to_current():
+            GlobalFinPrintServer().update_progress(self.id, progress)
 
     def mark_as_done(self):
         GlobalFinPrintServer().mark_set_done(self.id)
