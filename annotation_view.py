@@ -351,7 +351,7 @@ class VideoLayoutWidget(QWidget):
             self._toggle_play_button.setText('Pause')
             self._toggle_play_button.setIcon(self._pause_icon)
 
-        if play_state == PlayState.EndOfStream:
+        if play_state == PlayState.EndOfStream and self.current_set.assigned_to_current():
             self._submit_button.setDisabled(False)
 
     def on_progress_update(self, progress):
