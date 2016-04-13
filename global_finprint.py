@@ -141,6 +141,7 @@ class Animal(object):
 
 class Extent(object):
     def __init__(self):
+        self.empty = True
         self.rect = QRect(QPoint(0, 0), QPoint(0, 0))
         self.height = 1
         self.width = 1
@@ -155,14 +156,15 @@ class Extent(object):
         return self.rect
 
     def setRect(self, r, h, w):
+        self.empty = False
         self.rect = r
         self.height = h
         self.width = w
 
     def from_wkt(self, wkt_polygon):
+        self.empty = False
         ## Comes in SRID=4356;POLYGON ((X1 Y1, X2 Y1, X2 Y2, X1 Y2, X1 Y1))
         self.numbers = re.findall(r'\d+(?:\.\d*)?', wkt_polygon.partition(';')[2])
-        pass
 
     def _adjustX(self, x):
         return x * self.width
@@ -208,16 +210,15 @@ class Observation(object):
         if self.type_choice == 'A':
             self.animal_id = obs_dict['animal_id']
 
-
     def to_dict(self):
         return {'id': self.id,
                 'initial_observation_time': self.initial_observation_time,
                 'animal_id': self.animal_id,
                 'type_choice': self.type_choice,
-                'type': self.type_choice, #TODO band-aid till the backend gets fixed
+                'type': self.type_choice,  # TODO band-aid till the backend gets fixed
                 'comment': self.comment,
                 'duration': self.duration,
-                'extent': self.extent.to_wkt()}
+                'extent': self.extent.to_wkt() if not self.extent.empty else None}
 
 
 class Set(object):
