@@ -17,6 +17,7 @@ class MainWindow(QMainWindow):
         self._login_layout = None
         self._vid_layout = None
         self._set_layout = None
+        self._props_layout = None
         self._has_logged_in = False #if a successful log in has occurred, don't exit app when cancelling login dialog
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
@@ -52,10 +53,10 @@ class MainWindow(QMainWindow):
             logInAction.triggered.connect(self._launch_login_dialog)
             fileMenu.addAction(logInAction)
 
-        propsAction = QAction('&Properties', self)
+        propsAction = QAction('&Properties...', self)
         propsAction.setShortcut('Ctrl+P')
         propsAction.setStatusTip('Edit application properties')
-        # setListAction.triggered.connect(self._launch_props_dialog)
+        propsAction.triggered.connect(self._launch_props_dialog)
         fileMenu.addAction(propsAction)
 
         quitAction = QAction('&Quit', self)
@@ -82,6 +83,50 @@ class MainWindow(QMainWindow):
         pass
         #dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
 
+    def _launch_props_dialog(self):
+        self._props_layout = QVBoxLayout()
+
+        self.props_diag = QDialog(self, Qt.WindowTitleHint)
+        self.props_diag.setFixedWidth(500)
+        self.props_diag.setWindowTitle('Edit properties')
+
+        self.folder_finder = QHBoxLayout()
+
+        self.source_label = QLabel('Video folder:')
+        self.video_source = QLineEdit(config.global_config.get('VIDEOS', 'alt_media_dir'))
+
+        self.find_folder = QPushButton('Browse...')
+        self.find_folder.setMaximumSize(70, 35)
+
+        self.source_label.setBuddy(self.video_source)
+        self.video_source.setReadOnly(True)
+
+        self.folder_finder.addWidget(self.source_label)
+        self.folder_finder.addWidget(self.video_source)
+        self.folder_finder.addWidget(self.find_folder)
+
+        self.cancel_props = QPushButton('Cancel')
+        self.cancel_props.clicked.connect(self._cancel_props_dialog)
+        self.cancel_props.setMaximumSize(75, 35)
+        self.save_props = QPushButton('Save')
+        self.save_props.setMaximumSize(75, 35)
+        self.save_props.clicked.connect(self._save_props_dialog)
+
+        self.buttons = QDialogButtonBox(Qt.Horizontal)
+        self.buttons.addButton(self.save_props, QDialogButtonBox.ActionRole)
+        self.buttons.addButton(self.cancel_props, QDialogButtonBox.ActionRole)
+
+        self._props_layout.addLayout(self.folder_finder)
+        self._props_layout.addWidget(self.buttons)
+
+        self.props_diag.setLayout(self._props_layout)
+        self.props_diag.show()
+
+    def _cancel_props_dialog(self):
+        self.props_diag.close()
+
+    def _save_props_dialog(self):
+        self.props_diag.close()
 
     def _launch_set_list(self, sets=False):
         self._set_layout = QVBoxLayout()
