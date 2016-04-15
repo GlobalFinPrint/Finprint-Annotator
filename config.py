@@ -4,9 +4,9 @@ __version__ = (0, 1, 1, 0)
 __version_string__ = '%s.%s.%s.%s' % __version__
 
 
-
 class Config():
     CONFIG_FILENAME = './config.ini'
+
     def __init__(self):
         self._configdict = None
 
@@ -35,6 +35,12 @@ class Config():
 
     def set_section(self, section_dict):
         self._configdict.update(section_dict)
+
+    def set_item(self, section, key, value):
+        try:
+            self._configdict[section][key] = value
+        except KeyError:
+            pass
 
 
 global_config = Config()

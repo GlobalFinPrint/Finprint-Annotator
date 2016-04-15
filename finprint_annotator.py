@@ -97,6 +97,7 @@ class MainWindow(QMainWindow):
 
         self.find_folder = QPushButton('Browse...')
         self.find_folder.setMaximumSize(70, 35)
+        self.find_folder.clicked.connect(self._browse_folder)
 
         self.source_label.setBuddy(self.video_source)
         self.video_source.setReadOnly(True)
@@ -122,10 +123,16 @@ class MainWindow(QMainWindow):
         self.props_diag.setLayout(self._props_layout)
         self.props_diag.show()
 
+    def _browse_folder(self):
+        new_dir = QFileDialog.getExistingDirectory()
+        if new_dir:
+            self.video_source.setText(new_dir)
+
     def _cancel_props_dialog(self):
         self.props_diag.close()
 
     def _save_props_dialog(self):
+        config.global_config.set_item('VIDEOS', 'alt_media_dir', self.video_source.text())
         self.props_diag.close()
 
     def _launch_set_list(self, sets=False):
