@@ -28,10 +28,9 @@ class MainWindow(QMainWindow):
         dispatcher.connect(self.set_selected, signal='SET_SELECTED', sender=dispatcher.Any)
 
     def _init_widgets(self):
-        self._set_menus()
         self.statusBar()
-
         self._vid_layout = VideoLayoutWidget(self)
+        self._set_menus()
         self.setCentralWidget(self._vid_layout)
         self.showMaximized()
         self._launch_login_dialog()
@@ -42,7 +41,7 @@ class MainWindow(QMainWindow):
 
         if GlobalFinPrintServer().logged_in:
             setListAction = QAction('Set &List...', self)
-            setListAction.setShortcut('Ctrl+S')
+            setListAction.setShortcut('Ctrl+L')
             setListAction.setStatusTip('View Set Lists')
             setListAction.triggered.connect(self._launch_set_list)
             fileMenu.addAction(setListAction)
@@ -53,11 +52,18 @@ class MainWindow(QMainWindow):
             logInAction.triggered.connect(self._launch_login_dialog)
             fileMenu.addAction(logInAction)
 
-        exitAction = QAction(QIcon('exit.png'), '&Exit', self)
-        exitAction.setShortcut('Ctrl+Q')
-        exitAction.setStatusTip('Exit application')
-        exitAction.triggered.connect(QCoreApplication.instance().quit)
-        fileMenu.addAction(exitAction)
+        propsAction = QAction('&Properties', self)
+        propsAction.setShortcut('Ctrl+P')
+        propsAction.setStatusTip('Edit application properties')
+        # setListAction.triggered.connect(self._launch_props_dialog)
+        fileMenu.addAction(propsAction)
+
+        quitAction = QAction('&Quit', self)
+        quitAction.setShortcut('Ctrl+Q')
+        quitAction.setStatusTip('Quit application')
+        quitAction.triggered.connect(self._vid_layout.on_quit)
+        fileMenu.addAction(quitAction)
+
         self.setMenuBar(menubar)
 
     # TODO: The login widget should just be the dialog
