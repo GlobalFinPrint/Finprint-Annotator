@@ -530,6 +530,7 @@ class ObservationTable(QTableWidget):
         self.setRowCount(new_row_index + 1)
         self._observations.insert(new_row_index, obs)
         self.update_row(new_row_index)
+        self.sortByColumn(0)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
