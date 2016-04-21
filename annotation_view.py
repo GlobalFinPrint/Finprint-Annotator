@@ -502,8 +502,6 @@ class ObservationTable(QTableWidget):
                 self._observations.pop(row)
                 self.removeRow(row)
             if set_duration_action and action == set_duration_action:
-                # TODO: Fire an event so the video widget can determine duration and update the table
-                obs = self._observations[row]
                 self.durationClicked.emit(row, self._observations[row])
             if action == go_to_observation_action:
                 self.goToObservation.emit(row, self._observations[row])
@@ -531,6 +529,7 @@ class ObservationTable(QTableWidget):
         self._observations.insert(new_row_index, obs)
         self.update_row(new_row_index)
         self.sortByColumn(0)
+        self._observations.sort(key=lambda x: -x.initial_observation_time)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
