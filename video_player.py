@@ -181,8 +181,8 @@ class CvVideoWidget(QWidget):
             painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
             painter.drawRect(self._highlighter.get_rect())
 
-    def load_frame(self):
-        grabbed, frame = self._capture.read()
+    def load_frame(self, current=False):
+        grabbed, frame = self._capture.retrieve() if current else self._capture.read()
         if grabbed:
             t = time.perf_counter()
             diff = t - self.last_time
@@ -213,8 +213,7 @@ class CvVideoWidget(QWidget):
 
     def set_position(self, pos):
         self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
-        getLogger('finprint').debug('Setting position to {0}'.format(pos))
-        self.load_frame()
+        self.load_frame(current=True)
         self._onPositionChange(self.get_position())
 
     def mousePressEvent(self, event):
