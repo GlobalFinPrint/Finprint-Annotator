@@ -405,10 +405,14 @@ class VideoLayoutWidget(QWidget):
     def item_changed(self, tableItem):
         if not self._data_loading:
             obs = self._observation_table.get_observation(tableItem.row())
-            if tableItem.column() == 2:
-                obs.duration = int(tableItem.text())
-            elif tableItem.column() == 3:
-                obs.comment = tableItem.text()
+            if GlobalFinPrintServer().is_lead():
+                if tableItem.column() == 2:
+                    obs.duration = int(tableItem.text())
+                elif tableItem.column() == 3:
+                    obs.comment = tableItem.text()
+            else:
+                if tableItem.column() == 2:
+                    obs.comment = tableItem.text()
             self.current_set.edit_observation(obs)
 
     def on_observation(self, animal):
