@@ -134,6 +134,7 @@ class MainWindow(QMainWindow):
     def _save_props_dialog(self):
         config.global_config.set_item('VIDEOS', 'alt_media_dir', self.video_source.text())
         self.props_diag.close()
+        self._vid_layout.load_set(self._vid_layout.current_set)
 
     def _launch_set_list(self, sets=False):
         self._set_layout = QVBoxLayout()
