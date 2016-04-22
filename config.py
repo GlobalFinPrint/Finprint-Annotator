@@ -13,6 +13,10 @@ class Config():
     def __contains__(self, item):
         return item in self._configdict
 
+    def save(self):
+        with open(self.CONFIG_FILENAME, 'w') as file:
+            self._configdict.write(file)
+
     def get(self, section=None, key=None):
         if self._configdict is None:
             try:
@@ -32,13 +36,16 @@ class Config():
 
     def set(self, configdict):
         self._configdict = configdict
+        self.save()
 
     def set_section(self, section_dict):
         self._configdict.update(section_dict)
+        self.save()
 
     def set_item(self, section, key, value):
         try:
             self._configdict[section][key] = value
+            self.save()
         except KeyError:
             pass
 
