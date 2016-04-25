@@ -46,6 +46,13 @@ class MainWindow(QMainWindow):
             setListAction.setStatusTip('View Set Lists')
             setListAction.triggered.connect(self._launch_set_list)
             fileMenu.addAction(setListAction)
+
+            if GlobalFinPrintServer().is_lead():
+                setFilterAction = QAction('&Filter Review Sets...', self)
+                setFilterAction.setShortcut('Ctrl+F')
+                setFilterAction.setStatusTip('Filter sets for lead review')
+                setFilterAction.triggered.connect(self._launch_set_filter)
+                fileMenu.addAction(setFilterAction)
         else:
             logInAction = QAction('&Login', self)
             logInAction.setShortcut('Ctrl+L')
@@ -152,6 +159,58 @@ class MainWindow(QMainWindow):
         self.set_diag.setLayout(self._set_layout)
         self.set_diag.setWindowTitle('Assigned Sets List')
         self.set_diag.show()
+
+    def _launch_set_filter(self):
+        self._filter_layout = QVBoxLayout()
+
+        self._trip_filter = QComboBox()
+        self._trip_filter.currentIndexChanged.connect(self._filter_diag_change_trip)
+        self._trip_filter.addItem('---')
+        self._trip_filter.addItems(['foo', 'bar', 'baz'])  # TODO
+        self._trip_filter_label = QLabel('Trip:')
+        self._trip_filter_label.setBuddy(self._trip_filter)
+
+        self._set_filter = QComboBox()
+        self._set_filter.addItem('---')
+        self._set_filter.addItems(['foo', 'bar', 'baz'])  # TODO
+        self._set_filter_label = QLabel('Set:')
+        self._set_filter_label.setBuddy(self._set_filter)
+
+        self.cancel_filter = QPushButton('Cancel')
+        self.cancel_filter.clicked.connect(self._cancel_filter_dialog)
+        self.cancel_filter.setMaximumSize(75, 35)
+        self.save_filter = QPushButton('Filter')
+        self.save_filter.setMaximumSize(75, 35)
+        self.save_filter.clicked.connect(self._save_filter_dialog)
+        self.buttons = QDialogButtonBox(Qt.Horizontal)
+        self.buttons.addButton(self.save_filter, QDialogButtonBox.ActionRole)
+        self.buttons.addButton(self.cancel_filter, QDialogButtonBox.ActionRole)
+
+        self._filter_layout.addWidget(self._trip_filter_label)
+        self._filter_layout.addWidget(self._trip_filter)
+        self._filter_layout.addWidget(self._set_filter_label)
+        self._filter_layout.addWidget(self._set_filter)
+        self._filter_layout.addWidget(self.buttons)
+
+        self.filter_diag = QDialog(self, Qt.WindowTitleHint)
+        self.filter_diag.setFixedWidth(500)
+        self.filter_diag.setLayout(self._filter_layout)
+        self.filter_diag.setWindowTitle('Filter sets for lead review')
+        self.filter_diag.show()
+
+    def _filter_diag_change_trip(self):
+        # TODO get selected trip (or ---)
+        # TODO get sets for selected trip (or all sets if ---)
+        self._set_filter.clear()
+        # TODO add sets to list
+
+    def _cancel_filter_dialog(self):
+        self.filter_diag.close()
+
+    def _save_filter_dialog(self):
+        # TODO get list of assignments based on trip/set filter
+        self.filter_diag.close()
+        # TODO open set list diag with this list
 
     def on_login(self, signal, sender, value):
         self._has_logged_in = True
