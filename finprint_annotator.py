@@ -1,6 +1,7 @@
 import sys
 import logging
 import logging.config
+import itertools
 
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -147,7 +148,7 @@ class MainWindow(QMainWindow):
         self._set_layout = QVBoxLayout()
         self._set_list = SetListWidget()
 
-        if not sets:
+        if sets is False:
             response = GlobalFinPrintServer().set_list()
             sets = response['sets']
 
@@ -163,16 +164,19 @@ class MainWindow(QMainWindow):
     def _launch_set_filter(self):
         self._filter_layout = QVBoxLayout()
 
+        self._filter_data = GlobalFinPrintServer().trip_list()
+
         self._trip_filter = QComboBox()
-        self._trip_filter.currentIndexChanged.connect(self._filter_diag_change_trip)
         self._trip_filter.addItem('---')
-        self._trip_filter.addItems(['foo', 'bar', 'baz'])  # TODO
+        self._trip_filter.addItems(list(t['trip'] for t in self._filter_data['trips']))
+        self._trip_filter.currentIndexChanged.connect(self._filter_diag_change_trip)
         self._trip_filter_label = QLabel('Trip:')
         self._trip_filter_label.setBuddy(self._trip_filter)
 
         self._set_filter = QComboBox()
         self._set_filter.addItem('---')
-        self._set_filter.addItems(['foo', 'bar', 'baz'])  # TODO
+        for t in self._filter_data['trips']:
+            self._set_filter.addItems(list(s['set'] for s in t['sets']))
         self._set_filter_label = QLabel('Set:')
         self._set_filter_label.setBuddy(self._set_filter)
 
@@ -181,7 +185,7 @@ class MainWindow(QMainWindow):
         self.cancel_filter.setMaximumSize(75, 35)
         self.save_filter = QPushButton('Filter')
         self.save_filter.setMaximumSize(75, 35)
-        self.save_filter.clicked.connect(self._save_filter_dialog)
+        self.save_filter.clicked.connect(self._exec_filter_dialog)
         self.buttons = QDialogButtonBox(Qt.Horizontal)
         self.buttons.addButton(self.save_filter, QDialogButtonBox.ActionRole)
         self.buttons.addButton(self.cancel_filter, QDialogButtonBox.ActionRole)
@@ -199,18 +203,33 @@ class MainWindow(QMainWindow):
         self.filter_diag.show()
 
     def _filter_diag_change_trip(self):
-        # TODO get selected trip (or ---)
-        # TODO get sets for selected trip (or all sets if ---)
         self._set_filter.clear()
-        # TODO add sets to list
+        current_trip = self._trip_filter.currentText()
+        trips = self._filter_data['trips'] if current_trip == '---' else \
+            list(t for t in self._filter_data['trips'] if t['trip'] == current_trip)
+        for t in trips:
+            self._set_filter.addItem('---')
+            self._set_filter.addItems(list(s['set'] for s in t['sets']))
 
     def _cancel_filter_dialog(self):
         self.filter_diag.close()
 
-    def _save_filter_dialog(self):
-        # TODO get list of assignments based on trip/set filter
+    def _exec_filter_dialog(self):
+        trip_dict = dict((t['trip'], t['id']) for t in self._filter_data['trips'])
+        current_trip = self._trip_filter.currentText()
+        params = {}
+        if current_trip in trip_dict:
+            params['trip_id'] = trip_dict[current_trip]
+
+        set_dict = dict((s['set'], s['id']) for s in
+                        itertools.chain.from_iterable(t['sets'] for t in self._filter_data['trips']))
+        current_set = self._set_filter.currentText()
+        if current_set in set_dict:
+            params['set_id'] = set_dict[current_set]
+
+        sets = GlobalFinPrintServer().set_list(**params)
         self.filter_diag.close()
-        # TODO open set list diag with this list
+        self._launch_set_list(sets=sets['sets'])
 
     def on_login(self, signal, sender, value):
         self._has_logged_in = True

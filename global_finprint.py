@@ -55,8 +55,14 @@ class GlobalFinPrintServer(Singleton):
         self.logged_in = not r.status_code == 200
         return not self.logged_in
 
-    def set_list(self):
-        r = requests.get(self.address + '/api/set', params={'token': self.user_token})
+    def set_list(self, **kwargs):
+        params = {'token': self.user_token}
+        params.update(kwargs)
+        r = requests.get(self.address + '/api/set', params=params)
+        return r.json()
+
+    def trip_list(self):
+        r = requests.get(self.address + '/api/trip', params={'token': self.user_token})
         return r.json()
 
     def set_detail(self, set_id):
