@@ -42,9 +42,9 @@ class MainWindow(QMainWindow):
         fileMenu = menubar.addMenu('&File')
 
         if GlobalFinPrintServer().logged_in:
-            setListAction = QAction('Set &List...', self)
+            setListAction = QAction('Assigned Set &List...', self)
             setListAction.setShortcut('Ctrl+L')
-            setListAction.setStatusTip('View Set Lists')
+            setListAction.setStatusTip('View list of assigned sets')
             setListAction.triggered.connect(self._launch_set_list)
             fileMenu.addAction(setListAction)
 
@@ -235,7 +235,10 @@ class MainWindow(QMainWindow):
         self._has_logged_in = True
         self.login_diag.close()
         self._set_menus()
-        self._launch_set_list(value)
+        if GlobalFinPrintServer().is_lead():
+            self._launch_set_filter()
+        else:
+            self._launch_set_list(value)
 
     def on_login_cancelled(self, signal, sender, value):
         self.login_diag.close()
@@ -301,10 +304,8 @@ class LoginWidget(QWidget):
         self.setWindowTitle('User Login')
         self.setGeometry(100, 100, 200, 100)
 
-
     def _on_login(self):
         self.error_label.setText('')
-
         try:
             client = GlobalFinPrintServer()
             (success, data) = client.login(user_name=self.user_edit.text(), pwd=self.pwd_edit.text())
