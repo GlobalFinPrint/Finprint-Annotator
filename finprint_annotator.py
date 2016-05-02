@@ -144,7 +144,7 @@ class MainWindow(QMainWindow):
         self.props_diag.close()
         self._vid_layout.load_set(self._vid_layout.current_set)
 
-    def _launch_set_list(self, sets=False):
+    def _launch_set_list(self, sets=False, title='Assigned Sets List'):
         self._set_layout = QVBoxLayout()
         self._set_list = SetListWidget()
 
@@ -158,7 +158,7 @@ class MainWindow(QMainWindow):
         self._set_layout.addWidget(self._set_list)
         self.set_diag = QDialog(self, Qt.WindowTitleHint)
         self.set_diag.setLayout(self._set_layout)
-        self.set_diag.setWindowTitle('Assigned Sets List')
+        self.set_diag.setWindowTitle(title)
         self.set_diag.show()
 
     def _launch_set_filter(self):
@@ -217,7 +217,7 @@ class MainWindow(QMainWindow):
     def _exec_filter_dialog(self):
         trip_dict = dict((t['trip'], t['id']) for t in self._filter_data['trips'])
         current_trip = self._trip_filter.currentText()
-        params = {}
+        params = {'for_review': True}
         if current_trip in trip_dict:
             params['trip_id'] = trip_dict[current_trip]
 
@@ -229,7 +229,7 @@ class MainWindow(QMainWindow):
 
         sets = GlobalFinPrintServer().set_list(**params)
         self.filter_diag.close()
-        self._launch_set_list(sets=sets['sets'])
+        self._launch_set_list(sets=sets['sets'], title='Sets for lead review')
 
     def on_login(self, signal, sender, value):
         self._has_logged_in = True
@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
         if GlobalFinPrintServer().is_lead():
             self._launch_set_filter()
         else:
-            self._launch_set_list(value)
+            self._launch_set_list(sets=value)
 
     def on_login_cancelled(self, signal, sender, value):
         self.login_diag.close()
