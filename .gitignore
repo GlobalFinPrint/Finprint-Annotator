@@ -1,5 +1,5 @@
 config.ini
-finprint.log
+finprint.log*
 __pycache__/
 build/
 dist/

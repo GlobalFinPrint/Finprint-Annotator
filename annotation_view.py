@@ -1,5 +1,6 @@
-import sys, os
-import os.path
+import sys
+import os
+from enum import IntEnum
 from math import floor
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -199,12 +200,11 @@ class VideoLayoutWidget(QWidget):
 
         self.grouping = {}
 
-        # An annotation seession is in the context of a set.  Track the current set we're annotating
+        # An annotation session is in the context of a set.  Track the current set we're annotating
         self.current_set = None
 
         self.setup_layout()
         self.wire_events()
-
 
     def wire_events(self):
         self._quit_button.clicked.connect(self.on_quit)
@@ -217,10 +217,9 @@ class VideoLayoutWidget(QWidget):
 
         self._observation_table.observationRowDeleted.connect(self.delete_observation)
         self._observation_table.durationClicked.connect(self.set_duration)
-        self._observation_table.itemChanged.connect(self.item_changed)
         self._observation_table.goToObservation.connect(self.observation_selected)
         self._observation_table.cellClicked.connect(self.on_table_cell_click)
-        #self._observation_table.selectionChanged = self.observation_selected
+        self._observation_table.observationUpdated.connect(self.on_observation_updated)
 
         self._observation_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self._observation_table.customContextMenuRequested.connect(self._observation_table.customContextMenu)
@@ -364,13 +363,12 @@ class VideoLayoutWidget(QWidget):
         self._submit_button.setDisabled(True)
         self._rew_button.setDisabled(True)
         self._toggle_play_button.setDisabled(True)
-        self._observation_table.setRowCount(0)
+        self._observation_table.empty()
         self.current_set = None
 
-    def observation_selected(self, row, obs):
-        #obs = self._observation_table.get_observation(self._observation_table.currentRow())
-        if hasattr(obs, 'extent'):
-            self._video_player.display_observation(obs.initial_observation_time, obs.extent)
+    def observation_selected(self, obs):
+        self._video_player.pause()
+        self._video_player.display_observation(obs.initial_observation_time, obs.extent)
 
     def on_toggle_play(self):
         self._video_player.toggle_play()
@@ -387,7 +385,7 @@ class VideoLayoutWidget(QWidget):
         self.on_progress_update(self._video_player.get_position())  # update position on quit
         QCoreApplication.instance().quit()
 
-    def set_duration(self, row, observation):
+    def set_duration(self, observation):
         pos = self._video_player.get_position()
         duration = int(pos) - int(observation.initial_observation_time)
         if duration <= 0:
@@ -398,22 +396,6 @@ class VideoLayoutWidget(QWidget):
         else:
             observation.duration = duration
             self.current_set.edit_observation(observation)
-            self._data_loading = False
-            self._observation_table.update_row(row)
-            self._data_loading = True
-
-    def item_changed(self, tableItem):
-        if not self._data_loading:
-            obs = self._observation_table.get_observation(tableItem.row())
-            if GlobalFinPrintServer().is_lead():
-                if tableItem.column() == 2:
-                    obs.duration = int(tableItem.text())
-                elif tableItem.column() == 3:
-                    obs.comment = tableItem.text()
-            else:
-                if tableItem.column() == 2:
-                    obs.comment = tableItem.text()
-            self.current_set.edit_observation(obs)
 
     def on_observation(self, animal):
         obs = Observation()
@@ -429,13 +411,13 @@ class VideoLayoutWidget(QWidget):
         obs.animal_id = animal.id
         obs.animal = animal
         self.current_set.edit_observation(obs)
-        self._data_loading = False
-        self._observation_table.update_row(row)
-        self._data_loading = True
 
     def on_table_cell_click(self, row, col):
-        if col == 1 and self._observation_table.item(row, col).text() != '':
+        if col == self._observation_table.Columns.organism and self._observation_table.item(row, col) != '':
             self.organism_selector_table.popup_menu(QCursor.pos(), row)
+
+    def on_observation_updated(self, obs):
+        self.current_set.edit_observation(obs)
 
     def of_interest(self):
         self._video_player.pause()
@@ -466,31 +448,158 @@ class VideoLayoutWidget(QWidget):
         self._slider.setValue(int(pos))
 
 
-class ObservationTable(QTableWidget):
-    observationRowDeleted = pyqtSignal(Observation)
-    durationClicked = pyqtSignal(int, Observation)
-    goToObservation = pyqtSignal(int, Observation)
-    observationUpdated = pyqtSignal(int, Observation)
+class ObservationTableModel(QAbstractTableModel):
+    observationUpdated = pyqtSignal(Observation)
 
-    def __init__(self, *args):
-        super(ObservationTable, self).__init__(*args)
-        # Track the rectangle highlights for each observation
-        self._observations = []
-        self.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self._disabled_color = QColor(Qt.lightGray)
-        self._disabled_color.setAlphaF(0.5)
+    class Columns(IntEnum):
+        id = 0
+        type = 1
+        time = 2
+        organism = 3
+        duration = 4
+        notes = 5
+
+    def __init__(self):
+        self.rows = []
+        self.columns = ['ID', 'Type', 'Time', 'Organism', 'Duration (ms)', 'Notes']
+        super(QAbstractTableModel, self).__init__(None)
+
+    def rowCount(self, *args, **kwargs):
+        return len(self.rows)
+
+    def columnCount(self, *args, **kwargs):
+        return len(self.columns)
+
+    def headerData(self, idx, orientation, role=None):
+        return self.columns[idx] \
+            if role == Qt.DisplayRole and orientation == Qt.Horizontal \
+            else super(QAbstractTableModel, self).headerData(idx, orientation, role)
+
+    def data(self, model_index, role=None):
+        return self.rows[model_index.row()].to_columns()[model_index.column()] \
+            if role in [Qt.DisplayRole, Qt.EditRole] \
+            else None
+
+    def setData(self, model_index, value, role=None):
+        if role == Qt.EditRole and model_index.column() in [self.Columns.duration, self.Columns.notes]:
+            obs = self.rows[model_index.row()]
+            if model_index.column() == self.Columns.duration:
+                obs.duration = value
+            elif model_index.column() == self.Columns.notes:
+                obs.comment = value
+            self.observationUpdated.emit(obs)
+            self.dataChanged.emit(model_index, model_index)
+            return True
+        return False
+
+    def flags(self, model_index):
+        default_flags = (Qt.ItemIsEnabled | Qt.ItemIsSelectable)
+        return (default_flags | Qt.ItemIsEditable) \
+            if model_index.column() in [self.Columns.duration, self.Columns.notes] \
+            else default_flags
+
+    def insertRows(self, start, count, new_rows=None, *args, **kwargs):
+        self.beginInsertRows(self.index(start, 0), start, start + count - 1)
+        self.rows = self.rows[start:] + new_rows + self.rows[:start]
+        self.rows.sort(key=lambda x: -1. * x.to_columns()[self.Columns.time])
+        self.endInsertRows()
+        return True
+
+    def removeRows(self, start, count, *args, **kwargs):
+        self.beginRemoveRows(self.index(start, 0), start, start + count - 1)
+        del self.rows[start:(start + count)]
+        self.endRemoveRows()
+        return True
+
+    def append_row(self, row):
+        self.insertRows(self.rowCount(), 1, new_rows=[row])
+
+    def remove_row(self, row):
+        self.removeRows(row, 1)
+
+    def empty(self):
+        self.removeRows(0, self.rowCount())
+
+
+class ObservationTableCell(QStyledItemDelegate):
+    disabled_color = None
+    Columns = ObservationTableModel.Columns
+
+    def __init__(self, parent):
+        super(QStyledItemDelegate, self).__init__(parent)
+        self.disabled_color = QColor(Qt.lightGray)
+        self.disabled_color.setAlphaF(0.5)
+
+    def paint(self, painter, style, model_index):
+        row, col = model_index.row(), model_index.column()
+        # disabled look for organism column for Of Interest
+        if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
+            painter.save()
+            painter.fillRect(style.rect, self.disabled_color)
+            painter.restore()
+        else:
+            super().paint(painter, style, model_index)
+
+
+class ObservationTable(QTableView):
+    source_model = None
+    Columns = ObservationTableModel.Columns
+
+    # signals
+    observationRowDeleted = pyqtSignal(Observation)
+    durationClicked = pyqtSignal(Observation)
+    goToObservation = pyqtSignal(Observation)
+    observationUpdated = pyqtSignal(Observation)
+    cellClicked = pyqtSignal(int, int)  # emit manually (previously auto)
 
     def set_data(self):
-        column_headers = ['Time', 'Organism', 'Duration (ms)', 'Notes'] if GlobalFinPrintServer().is_lead() \
-            else ['Time', 'Organism', 'Notes']
-        self.setColumnCount(len(column_headers))
-        self.setHorizontalHeaderLabels(column_headers)
-        self.setColumnWidth(1, 250)
-        self.setColumnWidth(3 if GlobalFinPrintServer().is_lead() else 2, 400)
+        # set model
+        self.source_model = ObservationTableModel()
+        self.setModel(self.source_model)
+        # set columns
+        self.setColumnHidden(self.Columns.id, True)  # TODO leave on for debug mode?
+        self.setColumnHidden(self.Columns.type, True)  # TODO leave on for debug mode?
+        self.setColumnWidth(self.Columns.organism, 250)
+        self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
+        self.setColumnWidth(self.Columns.notes, 600)  # TODO make this width dynamic?
+        # set rows
+        self.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.verticalHeader().setVisible(False)
+        # set cells
+        self.setItemDelegate(ObservationTableCell(self))
+        # set events
+        self.source_model.observationUpdated.connect(self.on_observation_updated)
+        # show widget
         self.show()
 
+    def on_observation_updated(self, obs):
+        self.observationUpdated.emit(obs)
+
     def get_observation(self, row):
-        return self._observations[row]
+        return self.source_model.rows[row]
+
+    def mousePressEvent(self, evt):
+        old_index = self.currentIndex()
+        index = self.indexAt(evt.pos())
+        self.setCurrentIndex(index)
+        if index.column() in [self.Columns.duration, self.Columns.notes] and old_index == index:
+            self.edit(index)
+        self.cellClicked.emit(index.row(), index.column())
+
+    def item(self, row, col):
+        return self.source_model.index(row, col).data()
+
+    def add_row(self, obs):
+        self.source_model.append_row(obs)
+
+    def remove_row(self, row):
+        self.clearSelection()
+        self.source_model.remove_row(row)
+        self.observationRowDeleted.emit(self.get_observation(row))
+
+    def empty(self):
+        if self.source_model is not None:
+            self.source_model.empty()
 
     def customContextMenu(self, pos):
         menu = QMenu(self)
@@ -501,39 +610,12 @@ class ObservationTable(QTableWidget):
         if row >= 0:
             action = menu.exec_(self.mapToGlobal(pos))
             if action == delete_action:
-                self.observationRowDeleted.emit(self._observations[row])
+                self.remove_row(row)
+            elif set_duration_action and action == set_duration_action:
+                self.durationClicked.emit(self.get_observation(row))
+            elif action == go_to_observation_action:
+                self.goToObservation.emit(self.get_observation(row))
 
-                self._observations.pop(row)
-                self.removeRow(row)
-            if set_duration_action and action == set_duration_action:
-                self.durationClicked.emit(row, self._observations[row])
-            if action == go_to_observation_action:
-                self.goToObservation.emit(row, self._observations[row])
-
-    def update_row(self, row):
-        obs = self._observations[row]
-        i = QTableWidgetItem(convert_position(obs.initial_observation_time))
-        i.setFlags(i.flags() & ~Qt.ItemIsEditable)
-        self.setItem(row, 0, i)
-
-        i = QTableWidgetItem(str(obs.animal))
-        i.setFlags(i.flags() & ~Qt.ItemIsEditable)
-        if obs.animal.id is None:
-            i.setBackgroundColor(self._disabled_color)
-        self.setItem(row, 1, i)
-        if GlobalFinPrintServer().is_lead():
-            self.setItem(row, 2, QTableWidgetItem(str(obs.duration)))
-            self.setItem(row, 3, QTableWidgetItem(obs.comment))
-        else:
-            self.setItem(row, 2, QTableWidgetItem(obs.comment))
-
-    def add_row(self, obs):
-        new_row_index = self.rowCount()
-        self.setRowCount(new_row_index + 1)
-        self._observations.insert(new_row_index, obs)
-        self.update_row(new_row_index)
-        # self.sortByColumn(0)
-        # self._observations.sort(key=lambda x: -x.initial_observation_time)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

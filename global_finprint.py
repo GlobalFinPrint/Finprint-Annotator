@@ -226,6 +226,16 @@ class Observation(object):
                 'duration': self.duration,
                 'extent': self.extent.to_wkt() if not self.extent.empty else None}
 
+    def to_columns(self):
+        return [
+            self.id,
+            self.type_choice,
+            self.initial_observation_time,
+            str(self.animal),
+            self.duration,
+            self.comment
+        ]
+
 
 class Set(object):
     def __init__(self, id):
