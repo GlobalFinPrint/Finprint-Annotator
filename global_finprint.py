@@ -261,7 +261,7 @@ class Set(object):
 
     def add_observation(self, obs):
         result = self._connection.add_observation(self.id, obs)
-        obs.id = result['observations'][0]['id']
+        obs.id = max(o['id'] for o in result['observations'])
         obs.animal = Animal()
         if obs.animal_id is not None:
             obs.animal = self.get_animal(obs.animal_id)
