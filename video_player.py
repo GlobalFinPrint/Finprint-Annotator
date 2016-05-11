@@ -161,17 +161,21 @@ class CvVideoWidget(QWidget):
         self.update()
 
     def _build_image(self, frame):
+        image = None
         try:
-            frame = imutils.resize(frame, width=1024)
+            #frame = imutils.resize(frame, width=1024)
             height, width, channels = frame.shape
             if self._frame is None:
                 self._frame = np.zeros((width, height, channels), np.uint8)
 
-            self._frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = QImage(frame, width, height, QImage.Format_RGB888)
+            image = image.rgbSwapped()
+            image = image.scaledToWidth(1024)
+            #self._frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         except Exception as ex:
             getLogger('finprint').exception('Exception building image')
 
-        return QImage(self._frame, width, height, QImage.Format_RGB888)
+        return image
 
     def paintEvent(self, event):
         painter = QPainter(self)
