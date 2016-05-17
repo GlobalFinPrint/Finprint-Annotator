@@ -304,15 +304,14 @@ class VideoLayoutWidget(QWidget):
         self.organism_selector_button.popup_menu(self.critter_button.get_last_pos())
 
     def get_local_file(self, orig_file_name):
-        (dir, file_name) = os.path.split(orig_file_name)
-        search_dir = global_config.get('VIDEOS', 'alt_media_dir')
-        for root, dirnames, filenames in os.walk(search_dir):
-            for filename in filenames:
-                if filename.lower() == file_name.lower():
-                    return os.path.join(root, filename)
-
-        getLogger('finprint').info('File not found in local media store.  Using original path {0}'.format(orig_file_name))
-        return orig_file_name
+        os_filename = os.path.join(*orig_file_name.split('/'))
+        os_path = os.path.join(global_config.get('VIDEOS', 'alt_media_dir'), os_filename)
+        if os.path.isfile(os_path):
+            return os_path
+        else:
+            error_message = 'File not found in local media store.  Using original path {0}'.format(orig_file_name)
+            getLogger('finprint').info(error_message)
+            return os_filename
 
     def load_set(self, set):
         getLogger('finprint').info("Loading Set {0}".format(set.code))
