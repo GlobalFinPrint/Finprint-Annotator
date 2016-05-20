@@ -6,7 +6,6 @@ from global_finprint import Observation
 from .video_seek_widget import VideoSeekWidget
 from .observation_table import ObservationTable
 from .organism_selector import OrganismSelector
-from .menu_button import MenuButton
 from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -42,9 +41,8 @@ class VideoLayoutWidget(QWidget):
         self._obs_btn_box = QHBoxLayout()
 
         self.organism_selector_button = None
-        self.critter_button = None
+        self.organism_selector_table = None
 
-        self._quit_button = QPushButton('Quit')
         self._observation_table = ObservationTable()
 
         self.grouping = {}
@@ -56,7 +54,6 @@ class VideoLayoutWidget(QWidget):
         self.wire_events()
 
     def wire_events(self):
-        self._quit_button.clicked.connect(self.on_quit)
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
         self._submit_button.clicked.connect(self.on_submit)
         self._rew_button.clicked.connect(self.on_rewind)
@@ -83,15 +80,9 @@ class VideoLayoutWidget(QWidget):
         self.vid_box.addWidget(self._video_player)
         container.addLayout(self.vid_box)
 
-        # Seek bar
-        seek_bar_box = QHBoxLayout()
-        seek_bar_box.addWidget(self._slider)
-
-        container.addLayout(seek_bar_box)
-
         # Video control and observation register buttons
         vid_btn_box = QHBoxLayout()
-        vid_btn_box.addStretch(1)
+        vid_btn_box.addWidget(self._slider)
         vid_btn_box.addWidget(self._pos_label)
         vid_btn_box.addWidget(self._rew_button)
         vid_btn_box.addWidget(self._toggle_play_button)
@@ -105,13 +96,12 @@ class VideoLayoutWidget(QWidget):
 
         # Observation table
         table_box = QHBoxLayout()
-        table_box.addWidget(self._observation_table )
+        table_box.addWidget(self._observation_table)
         container.addLayout(table_box)
 
         # App buttons
         btn_box = QHBoxLayout()
         btn_box.addStretch(1)
-        btn_box.addWidget(self._quit_button)
         container.addLayout(btn_box)
 
         self.setLayout(container)
@@ -130,9 +120,6 @@ class VideoLayoutWidget(QWidget):
                 self.grouping[animal.group] = []
             self.grouping[animal.group].append(animal)
 
-        self.critter_button = MenuButton("Organisms")
-        self.critter_button.clicked.connect(self.menu_button_click)
-
         # <sigh> Creating two instances of the selector at the moment to
         # better track where it was used from (button or table cell)
         self.organism_selector_button = OrganismSelector(self.grouping)
@@ -140,12 +127,6 @@ class VideoLayoutWidget(QWidget):
 
         self.organism_selector_table = OrganismSelector(self.grouping)
         self.organism_selector_table.item_select.connect(self.on_organism_cell_changed)
-
-        self._obs_btn_box.addWidget(self.critter_button)
-
-        self._of_interest = QPushButton('Of Interest')
-        self._of_interest.clicked.connect(self.of_interest)
-        self._obs_btn_box.addWidget(self._of_interest)
 
     def menu_button_click(self, evt):
         self._video_player.pause()
