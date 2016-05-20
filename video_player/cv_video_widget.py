@@ -1,79 +1,14 @@
+import cv2
+import time
 import numpy as np
 from logging import getLogger
-import cv2
-import imutils
-from threading import Thread
-import time
-from enum import Enum
-from collections import deque
-
+from global_finprint import Extent
+from .play_state import PlayState
+from .highlighter import Highlighter
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-from global_finprint import Extent
-
 PROGRESS_UPDATE_INTERVAL = 30000
-
-
-class Highlighter(object):
-    def __init__(self):
-        self._highlight_corner1 = QPoint(0, 0)
-        self._highlight_corner2 = QPoint(0, 0)
-
-    def get_rect(self):
-        return QRect(self._highlight_corner1.x(), self._highlight_corner1.y(), self._highlight_corner2.x() - self._highlight_corner1.x(), self._highlight_corner2.y() - self._highlight_corner1.y())
-
-    def start_rect(self, pos):
-        self._highlight_corner1 = pos
-        self._highlight_corner2 = pos
-
-    def set_rect(self, pos):
-        self._highlight_corner2 = pos
-
-    def clear(self):
-        self.start_rect(QPoint(0,0))
-
-class PlayState(Enum):
-    Playing = 1
-    Paused = 2
-    SeekBack = 3
-    SeekForward = 4
-    NotReady = 5
-    EndOfStream = 6
-
-## <<-went back to using a timer so this class isn't currently used-->>
-## OpenCV isn't a true media player so we need to manage our own
-##  frame rate.  The goal is the framerate we're trying to attain
-class FrameRateAdjuster(object):
-    def __init__(self, goal):
-        self._max_values =  15
-        self.goal = goal
-        self._data = deque()
-        self._last_result = goal
-
-    ## We're returning the amount of time to sleep between
-    ##   grabbing frames.
-    def adjust(self):
-        avg = 0
-        for i in self._data:
-            avg += i
-        avg /= len(self._data)
-        if avg > self.goal:
-            self._last_result = self.goal - (avg - self.goal)
-        else:
-            self._last_result = self.goal + (self.goal - avg)
-        return self._last_result
-
-    ## The data we're collecting is the current amount
-    ## of time between frame grabs.  We do an average of
-    ## a series to smooth it out a bit
-    def add(self, value):
-        self._data.append(value)
-        if len(self._data) < self._max_values:
-            return self.goal
-
-        self._data.popleft()
-        return self.adjust()
 
 
 class CvVideoWidget(QWidget):
