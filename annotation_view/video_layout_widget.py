@@ -178,7 +178,6 @@ class VideoLayoutWidget(QWidget):
         if not self._video_player.load(file_name):
             msgbox = QMessageBox()
             msgbox.setText("Could not load file: {0}".format(file_name))
-            #msgbox.setInformativeText("working dir: {0}\nreal dir: {1}".format(os.getcwd(), os.path.dirname(os.path.realpath(__file__))))
             msgbox.setWindowTitle("Error Loading Video")
             msgbox.exec_()
 
@@ -247,7 +246,7 @@ class VideoLayoutWidget(QWidget):
 
     def on_observation(self, animal):
         obs = Observation()
-        ## Cheese... Still haven't sorted out animal look ups for observations
+        # Cheese... Still haven't sorted out animal look ups for observations
         obs.animal_id = animal.id
         obs.animal = animal
         obs.initial_observation_time = int(self._video_player.get_position())

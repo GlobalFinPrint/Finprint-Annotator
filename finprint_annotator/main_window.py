@@ -16,7 +16,7 @@ class MainWindow(QMainWindow):
         self._vid_layout = None
         self._set_layout = None
         self._props_layout = None
-        self._has_logged_in = False #if a successful log in has occurred, don't exit app when cancelling login dialog
+        self._has_logged_in = False  # if a successful log in has occurred, don't exit app when cancelling login dialog
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
         self.setWindowTitle('Finprint Annotator {0}'.format(config.__version_string__))
@@ -239,7 +239,7 @@ class MainWindow(QMainWindow):
 
     def on_login_cancelled(self, signal, sender, value):
         self.login_diag.close()
-        #exit application if login box is cancelled before ever loggin in
+        # exit application if login box is cancelled before ever loggin in
         if not self._has_logged_in:
             QCoreApplication.instance().quit()
 
