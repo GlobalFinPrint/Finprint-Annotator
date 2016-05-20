@@ -20,6 +20,7 @@ class MainWindow(QMainWindow):
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
         self.setWindowTitle('Finprint Annotator {0}'.format(config.__version_string__))
+        self.setStyleSheet('background-color: white;')
         self._init_widgets()
 
         dispatcher.connect(self.on_login, signal='LOGIN', sender=dispatcher.Any)

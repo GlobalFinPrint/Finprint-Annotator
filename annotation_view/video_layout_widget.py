@@ -11,6 +11,13 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 
+class ClickLabel(QLabel):
+    clicked = pyqtSignal()
+
+    def mouseReleaseEvent(self, ev):
+        self.emit(SIGNAL('clicked()'))
+
+
 class VideoLayoutWidget(QWidget):
     def __init__(self, main_window):
         super(VideoLayoutWidget, self).__init__()
@@ -23,17 +30,22 @@ class VideoLayoutWidget(QWidget):
         self._pos_label = QLabel()
         self._data_loading = False
 
+        self._play_pixmap = QPixmap('images/video_control-play.png')
+        self._pause_pixmap = QPixmap('images/video_control-pause.png')
+
         self._slider = VideoSeekWidget(self._video_player)
-        self._rew_icon = QIcon('images/rewind.png')
-        self._pause_icon = QIcon('images/pause.png')
-        self._play_icon = QIcon('images/play.png')
 
-        self._rew_button = QPushButton('')
-        self._rew_button.setIcon(self._rew_icon)
+        self._rew_button = ClickLabel()
+        self._rew_button.setPixmap(QPixmap('images/video_control-rewind.png'))
 
-        self._toggle_play_button = QPushButton('')
-        self._toggle_play_button.setIcon(self._play_icon)
-        self._toggle_play_button.setText('Play')
+        self._step_back_button = ClickLabel()
+        self._step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
+
+        self._toggle_play_button = ClickLabel()
+        self._toggle_play_button.setPixmap(self._play_pixmap)
+
+        self._step_forward_button = ClickLabel()
+        self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
 
         self._submit_button = QPushButton('Submit for Review')
         self._submit_button.setDisabled(True)
@@ -85,7 +97,9 @@ class VideoLayoutWidget(QWidget):
         vid_btn_box.addWidget(self._slider)
         vid_btn_box.addWidget(self._pos_label)
         vid_btn_box.addWidget(self._rew_button)
+        vid_btn_box.addWidget(self._step_back_button)
         vid_btn_box.addWidget(self._toggle_play_button)
+        vid_btn_box.addWidget(self._step_forward_button)
         vid_btn_box.addWidget(self._submit_button)
 
         btn_box = QHBoxLayout()
@@ -172,11 +186,9 @@ class VideoLayoutWidget(QWidget):
     def on_playstate_changed(self, play_state):
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
             self.on_progress_update(self._video_player.get_position())  # update position on pause
-            self._toggle_play_button.setText('Play')
-            self._toggle_play_button.setIcon(self._play_icon)
+            self._toggle_play_button.setPixmap(self._play_pixmap)
         else:
-            self._toggle_play_button.setText('Pause')
-            self._toggle_play_button.setIcon(self._pause_icon)
+            self._toggle_play_button.setPixmap(self._pause_pixmap)
 
         if play_state == PlayState.EndOfStream and self.current_set.assigned_to_current():
             self._submit_button.setDisabled(False)
