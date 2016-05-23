@@ -32,7 +32,7 @@ class MainWindow(QMainWindow):
         self._vid_layout = VideoLayoutWidget(self)
         self._set_menus()
         self.setCentralWidget(self._vid_layout)
-        self.showMaximized()
+        self.showMaximized()  # TODO adjust this?
         self._launch_login_dialog()
 
     def _set_menus(self):
@@ -81,13 +81,13 @@ class MainWindow(QMainWindow):
         self.login_diag = QDialog(self, Qt.WindowTitleHint)
         self.login_diag.setLayout(self._login_layout)
         self.login_diag.setModal(True)
-        #self.login_diag.closeEvent = self.loginCloseEvent
+        # self.login_diag.closeEvent = self.loginCloseEvent
         self.login_diag.setWindowTitle('Login to Global Finprint')
         self.login_diag.show()
 
     def loginCloseEvent(self, event):
         pass
-        #dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
+        # dispatcher.send('LOGIN_CANCELLED', sender=dispatcher.Anonymous, value='')
 
     def _launch_props_dialog(self):
         self._props_layout = QVBoxLayout()
@@ -240,7 +240,7 @@ class MainWindow(QMainWindow):
 
     def on_login_cancelled(self, signal, sender, value):
         self.login_diag.close()
-        # exit application if login box is cancelled before ever loggin in
+        # exit application if login box is cancelled before ever logging in
         if not self._has_logged_in:
             QCoreApplication.instance().quit()
 

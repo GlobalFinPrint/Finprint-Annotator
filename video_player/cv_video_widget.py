@@ -9,8 +9,8 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 PROGRESS_UPDATE_INTERVAL = 30000
-VIDEO_HEIGHT = 1024
-VIDEO_WIDTH = 768
+VIDEO_WIDTH = 800  # make this more adjustable
+VIDEO_HEIGHT = 600
 
 
 class CvVideoWidget(QWidget):
@@ -30,6 +30,7 @@ class CvVideoWidget(QWidget):
         self._onPositionChange = onPositionChange
         self.last_time = time.perf_counter()
         self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
+        self._image.fill(Qt.black)
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.on_timer)
         self._last_progress = 0
@@ -55,7 +56,7 @@ class CvVideoWidget(QWidget):
             getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
             return False
 
-        self.setMinimumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
+        self.setFixedSize(VIDEO_WIDTH, VIDEO_HEIGHT)  # make this adjustable
         self._play_state = PlayState.Paused
 
         # don't start listening for spacebar until video is loaded and playable

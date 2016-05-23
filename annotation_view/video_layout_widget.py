@@ -96,6 +96,7 @@ class VideoLayoutWidget(QWidget):
         vid_box.addWidget(self._video_player)
         vid_box.addWidget(self._slider)
         vid_box.addWidget(self._pos_label)  # TODO move this under the cursor
+        vid_box.addStretch(1)
 
         # add to top box
         top_box.addLayout(vid_box)
@@ -124,11 +125,6 @@ class VideoLayoutWidget(QWidget):
         table_box = QHBoxLayout()
         table_box.addWidget(self._observation_table)
         container.addLayout(table_box)
-
-        # App buttons
-        btn_box = QHBoxLayout()
-        btn_box.addStretch(1)
-        container.addLayout(btn_box)
 
         self.setLayout(container)
 
