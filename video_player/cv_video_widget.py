@@ -9,6 +9,8 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 PROGRESS_UPDATE_INTERVAL = 30000
+VIDEO_HEIGHT = 1024
+VIDEO_WIDTH = 768
 
 
 class CvVideoWidget(QWidget):
@@ -21,12 +23,13 @@ class CvVideoWidget(QWidget):
         self._paused = True
         self._play_state = PlayState.NotReady
         self._frame = None
+        self._file_name = None
 
         self._dragging = False
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
         self.last_time = time.perf_counter()
-        self._image = QBitmap(800, 600)
+        self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.on_timer)
         self._last_progress = 0
@@ -52,7 +55,7 @@ class CvVideoWidget(QWidget):
             getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
             return False
 
-        self.setMinimumSize(800, 600)
+        self.setMinimumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
         self._play_state = PlayState.Paused
 
         # don't start listening for spacebar until video is loaded and playable
@@ -91,22 +94,20 @@ class CvVideoWidget(QWidget):
         self._timer.stop()
         if self._capture is not None:
             self._capture.release()
-        #self._image = QBitmap(800, 600)
+        self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
         self._image.fill(Qt.black)
         self.update()
 
     def _build_image(self, frame):
         image = None
         try:
-            #frame = imutils.resize(frame, width=1024)
             height, width, channels = frame.shape
             if self._frame is None:
                 self._frame = np.zeros((width, height, channels), np.uint8)
 
             image = QImage(frame, width, height, QImage.Format_RGB888)
             image = image.rgbSwapped()
-            image = image.scaledToWidth(1024)
-            #self._frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            image = image.scaledToWidth(VIDEO_WIDTH)
         except Exception as ex:
             getLogger('finprint').exception('Exception building image')
 
@@ -201,7 +202,7 @@ class CvVideoWidget(QWidget):
             getLogger('finprint').exception("Failed to calculate length")
             return 0
         else:
-            return (num_frames / fps) * 1000 # Returns milliseconds as a float
+            return (num_frames / fps) * 1000  # Returns milliseconds as a float
 
     def fast_forward(self):
         self._capture.set(cv2.CAP_PROP_FPS, 120)

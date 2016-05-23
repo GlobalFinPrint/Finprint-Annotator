@@ -48,6 +48,7 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
 
         self._submit_button = QPushButton('Submit for Review')
+        self._submit_button.setFixedWidth(150)
         self._submit_button.setDisabled(True)
 
         self._obs_btn_box = QHBoxLayout()
@@ -87,26 +88,37 @@ class VideoLayoutWidget(QWidget):
         container = QVBoxLayout()
         container.setDirection(QBoxLayout.TopToBottom)
 
-        # Main Video Window
-        self.vid_box = QHBoxLayout()
-        self.vid_box.addWidget(self._video_player)
-        container.addLayout(self.vid_box)
+        # Top section L/R
+        top_box = QHBoxLayout()
 
-        # Video control and observation register buttons
-        vid_btn_box = QHBoxLayout()
-        vid_btn_box.addWidget(self._slider)
-        vid_btn_box.addWidget(self._pos_label)
-        vid_btn_box.addWidget(self._rew_button)
-        vid_btn_box.addWidget(self._step_back_button)
-        vid_btn_box.addWidget(self._toggle_play_button)
-        vid_btn_box.addWidget(self._step_forward_button)
-        vid_btn_box.addWidget(self._submit_button)
+        # Video screen and slider
+        vid_box = QVBoxLayout()
+        vid_box.addWidget(self._video_player)
+        vid_box.addWidget(self._slider)
+        vid_box.addWidget(self._pos_label)  # TODO move this under the cursor
 
-        btn_box = QHBoxLayout()
-        btn_box.addLayout(self._obs_btn_box)
-        btn_box.addLayout(vid_btn_box)
+        # add to top box
+        top_box.addLayout(vid_box)
 
-        container.addLayout(btn_box)
+        # Video controls
+        video_controls_box = QHBoxLayout()
+        video_controls_box.addWidget(self._rew_button)
+        video_controls_box.addWidget(self._step_back_button)
+        video_controls_box.addWidget(self._toggle_play_button)
+        video_controls_box.addWidget(self._step_forward_button)
+
+        # Buttons
+        button_box = QVBoxLayout()
+        button_box.setDirection(QBoxLayout.BottomToTop)
+        button_box.addLayout(video_controls_box)
+        button_box.addWidget(self._submit_button)
+        button_box.addStretch(1)
+
+        # add to top box
+        top_box.addLayout(button_box)
+
+        # add top box to main layout
+        container.addLayout(top_box)
 
         # Observation table
         table_box = QHBoxLayout()

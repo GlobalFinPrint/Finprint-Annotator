@@ -1,4 +1,5 @@
 from global_finprint import Animal, GlobalFinPrintServer
+from video_player.cv_video_widget import VIDEO_WIDTH
 from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -20,6 +21,8 @@ class VideoSeekWidget(QSlider):
         self.sliderMoved.connect(self._moved)
         self.sliderReleased.connect(self._released)
 
+        self.setMaximumWidth(VIDEO_WIDTH)
+
     def _pressed(self):
         self.dragging = True
         self.allowed_progress = max(self.value(), self.allowed_progress)
@@ -35,9 +38,6 @@ class VideoSeekWidget(QSlider):
             self._player.set_position(self.value())
         else:
             self._player.set_position(min(self.value(), self.allowed_progress))
-
-    def setMaximum(self, value):
-        super(VideoSeekWidget, self).setMaximum(value)
 
     def set_allowed_progress(self, progress):
         self.allowed_progress = progress
