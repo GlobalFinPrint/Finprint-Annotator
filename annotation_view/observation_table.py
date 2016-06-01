@@ -15,6 +15,12 @@ class ObservationTableModel(QAbstractTableModel):
         duration = 4
         notes = 5
 
+    class EventColumns(IntEnum):
+        id = 0
+        time = 1
+        attribute = 2
+        note = 3
+
     def __init__(self):
         self.rows = []
         self.columns = ['ID', 'Type', 'Time', 'Organism', 'Duration (ms)', 'Notes']

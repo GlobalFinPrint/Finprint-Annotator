@@ -1,46 +1,82 @@
 from .animal import Animal
 from .extent import Extent
 
+
+class Event(object):
+    def __init__(self):
+        self.id = None
+        self.event_time = None
+        self.attributes = []
+        self.note = None
+        self.extent = Extent()
+
+    def load(self, evt_dict):
+        self.id = evt_dict['id']
+        self.event_time = evt_dict['event_time']
+        self.attributes = evt_dict['attributes']
+        self.note = evt_dict['note']
+        if 'extent' in evt_dict:
+            self.extent.from_wkt(evt_dict['extent'])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'event_time': self.event_time,
+            'attributes': self.attributes,
+            'note': self.note,
+            'extent': self.extent.to_wkt()
+        }
+
+    def to_columns(self):
+        return [
+            self.id,
+            self.event_time,
+            ', '.join(list(a.name for a in self.attributes)),
+            self.note,
+        ]
+
+
 class Observation(object):
     def __init__(self):
         self.id = None
-        self.initial_observation_time = 0
         self.animal_id = None
         self.behavior_id = None
         self.comment = ''
         self.duration = 0
         self.animal = Animal()
         self.type_choice = 'A'
-        self.extent = Extent()
+        self.events = []
+
+    def initial_time(self):
+        return min(e.event_time for e in self.events)
 
     def load(self, obs_dict):
         self.type_choice = obs_dict['type_choice']
         self.id = obs_dict['id']
         self.comment = obs_dict['comment']
-        self.initial_observation_time = int(obs_dict['initial_observation_time'])
         self.duration = obs_dict['duration']
-        if 'extent' in obs_dict and obs_dict['extent']:
-            self.extent.from_wkt(obs_dict['extent'])
-
+        for e in obs_dict['events']:
+            evt = Event()
+            evt.load(e)
+            self.events.append(evt)
         if self.type_choice == 'A':
             self.animal_id = obs_dict['animal_id']
 
     def to_dict(self):
         return {'id': self.id,
-                'initial_observation_time': self.initial_observation_time,
                 'animal_id': self.animal_id,
                 'type_choice': self.type_choice,
-                'type': self.type_choice,  # TODO band-aid till the backend gets fixed
                 'comment': self.comment,
                 'duration': self.duration,
-                'extent': self.extent.to_wkt() if not self.extent.empty else None}
+                'events': list(e.to_dict() for e in self.events)}
 
     def to_columns(self):
         return [
             self.id,
             self.type_choice,
-            self.initial_observation_time,
+            self.initial_time(),
             str(self.animal),
             self.duration,
-            self.comment
+            self.comment,
+            list(e.to_columns for e in self.events)
         ]

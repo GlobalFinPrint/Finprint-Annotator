@@ -106,6 +106,6 @@ class GlobalFinPrintServer(Singleton):
         else:
             raise QueryException('Failed to delete observation: status {0}'.format(r.status_code))
 
-    def critters(self, set_id):
-        r = requests.get(self.address + '/api/set/{0}/critters'.format(set_id), params={'token': self.user_token})
+    def animals(self, set_id):
+        r = requests.get(self.address + '/api/set/{0}/animals'.format(set_id), params={'token': self.user_token})
         return r.json
