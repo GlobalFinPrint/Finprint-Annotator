@@ -158,9 +158,9 @@ class CvVideoWidget(QWidget):
         self._onPositionChange(self.get_position())
 
     def mousePressEvent(self, event):
-        if self.paused():
-            self._highlighter.start_rect(event.pos())
-            self.update()
+        self.pause()
+        self._highlighter.start_rect(event.pos())
+        self.update()
 
     def mouseMoveEvent(self, event):
         if self.paused():
@@ -171,6 +171,7 @@ class CvVideoWidget(QWidget):
     def mouseReleaseEvent(self, event):
         self._dragging = False
         self.update()
+        # TODO menu here for new event
 
     def toggle_play(self):
         if self._play_state == PlayState.Paused or self._play_state == PlayState.EndOfStream:
