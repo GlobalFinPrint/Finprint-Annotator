@@ -17,13 +17,16 @@ class ObservationTableModel(QAbstractTableModel):
 
     class EventColumns(IntEnum):
         id = 0
-        time = 1
-        attribute = 2
-        note = 3
+        type = 1
+        time = 2
+        attributes = 3
+        placeholder = 4
+        notes = 5
 
     def __init__(self):
         self.rows = []
         self.columns = ['ID', 'Type', 'Time', 'Organism', 'Duration (ms)', 'Notes']
+        self.event_columns = ['ID', 'Type', 'Time', 'Attributes', 'Placeholder', 'Notes']
         super(QAbstractTableModel, self).__init__(None)
 
     def rowCount(self, *args, **kwargs):
@@ -63,7 +66,7 @@ class ObservationTableModel(QAbstractTableModel):
     def insertRows(self, start, count, new_rows=None, *args, **kwargs):
         self.beginInsertRows(self.index(start, 0), start, start + count - 1)
         self.rows = self.rows[start:] + new_rows + self.rows[:start]
-        self.rows.sort(key=lambda x: -1. * x.to_columns()[self.Columns.time])
+        # self.rows.sort(key=lambda x: -1. * x.to_columns()[self.Columns.time])  # TODO solve sorting
         self.endInsertRows()
         return True
 
@@ -74,10 +77,10 @@ class ObservationTableModel(QAbstractTableModel):
         return True
 
     def append_row(self, row):
-        self.insertRows(self.rowCount(), 1, new_rows=[row])
+        self.insertRows(self.rowCount(), 1 + len(row.events), new_rows=[row] + row.events)
 
     def remove_row(self, row):
-        self.removeRows(row, 1)
+        self.removeRows(row, 1 + len(row.events))
 
     def empty(self):
         self.removeRows(0, self.rowCount())

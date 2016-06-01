@@ -30,9 +30,11 @@ class Event(object):
     def to_columns(self):
         return [
             self.id,
+            'event',
             self.event_time,
-            ', '.join(list(a.name for a in self.attributes)),
-            self.note,
+            ', '.join(list(a['name'] for a in self.attributes)),
+            None,  # placeholder
+            self.note
         ]
 
 
@@ -77,6 +79,5 @@ class Observation(object):
             self.initial_time(),
             str(self.animal),
             self.duration,
-            self.comment,
-            list(e.to_columns for e in self.events)
+            self.comment
         ]
