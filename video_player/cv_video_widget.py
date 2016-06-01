@@ -169,9 +169,10 @@ class CvVideoWidget(QWidget):
             self.update()
 
     def mouseReleaseEvent(self, event):
-        self._dragging = False
-        self.update()
-        # TODO menu here for new event
+        if self._dragging:
+            self._dragging = False
+            self.update()
+            self.context_menu(event.pos())
 
     def toggle_play(self):
         if self._play_state == PlayState.Paused or self._play_state == PlayState.EndOfStream:
@@ -215,3 +216,12 @@ class CvVideoWidget(QWidget):
         else:
             self._play_state = PlayState.SeekBack
         self.playStateChanged.emit(self._play_state)
+
+    def context_menu(self, pos):
+        menu = QMenu()
+        animal_action = menu.addAction('Organism >')
+        interest_action = menu.addAction('Of interest')
+        existing_action = menu.addAction('Add to existing observation >')
+        cancel_action = menu.addAction('Cancel')
+        action = menu.exec_(self.mapToGlobal(pos))
+        # TODO do things
