@@ -81,7 +81,7 @@ class GlobalFinPrintServer(Singleton):
         return r.json()
 
     def add_observation(self, set_id, observation):
-        data = observation.to_dict()
+        data = observation.to_dict()  # TODO make sure first event stuff is in here
         data['token'] = self.user_token
         r = requests.post(self.address + '/api/set/{0}/obs'.format(set_id), data=data)
         if r.status_code == 200:
@@ -90,7 +90,7 @@ class GlobalFinPrintServer(Singleton):
             raise QueryException('Failed to add Observation: status {0}'.format(r.status_code))
 
     def edit_observation(self, set_id, observation):
-        data = observation.to_dict()
+        data = observation.to_dict()  # TODO make sure event stuff ISNT here
         data['token'] = self.user_token
         r = requests.post(self.address + '/api/set/{0}/obs/{1}'.format(set_id, observation.id), data)
         if r.status_code == 200:
@@ -105,6 +105,18 @@ class GlobalFinPrintServer(Singleton):
             return r.json()
         else:
             raise QueryException('Failed to delete observation: status {0}'.format(r.status_code))
+
+    def add_event(self, set_id, obs_id):
+        pass
+
+    def edit_event(self, set_id, obs_id):
+        pass
+
+    def delete_event(self, set_id, obs_id):
+        pass
+
+    def attributes(self, set_id):
+        pass  # TODO make sure we get tree structure
 
     def animals(self, set_id):
         r = requests.get(self.address + '/api/set/{0}/animals'.format(set_id), params={'token': self.user_token})
