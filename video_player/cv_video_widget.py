@@ -180,7 +180,7 @@ class CvVideoWidget(QWidget):
         if self._dragging:
             self._dragging = False
             self.update()
-            self.context_menu(event.pos())
+            self.context_menu()
 
     def toggle_play(self):
         if self._play_state == PlayState.Paused or self._play_state == PlayState.EndOfStream:
@@ -225,6 +225,6 @@ class CvVideoWidget(QWidget):
             self._play_state = PlayState.SeekBack
         self.playStateChanged.emit(self._play_state)
 
-    def context_menu(self, pos):
+    def context_menu(self):
         if self._context_menu:
-            self._context_menu.display(pos)
+            self._context_menu.display()

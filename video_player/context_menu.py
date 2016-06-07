@@ -32,7 +32,11 @@ class ContextMenu(QMenu):
         # event params
         self.dialog_values = {}
 
-    def display(self, pos):
+        # dialog controls
+        self.att_dropdown = None
+        self.text_area = None
+
+    def display(self):
         action = self.exec_(QCursor.pos())  # TODO position better
         if action == self._animal_act:
             self.display_animals()
@@ -78,13 +82,14 @@ class ContextMenu(QMenu):
             kwargs['type_choice'] = kwargs['obs'].type_choice
             if kwargs['type_choice'] == 'A':
                 kwargs['animal'] = kwargs['obs'].animal
-            self.dialog_values['obs_id'] = kwargs['obs'].id
         else:
             self.dialog_values['type_choice'] = kwargs['type_choice']
             if self.dialog_values['type_choice'] == 'A' and 'animal' in kwargs:
                 self.dialog_values['animal_id'] = kwargs['animal'].id
         self.dialog_values['event_time'] = self.parent().get_position()
         self.dialog_values['extent'] = self.parent().get_highlight_extent().to_wkt()
+        self.dialog_values['note'] = ''
+        self.dialog_values['attribute'] = None
 
         # set up dialog view
         layout = QVBoxLayout()
@@ -104,20 +109,23 @@ class ContextMenu(QMenu):
 
         # attributes
         attributes_label = QLabel('Attribute:')
-        att_dropdown = QComboBox()
-        attributes_label.setBuddy(att_dropdown)
+        self.att_dropdown = QComboBox()
+        attributes_label.setBuddy(self.att_dropdown)
+        self.att_dropdown.addItem('---')
         for id, att in self._attributes.items():
-            att_dropdown.addItem(att, id)
+            self.att_dropdown.addItem(att, id)
+        self.att_dropdown.currentIndexChanged.connect(self.attribute_select)
         layout.addWidget(attributes_label)
-        layout.addWidget(att_dropdown)
+        layout.addWidget(self.att_dropdown)
 
         # notes
         notes_label = QLabel('Notes:')
-        text_area = QPlainTextEdit()
-        notes_label.setBuddy(text_area)
-        text_area.setFixedHeight(50)
+        self.text_area = QPlainTextEdit()
+        notes_label.setBuddy(self.text_area)
+        self.text_area.setFixedHeight(50)
+        self.text_area.textChanged.connect(self.note_change)
         layout.addWidget(notes_label)
-        layout.addWidget(text_area)
+        layout.addWidget(self.text_area)
 
         # save/cancel buttons
         buttons = QDialogButtonBox()
@@ -135,7 +143,11 @@ class ContextMenu(QMenu):
         self.event_dialog.show()
 
     def pushed_save(self):
-        # TODO save things
+        from logging import getLogger; getLogger('finprint').info(self.dialog_values)
+        if 'type_choice' in self.dialog_values:  # new obs
+            pass
+        else:  # add event to obs
+            pass
         self.dialog_values = {}
         self.event_dialog.close()
         self.event_dialog = None
@@ -146,3 +158,9 @@ class ContextMenu(QMenu):
         self.event_dialog.close()
         self.event_dialog = None
         self.parent().play()
+
+    def attribute_select(self):
+        self.dialog_values['attribute'] = self.att_dropdown.itemData(self.att_dropdown.currentIndex())
+
+    def note_change(self):
+        self.dialog_values['note'] = self.text_area.toPlainText()
