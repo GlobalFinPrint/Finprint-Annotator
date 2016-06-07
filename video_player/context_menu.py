@@ -13,7 +13,7 @@ class ContextMenu(QMenu):
         self._set = current_set
 
         # actions
-        self._animal_act = self.addAction('Organism >')
+        self._animal_act = self.addAction('Organism >')  # TODO sub-menus instead of new menus?
         self._interest_act = self.addAction('Of interest')
         self._existing_act = self.addAction('Add to existing observation >')
         self._cancel_act = self.addAction('Cancel')
@@ -26,7 +26,7 @@ class ContextMenu(QMenu):
             self._grouping[animal.group].append(animal)
 
         # attributes
-        self._attributes = {}
+        self._attributes = {}  # TODO keep tree hierarchy
         for att_dict in self._set.attributes:
             self._attributes[att_dict['id']] = att_dict['name']
 
@@ -47,7 +47,7 @@ class ContextMenu(QMenu):
         elif action == self._existing_act:
             self.display_observations()
         elif action == self._cancel_act:
-            pass
+            pass  # TODO on cancel and click away handle removing extent drawn and playing
 
     def display_observations(self):
         observations = QMenu()
@@ -106,7 +106,7 @@ class ContextMenu(QMenu):
         layout.addWidget(type_label)
 
         # obs animal (if applicable)
-        if 'animal' in kwargs:
+        if 'animal' in kwargs:  # TODO make this a drop-down for observation editing?
             animal_label = QLabel('Animal: ' + str(kwargs['animal']))
             layout.addWidget(animal_label)
 
@@ -114,8 +114,8 @@ class ContextMenu(QMenu):
         attributes_label = QLabel('Attribute:')
         self.att_dropdown = QComboBox()
         attributes_label.setBuddy(self.att_dropdown)
-        self.att_dropdown.addItem('---')
-        for id, att in self._attributes.items():
+        self.att_dropdown.addItem('---')  # TODO require a value for submit
+        for id, att in self._attributes.items():  # TODO nicer display of attributes, multiple selection
             self.att_dropdown.addItem(att, id)
         self.att_dropdown.currentIndexChanged.connect(self.attribute_select)
         layout.addWidget(attributes_label)
@@ -131,7 +131,7 @@ class ContextMenu(QMenu):
         layout.addWidget(self.text_area)
 
         # save/cancel buttons
-        buttons = QDialogButtonBox()
+        buttons = QDialogButtonBox()  # TODO style the buttons
         save_but = QPushButton('Save')
         save_but.setFixedHeight(30)
         save_but.clicked.connect(self.pushed_save)
@@ -146,6 +146,7 @@ class ContextMenu(QMenu):
         self.event_dialog.show()
 
     def pushed_save(self):
+        # TODO save frame image
         if 'type_choice' in self.dialog_values:  # new obs
             GlobalFinPrintServer().add_observation(self._set.id, **self.dialog_values)
         else:  # add event to obs
@@ -153,8 +154,8 @@ class ContextMenu(QMenu):
         self.dialog_values = {}
         self.event_dialog.close()
         self.event_dialog = None
-        self.parent().play()
         # TODO update observation table
+        self.parent().play()
 
     def pushed_cancel(self):
         self.dialog_values = {}
