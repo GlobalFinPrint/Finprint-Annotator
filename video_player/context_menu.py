@@ -1,3 +1,4 @@
+from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
@@ -35,6 +36,7 @@ class ContextMenu(QMenu):
         # dialog controls
         self.att_dropdown = None
         self.text_area = None
+        self.selected_obs = None
 
     def display(self):
         action = self.exec_(QCursor.pos())  # TODO position better
@@ -79,6 +81,7 @@ class ContextMenu(QMenu):
 
         # set dialog data for submit
         if 'obs' in kwargs:
+            self.selected_obs = kwargs['obs']
             kwargs['type_choice'] = kwargs['obs'].type_choice
             if kwargs['type_choice'] == 'A':
                 kwargs['animal'] = kwargs['obs'].animal
@@ -86,7 +89,7 @@ class ContextMenu(QMenu):
             self.dialog_values['type_choice'] = kwargs['type_choice']
             if self.dialog_values['type_choice'] == 'A' and 'animal' in kwargs:
                 self.dialog_values['animal_id'] = kwargs['animal'].id
-        self.dialog_values['event_time'] = self.parent().get_position()
+        self.dialog_values['event_time'] = int(self.parent().get_position())
         self.dialog_values['extent'] = self.parent().get_highlight_extent().to_wkt()
         self.dialog_values['note'] = ''
         self.dialog_values['attribute'] = None
@@ -143,15 +146,15 @@ class ContextMenu(QMenu):
         self.event_dialog.show()
 
     def pushed_save(self):
-        from logging import getLogger; getLogger('finprint').info(self.dialog_values)
         if 'type_choice' in self.dialog_values:  # new obs
-            pass
+            GlobalFinPrintServer().add_observation(self._set.id, **self.dialog_values)
         else:  # add event to obs
-            pass
+            GlobalFinPrintServer().add_event(self._set.id, self.selected_obs.id, **self.dialog_values)
         self.dialog_values = {}
         self.event_dialog.close()
         self.event_dialog = None
         self.parent().play()
+        # TODO update observation table
 
     def pushed_cancel(self):
         self.dialog_values = {}

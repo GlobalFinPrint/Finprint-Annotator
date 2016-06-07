@@ -80,8 +80,8 @@ class GlobalFinPrintServer(Singleton):
         r = requests.get(self.address + '/api/set/{0}/obs'.format(set_id), params={'token': self.user_token})
         return r.json()
 
-    def add_observation(self, set_id, observation):
-        data = observation.to_dict()  # TODO make sure first event stuff is in here
+    def add_observation(self, set_id, **kwargs):
+        data = kwargs  # TODO make sure first event stuff is in here
         data['token'] = self.user_token
         r = requests.post(self.address + '/api/set/{0}/obs'.format(set_id), data=data)
         if r.status_code == 200:
@@ -89,8 +89,8 @@ class GlobalFinPrintServer(Singleton):
         else:
             raise QueryException('Failed to add Observation: status {0}'.format(r.status_code))
 
-    def edit_observation(self, set_id, observation):
-        data = observation.to_dict()  # TODO make sure event stuff ISNT here
+    def edit_observation(self, set_id, **kwargs):
+        data = kwargs  # TODO make sure event stuff ISNT here
         data['token'] = self.user_token
         r = requests.post(self.address + '/api/set/{0}/obs/{1}'.format(set_id, observation.id), data)
         if r.status_code == 200:
