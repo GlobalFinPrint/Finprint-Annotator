@@ -136,7 +136,7 @@ class GlobalFinPrintServer(Singleton):
         params = {'token': self.user_token}
         r = requests.get(self.address + '/api/set/{0}/attributes'.format(set_id), params)
         if r.status_code == 200:
-            return r.json()
+            return r.json()['attributes']
         else:
             raise QueryException('Failed to get attributes: status {0}'.format(r.status_code))
 

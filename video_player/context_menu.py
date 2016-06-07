@@ -42,7 +42,7 @@ class ContextMenu(QMenu):
         elif action == self._existing_act:
             self.display_observations()
         elif action == self._cancel_act:
-            pass  # close menu
+            self.parent().play()
 
     def display_observations(self):
         observations = QMenu()
@@ -74,23 +74,36 @@ class ContextMenu(QMenu):
         self.event_dialog.setStyleSheet('background:#fff;')
         self.event_dialog.setWindowTitle('Event data')
 
-        layout = QVBoxLayout()
-
-        obs_label = QLabel('Observation: ' + ('New' if obs is None else str(obs)))
-        layout.addWidget(obs_label)
-
         if obs is not None:
             obs_type = obs.type_choice
             kwargs['animal'] = obs.animal
             self.dialog_values['obs_id'] = obs.id
 
+        layout = QVBoxLayout()
+
+        # observation
+        obs_label = QLabel('Observation: ' + ('New' if obs is None else str(obs)))
+        layout.addWidget(obs_label)
+
+        # obs type
         type_label = QLabel('Observation type: ' + ('Of interest' if obs_type == 'I' else 'Animal'))
         layout.addWidget(type_label)
 
+        # obs animal (if applicable)
         if 'animal' in kwargs:
             animal_label = QLabel('Animal: ' + str(kwargs['animal']))
             layout.addWidget(animal_label)
 
+        # attributes
+        attributes_label = QLabel('Attribute:')
+        att_dropdown = QComboBox()
+        attributes_label.setBuddy(att_dropdown)
+        for id, att in self._attributes.items():
+            att_dropdown.addItem(att, id)
+        layout.addWidget(attributes_label)
+        layout.addWidget(att_dropdown)
+
+        # notes
         notes_label = QLabel('Notes:')
         text_area = QPlainTextEdit()
         notes_label.setBuddy(text_area)
@@ -98,6 +111,7 @@ class ContextMenu(QMenu):
         layout.addWidget(notes_label)
         layout.addWidget(text_area)
 
+        # save/cancel buttons
         buttons = QDialogButtonBox()
         save_but = QPushButton('Save')
         save_but.setFixedHeight(30)
