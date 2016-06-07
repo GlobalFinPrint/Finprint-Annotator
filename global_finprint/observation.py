@@ -81,3 +81,6 @@ class Observation(object):
             self.duration,
             self.comment
         ]
+
+    def __str__(self):
+        return '{0}ms {1}'.format(self.initial_time(), 'Of interest' if self.type_choice == 'I' else str(self.animal))

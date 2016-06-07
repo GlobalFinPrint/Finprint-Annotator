@@ -133,7 +133,8 @@ class GlobalFinPrintServer(Singleton):
             raise QueryException('Failed to delete event: status {0}'.format(r.status_code))
 
     def attributes(self, set_id):
-        r = requests.get(self.address + '/api/set/{0}/attributes'.format(set_id))
+        params = {'token': self.user_token}
+        r = requests.get(self.address + '/api/set/{0}/attributes'.format(set_id), params)
         if r.status_code == 200:
             return r.json()
         else:

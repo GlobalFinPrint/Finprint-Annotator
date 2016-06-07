@@ -10,6 +10,7 @@ class Set(object):
         self.file = ''
         self.animals = []
         self.observations = []
+        self.attributes = []
         self.code = ''
 
         if id is not None:
@@ -34,6 +35,9 @@ class Set(object):
             for o in self.observations:
                 if o.animal_id is not None:
                     o.animal = self.get_animal(o.animal_id)
+
+            for att in GlobalFinPrintServer().attributes(id):
+                self.attributes.append(att)
 
     def add_observation(self, obs):
         result = self._connection.add_observation(self.id, obs)

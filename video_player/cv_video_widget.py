@@ -41,11 +41,11 @@ class CvVideoWidget(QWidget):
 
     def load_set(self, set):
         self._current_set = set
-        self._context_menu = ContextMenu(set)
+        self._context_menu = ContextMenu(set, parent=self)
 
     # listen for any spacebar touches for play/pause
     def eventFilter(self, obj, evt):
-        if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit:
+        if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
             if evt.key() == Qt.Key_Space:
                 self.toggle_play()
                 return True

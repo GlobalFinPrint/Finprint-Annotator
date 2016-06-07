@@ -3,11 +3,13 @@ from PyQt4.QtGui import *
 
 
 class ContextMenu(QMenu):
-    def __init__(self, set):
-        super(ContextMenu, self).__init__()
+    event_dialog = None
+
+    def __init__(self, current_set, parent):
+        super(ContextMenu, self).__init__(parent=parent)
 
         # set
-        self._set = set
+        self._set = current_set
 
         # actions
         self._animal_act = self.addAction('Organism >')
@@ -17,13 +19,18 @@ class ContextMenu(QMenu):
 
         # animals
         self._grouping = {}
-        for animal in set.animals:
+        for animal in self._set.animals:
             if animal.group not in self._grouping:
                 self._grouping[animal.group] = []
             self._grouping[animal.group].append(animal)
 
         # attributes
-        # TODO
+        self._attributes = {}
+        for att_dict in self._set.attributes:
+            self._attributes[att_dict['id']] = att_dict['name']
+
+        # event params
+        self.dialog_values = {}
 
     def display(self, pos):
         action = self.exec_(QCursor.pos())  # TODO position better
@@ -33,12 +40,17 @@ class ContextMenu(QMenu):
             self.display_event_dialog(obs_type='I')
             pass
         elif action == self._existing_act:
-            # TODO list observations
-            # TODO need str representation
-            # TODO open add/edit dialog
-            pass
+            self.display_observations()
         elif action == self._cancel_act:
             pass  # close menu
+
+    def display_observations(self):
+        observations = QMenu()
+        for obs in self._set.observations:
+            act = observations.addAction(str(obs))
+            act.setData(obs)
+        selected_obs = observations.exec_(QCursor.pos())
+        self.display_event_dialog(obs=selected_obs.data())
 
     def display_animals(self):
         groups = QMenu()
@@ -49,28 +61,34 @@ class ContextMenu(QMenu):
         if selected_group in self._grouping.keys():
             animals = QMenu()
             for animal in self._grouping[selected_group]:
-                animals.addAction(str(animal))
+                act = animals.addAction(str(animal))
+                act.setData(animal)
             selected_animal = animals.exec_(QCursor.pos())
             if selected_animal != 0:
-                self.display_event_dialog(obs_type='A', animal=selected_animal.text())
+                self.display_event_dialog(obs_type='A', animal=selected_animal.data())
 
     def display_event_dialog(self, obs=None, obs_type=None, **kwargs):
-        dialog = QDialog(self, Qt.WindowTitleHint)
-        dialog.setFixedWidth(300)
-        dialog.setModal(True)
-        dialog.setStyleSheet('background:#fff;')
-        dialog.setWindowTitle('Event data')
+        self.event_dialog = QDialog(self, Qt.WindowTitleHint)
+        self.event_dialog.setFixedWidth(300)
+        self.event_dialog.setModal(True)
+        self.event_dialog.setStyleSheet('background:#fff;')
+        self.event_dialog.setWindowTitle('Event data')
 
         layout = QVBoxLayout()
 
         obs_label = QLabel('Observation: ' + ('New' if obs is None else str(obs)))
         layout.addWidget(obs_label)
 
+        if obs is not None:
+            obs_type = obs.type_choice
+            kwargs['animal'] = obs.animal
+            self.dialog_values['obs_id'] = obs.id
+
         type_label = QLabel('Observation type: ' + ('Of interest' if obs_type == 'I' else 'Animal'))
         layout.addWidget(type_label)
 
         if 'animal' in kwargs:
-            animal_label = QLabel('Animal: ' + kwargs['animal'])
+            animal_label = QLabel('Animal: ' + str(kwargs['animal']))
             layout.addWidget(animal_label)
 
         notes_label = QLabel('Notes:')
@@ -83,11 +101,26 @@ class ContextMenu(QMenu):
         buttons = QDialogButtonBox()
         save_but = QPushButton('Save')
         save_but.setFixedHeight(30)
+        save_but.clicked.connect(self.pushed_save)
         cancel_but = QPushButton('Cancel')
         cancel_but.setFixedHeight(30)
+        cancel_but.clicked.connect(self.pushed_cancel)
         buttons.addButton(save_but, QDialogButtonBox.ActionRole)
         buttons.addButton(cancel_but, QDialogButtonBox.ActionRole)
         layout.addWidget(buttons)
 
-        dialog.setLayout(layout)
-        dialog.show()
+        self.event_dialog.setLayout(layout)
+        self.event_dialog.show()
+
+    def pushed_save(self):
+        # TODO save things
+        self.dialog_values = {}
+        self.event_dialog.close()
+        self.event_dialog = None
+        self.parent().play()
+
+    def pushed_cancel(self):
+        self.dialog_values = {}
+        self.event_dialog.close()
+        self.event_dialog = None
+        self.parent().play()
