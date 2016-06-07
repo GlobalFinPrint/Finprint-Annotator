@@ -6,7 +6,7 @@ class ContextMenu(QMenu):
     event_dialog = None
 
     def __init__(self, current_set, parent):
-        super(ContextMenu, self).__init__(parent=parent)
+        super(ContextMenu, self).__init__(parent)
 
         # set
         self._set = current_set
@@ -37,12 +37,11 @@ class ContextMenu(QMenu):
         if action == self._animal_act:
             self.display_animals()
         elif action == self._interest_act:
-            self.display_event_dialog(obs_type='I')
-            pass
+            self.display_event_dialog(type_choice='I')
         elif action == self._existing_act:
             self.display_observations()
         elif action == self._cancel_act:
-            self.parent().play()
+            pass
 
     def display_observations(self):
         observations = QMenu()
@@ -65,28 +64,37 @@ class ContextMenu(QMenu):
                 act.setData(animal)
             selected_animal = animals.exec_(QCursor.pos())
             if selected_animal != 0:
-                self.display_event_dialog(obs_type='A', animal=selected_animal.data())
+                self.display_event_dialog(type_choice='A', animal=selected_animal.data())
 
-    def display_event_dialog(self, obs=None, obs_type=None, **kwargs):
+    def display_event_dialog(self, **kwargs):
         self.event_dialog = QDialog(self, Qt.WindowTitleHint)
         self.event_dialog.setFixedWidth(300)
         self.event_dialog.setModal(True)
         self.event_dialog.setStyleSheet('background:#fff;')
         self.event_dialog.setWindowTitle('Event data')
 
-        if obs is not None:
-            obs_type = obs.type_choice
-            kwargs['animal'] = obs.animal
-            self.dialog_values['obs_id'] = obs.id
+        # set dialog data for submit
+        if 'obs' in kwargs:
+            kwargs['type_choice'] = kwargs['obs'].type_choice
+            if kwargs['type_choice'] == 'A':
+                kwargs['animal'] = kwargs['obs'].animal
+            self.dialog_values['obs_id'] = kwargs['obs'].id
+        else:
+            self.dialog_values['type_choice'] = kwargs['type_choice']
+            if self.dialog_values['type_choice'] == 'A' and 'animal' in kwargs:
+                self.dialog_values['animal_id'] = kwargs['animal'].id
+        self.dialog_values['event_time'] = self.parent().get_position()
+        self.dialog_values['extent'] = self.parent().get_highlight_extent().to_wkt()
 
+        # set up dialog view
         layout = QVBoxLayout()
 
         # observation
-        obs_label = QLabel('Observation: ' + ('New' if obs is None else str(obs)))
+        obs_label = QLabel('Observation: ' + (str(kwargs['obs']) if 'obs' in kwargs else 'New'))
         layout.addWidget(obs_label)
 
         # obs type
-        type_label = QLabel('Observation type: ' + ('Of interest' if obs_type == 'I' else 'Animal'))
+        type_label = QLabel('Observation type: ' + ('Of interest' if kwargs['type_choice'] == 'I' else 'Animal'))
         layout.addWidget(type_label)
 
         # obs animal (if applicable)
