@@ -5,7 +5,6 @@ from config import global_config
 from global_finprint import Observation
 from .video_seek_widget import VideoSeekWidget
 from .observation_table import ObservationTable
-from .organism_selector import OrganismSelector
 from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -134,26 +133,6 @@ class VideoLayoutWidget(QWidget):
             if widget is not None:
                 widget.deleteLater()
 
-    def load_buttons(self, animals):
-        # Video control and observation register buttons
-        self.grouping = {}
-        for animal in animals:
-            if animal.group not in self.grouping:
-                self.grouping[animal.group] = []
-            self.grouping[animal.group].append(animal)
-
-        # <sigh> Creating two instances of the selector at the moment to
-        # better track where it was used from (button or table cell)
-        self.organism_selector_button = OrganismSelector(self.grouping)
-        self.organism_selector_button.item_select.connect(self.on_observation)
-
-        self.organism_selector_table = OrganismSelector(self.grouping)
-        self.organism_selector_table.item_select.connect(self.on_organism_cell_changed)
-
-    def menu_button_click(self, evt):
-        self._video_player.pause()
-        self.organism_selector_button.popup_menu(self.critter_button.get_last_pos())
-
     def get_local_file(self, orig_file_name):
         os_filename = os.path.join(*orig_file_name.split('/'))
         os_path = os.path.join(global_config.get('VIDEOS', 'alt_media_dir'), os_filename)
@@ -173,7 +152,6 @@ class VideoLayoutWidget(QWidget):
 
         self._rew_button.setDisabled(False)
         self._toggle_play_button.setDisabled(False)
-        self.load_buttons(set.animals)
 
         self._observation_table.set_data()
 
@@ -183,6 +161,7 @@ class VideoLayoutWidget(QWidget):
             msgbox.setText("Could not load file: {0}".format(file_name))
             msgbox.setWindowTitle("Error Loading Video")
             msgbox.exec_()
+        self._video_player.load_set(set)
 
         self._slider.setMaximum(int(self._video_player.get_length()))
         self._slider.set_allowed_progress(set.progress)

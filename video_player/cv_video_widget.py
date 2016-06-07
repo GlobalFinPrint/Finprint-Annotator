@@ -5,6 +5,7 @@ from logging import getLogger
 from global_finprint import Extent
 from .play_state import PlayState
 from .highlighter import Highlighter
+from .context_menu import ContextMenu
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
@@ -34,6 +35,13 @@ class CvVideoWidget(QWidget):
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.on_timer)
         self._last_progress = 0
+
+        self._context_menu = None
+        self._current_set = None
+
+    def load_set(self, set):
+        self._current_set = set
+        self._context_menu = ContextMenu(set)
 
     # listen for any spacebar touches for play/pause
     def eventFilter(self, obj, evt):
@@ -218,10 +226,5 @@ class CvVideoWidget(QWidget):
         self.playStateChanged.emit(self._play_state)
 
     def context_menu(self, pos):
-        menu = QMenu()
-        animal_action = menu.addAction('Organism >')
-        interest_action = menu.addAction('Of interest')
-        existing_action = menu.addAction('Add to existing observation >')
-        cancel_action = menu.addAction('Cancel')
-        action = menu.exec_(self.mapToGlobal(pos))
-        # TODO do things
+        if self._context_menu:
+            self._context_menu.display(pos)
