@@ -37,6 +37,7 @@ class ContextMenu(QMenu):
         self.att_dropdown = None
         self.animal_dropdown = None
         self.text_area = None
+        self.obs_text = None
         self.selected_obs = None
 
     def display(self):
@@ -107,7 +108,8 @@ class ContextMenu(QMenu):
         layout.addWidget(type_label)
 
         # obs animal (if applicable)
-        if 'animal' in kwargs:  # TODO make this a drop-down for observation editing?
+        # TODO only editable on new obs/obs edit
+        if 'animal' in kwargs:
             animal_label = QLabel('Animal:')
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
@@ -129,8 +131,20 @@ class ContextMenu(QMenu):
         layout.addWidget(attributes_label)
         layout.addWidget(self.att_dropdown)
 
-        # notes
-        notes_label = QLabel('Notes:')
+        # observation notes
+        # TODO only editable on new obs/obs edit
+        obs_notes_label = QLabel('Observation notes:')
+        self.obs_text = QPlainTextEdit()
+        if 'obs' in kwargs:
+            self.obs_text.setPlainText(kwargs['obs'].comment)
+        obs_notes_label.setBuddy(self.obs_text)
+        self.obs_text.setFixedHeight(50)
+        self.obs_text.textChanged.connect(self.obs_note_change)
+        layout.addWidget(obs_notes_label)
+        layout.addWidget(self.obs_text)
+
+        # event notes
+        notes_label = QLabel('Event notes:')
         self.text_area = QPlainTextEdit()
         notes_label.setBuddy(self.text_area)
         self.text_area.setFixedHeight(50)
@@ -163,6 +177,8 @@ class ContextMenu(QMenu):
         self.event_dialog.close()
         self.event_dialog = None
         # TODO update observation table
+        # TODO add observation to set data
+        # TODO add event to observation data
         self.parent().play()
 
     def pushed_cancel(self):
@@ -179,3 +195,6 @@ class ContextMenu(QMenu):
 
     def note_change(self):
         self.dialog_values['note'] = self.text_area.toPlainText()
+
+    def obs_note_change(self):
+        self.dialog_values['comment'] = self.obs_text.toPlainText()
