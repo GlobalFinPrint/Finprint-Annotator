@@ -35,6 +35,7 @@ class ContextMenu(QMenu):
 
         # dialog controls
         self.att_dropdown = None
+        self.animal_dropdown = None
         self.text_area = None
         self.selected_obs = None
 
@@ -107,8 +108,15 @@ class ContextMenu(QMenu):
 
         # obs animal (if applicable)
         if 'animal' in kwargs:  # TODO make this a drop-down for observation editing?
-            animal_label = QLabel('Animal: ' + str(kwargs['animal']))
+            animal_label = QLabel('Animal:')
+            self.animal_dropdown = QComboBox()
+            animal_label.setBuddy(self.animal_dropdown)
+            for an in self._set.animals:
+                self.animal_dropdown.addItem(str(an), an.id)
+            self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
+            self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             layout.addWidget(animal_label)
+            layout.addWidget(self.animal_dropdown)
 
         # attributes
         attributes_label = QLabel('Attribute:')
@@ -165,6 +173,9 @@ class ContextMenu(QMenu):
 
     def attribute_select(self):
         self.dialog_values['attribute'] = self.att_dropdown.itemData(self.att_dropdown.currentIndex())
+
+    def animal_select(self):
+        self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
 
     def note_change(self):
         self.dialog_values['note'] = self.text_area.toPlainText()
