@@ -6,7 +6,7 @@ from PyQt4.QtGui import *
 class ContextMenu(QMenu):
     event_dialog = None
 
-    def __init__(self, current_set, parent):  # TODO figure out why first menu is white
+    def __init__(self, current_set, parent):
         super(ContextMenu, self).__init__(parent)
 
         self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
@@ -28,9 +28,14 @@ class ContextMenu(QMenu):
             self._grouping[animal.group].append(animal)
 
         # attributes
-        self._attributes = {}  # TODO keep tree hierarchy
-        for att_dict in self._set.attributes:
-            self._attributes[att_dict['id']] = att_dict['name']
+        def recur_attr(attrs):
+            attr_list = []
+            for attr in attrs:
+                attr_list.append({'id': attr['id'], 'name': attr['name'], 'level': attr['level']})
+                if 'children' in attr:
+                    attr_list += recur_attr(attr['children'])
+            return attr_list
+        self._attributes = recur_attr(self._set.attributes)
 
         # event params
         self.dialog_values = {}
@@ -127,8 +132,9 @@ class ContextMenu(QMenu):
         self.att_dropdown = QComboBox()
         attributes_label.setBuddy(self.att_dropdown)
         self.att_dropdown.addItem('---')  # TODO require a value for submit
-        for id, att in self._attributes.items():  # TODO nicer display of attributes, multiple selection
-            self.att_dropdown.addItem(att, id)
+        for att in self._attributes:  # TODO multiple selection
+            label = (att['level'] * '-') + (' ' if att['level'] > 0 else '') + att['name']
+            self.att_dropdown.addItem(label, att['id'])
         self.att_dropdown.currentIndexChanged.connect(self.attribute_select)
         layout.addWidget(attributes_label)
         layout.addWidget(self.att_dropdown)
