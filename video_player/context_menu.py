@@ -1,10 +1,16 @@
 from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from enum import IntEnum
 
 
 class ContextMenu(QMenu):
     event_dialog = None
+
+    class DialogActions(IntEnum):
+        new_obs = 1
+        add_event = 2
+        edit_obs = 3
 
     def __init__(self, current_set, parent):
         super(ContextMenu, self).__init__(parent)
@@ -52,7 +58,8 @@ class ContextMenu(QMenu):
         if action == self._animal_act:
             self.display_animals()
         elif action == self._interest_act:
-            self.display_event_dialog(type_choice='I')
+            self.display_event_dialog(action=self.DialogActions.new_obs,
+                                      type_choice='I')
         elif action == self._existing_act:
             self.display_observations()
         elif action == self._cancel_act:
@@ -64,7 +71,8 @@ class ContextMenu(QMenu):
             act = observations.addAction(str(obs))
             act.setData(obs)
         selected_obs = observations.exec_(QCursor.pos())
-        self.display_event_dialog(obs=selected_obs.data())
+        self.display_event_dialog(action=self.DialogActions.add_event,
+                                  obs=selected_obs.data())
 
     def display_animals(self):
         groups = QMenu(self)
@@ -79,7 +87,9 @@ class ContextMenu(QMenu):
                 act.setData(animal)
             selected_animal = animals.exec_(QCursor.pos())
             if selected_animal != 0:
-                self.display_event_dialog(type_choice='A', animal=selected_animal.data())
+                self.display_event_dialog(action=self.DialogActions.new_obs,
+                                          type_choice='A',
+                                          animal=selected_animal.data())
 
     def display_event_dialog(self, **kwargs):
         self.event_dialog = QDialog(self, Qt.WindowTitleHint)
@@ -94,6 +104,7 @@ class ContextMenu(QMenu):
             kwargs['type_choice'] = kwargs['obs'].type_choice
             if kwargs['type_choice'] == 'A':
                 kwargs['animal'] = kwargs['obs'].animal
+                self.dialog_values['animal_id'] = kwargs['animal'].id
         else:
             self.dialog_values['type_choice'] = kwargs['type_choice']
             if self.dialog_values['type_choice'] == 'A' and 'animal' in kwargs:
@@ -140,16 +151,16 @@ class ContextMenu(QMenu):
         layout.addWidget(self.att_dropdown)
 
         # observation notes
-        # TODO only editable on new obs/obs edit
-        obs_notes_label = QLabel('Observation notes:')
-        self.obs_text = QPlainTextEdit()
-        if 'obs' in kwargs:
-            self.obs_text.setPlainText(kwargs['obs'].comment)
-        obs_notes_label.setBuddy(self.obs_text)
-        self.obs_text.setFixedHeight(50)
-        self.obs_text.textChanged.connect(self.obs_note_change)
-        layout.addWidget(obs_notes_label)
-        layout.addWidget(self.obs_text)
+        if kwargs['action'] in (self.DialogActions.new_obs, self.DialogActions.edit_obs):
+            obs_notes_label = QLabel('Observation notes:')
+            self.obs_text = QPlainTextEdit()
+            if 'obs' in kwargs:
+                self.obs_text.setPlainText(kwargs['obs'].comment)
+            obs_notes_label.setBuddy(self.obs_text)
+            self.obs_text.setFixedHeight(50)
+            self.obs_text.textChanged.connect(self.obs_note_change)
+            layout.addWidget(obs_notes_label)
+            layout.addWidget(self.obs_text)
 
         # event notes
         notes_label = QLabel('Event notes:')
