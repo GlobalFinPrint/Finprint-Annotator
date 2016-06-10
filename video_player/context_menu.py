@@ -6,8 +6,10 @@ from PyQt4.QtGui import *
 class ContextMenu(QMenu):
     event_dialog = None
 
-    def __init__(self, current_set, parent):
+    def __init__(self, current_set, parent):  # TODO figure out why first menu is white
         super(ContextMenu, self).__init__(parent)
+
+        self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
 
         # set
         self._set = current_set
@@ -52,7 +54,7 @@ class ContextMenu(QMenu):
             pass  # TODO on cancel and click away handle removing extent drawn and playing
 
     def display_observations(self):
-        observations = QMenu()
+        observations = QMenu(self)
         for obs in self._set.observations:
             act = observations.addAction(str(obs))
             act.setData(obs)
@@ -60,13 +62,13 @@ class ContextMenu(QMenu):
         self.display_event_dialog(obs=selected_obs.data())
 
     def display_animals(self):
-        groups = QMenu()
+        groups = QMenu(self)
         for group in self._grouping.keys():
             groups.addAction(group + ' >')
         group_action = groups.exec_(QCursor.pos())
         selected_group = group_action.text()[:-2]
         if selected_group in self._grouping.keys():
-            animals = QMenu()
+            animals = QMenu(self)
             for animal in self._grouping[selected_group]:
                 act = animals.addAction(str(animal))
                 act.setData(animal)
