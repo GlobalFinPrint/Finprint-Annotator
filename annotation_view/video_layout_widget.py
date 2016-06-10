@@ -69,6 +69,8 @@ class VideoLayoutWidget(QWidget):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
         self._submit_button.clicked.connect(self.on_submit)
         self._rew_button.clicked.connect(self.on_rewind)
+        self._step_back_button.clicked.connect(self.on_step_back)
+        self._step_forward_button.clicked.connect(self.on_step_forward)
 
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
         self._video_player.progressUpdate.connect(self.on_progress_update)
@@ -152,6 +154,8 @@ class VideoLayoutWidget(QWidget):
 
         self._rew_button.setDisabled(False)
         self._toggle_play_button.setDisabled(False)
+        self._step_back_button.setDisabled(False)
+        self._step_forward_button.setDisabled(False)
 
         self._observation_table.set_data()
 
@@ -189,6 +193,8 @@ class VideoLayoutWidget(QWidget):
         self.clear_buttons()
         self._submit_button.setDisabled(True)
         self._rew_button.setDisabled(True)
+        self._step_forward_button.setDisabled(True)
+        self._step_back_button.setDisabled(True)
         self._toggle_play_button.setDisabled(True)
         self._observation_table.empty()
         self.current_set = None
@@ -207,6 +213,12 @@ class VideoLayoutWidget(QWidget):
 
     def on_rewind(self):
         self._video_player.rewind()
+
+    def on_step_back(self):
+        pass  # TODO
+
+    def on_step_forward(self):
+        pass  # TODO
 
     def on_quit(self):
         self.on_progress_update(self._video_player.get_position())  # update position on quit
