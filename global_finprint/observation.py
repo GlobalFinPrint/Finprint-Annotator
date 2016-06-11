@@ -9,14 +9,16 @@ class Event(object):
         self.attributes = []
         self.note = None
         self.extent = Extent()
+        self.observation = None
 
-    def load(self, evt_dict):
+    def load(self, evt_dict, obs):
         self.id = evt_dict['id']
         self.event_time = evt_dict['event_time']
         self.attributes = evt_dict['attributes']
         self.note = evt_dict['note']
         if 'extent' in evt_dict:
             self.extent.from_wkt(evt_dict['extent'])
+        self.observation = obs
 
     def to_dict(self):
         return {
@@ -35,6 +37,20 @@ class Event(object):
             ', '.join(list(a['name'] for a in self.attributes)),
             None,  # placeholder
             self.note
+        ]
+
+    def to_table_columns(self):
+        return [
+            self.observation.id,
+            self.observation.type_choice,
+            'TODO Annotator',
+            str(self.observation.animal),
+            self.observation.comment,
+            self.observation.duration,
+            'TODO frame capture',
+            self.event_time,
+            self.note,
+            ', '.join([a['name'] for a in self.attributes])
         ]
 
 
@@ -59,7 +75,7 @@ class Observation(object):
         self.duration = obs_dict['duration']
         for e in obs_dict['events']:
             evt = Event()
-            evt.load(e)
+            evt.load(e, self)
             self.events.append(evt)
         if self.type_choice == 'A':
             self.animal_id = obs_dict['animal_id']
