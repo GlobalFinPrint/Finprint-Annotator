@@ -221,8 +221,11 @@ class BuildInstaller(py2exe):
         win32api.SetFileAttributes('dist/opencv_ffmpeg300.dll',
                                     win32con.FILE_ATTRIBUTE_NORMAL)
 
-        # include the ini files in lib_files so they end up in the installer
-        files = ['config.ini', 'opencv_ffmpeg300.dll']
+        shutil.copy('lib/opencv_ffmpeg310.dll',
+                    'dist/opencv_ffmpeg310.dll')
+        win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
+                               win32con.FILE_ATTRIBUTE_NORMAL)  # include the ini files in lib_files so they end up in the installer
+        files = ['config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll']
         files = [os.path.join(self.dist_dir, path) for path in files]
         #todo create the lib_files,   console_exe_files, windows_exe_files, service_exe_files
         self.lib_dir = "dist\\lib"
