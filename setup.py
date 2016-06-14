@@ -175,7 +175,7 @@ class BuildInstaller(py2exe):
                 shutil.rmtree('build', onerror=self.delete_helper)
             if os.path.exists(self.dist_dir):
                 print('Deleting dist dir')
-                #shutil.rmtree(self.dist_dir, onerror=self.delete_helper)
+                shutil.rmtree(self.dist_dir, onerror=self.delete_helper)
         print('################## end pre_run ################')
 
     def run(self):
@@ -235,9 +235,9 @@ class BuildInstaller(py2exe):
                 self.lib_files.append(path)
 
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'lib/shared.zip']#['dist\\LQAdmin.exe','dist\\LQMonitor.exe','dist\\LQCopy.exe','dist\\LQChecker.exe','dist\\LQSync.exe','dist\\LQVisaCopy.exe','dist\\LeQueueServer.exe']
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'lib/shared.zip']
         self.windows_exe_files = []
-        self.service_exe_files = []#['dist\\LeQueueService.exe']
+        self.service_exe_files = []
         #self.lib_files.extend(files)
         print('################## end post_run ################')
 
