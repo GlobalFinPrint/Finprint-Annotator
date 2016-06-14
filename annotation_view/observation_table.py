@@ -10,23 +10,27 @@ class ObservationTableModel(QAbstractTableModel):
     class Columns(IntEnum):
         id = 0
         type = 1
-        time = 2
+        annotator = 2
         organism = 3
-        duration = 4
-        notes = 5
-
-    class EventColumns(IntEnum):
-        id = 0
-        type = 1
-        time = 2
-        attributes = 3
-        placeholder = 4
-        notes = 5
+        observation_comment = 4
+        duration = 5
+        frame_capture = 6
+        event_time = 7
+        event_notes = 8
+        attributes = 9
 
     def __init__(self):
         self.rows = []
-        self.columns = ['ID', 'Type', 'Time', 'Organism', 'Duration (ms)', 'Notes']
-        self.event_columns = ['ID', 'Type', 'Time', 'Attributes', 'Placeholder', 'Notes']
+        self.columns = ['ID',
+                        'Type',
+                        'Annotator',
+                        'Organism',
+                        'Observation Comment',
+                        'Duration (ms)',
+                        'Frame capture',
+                        'Event time (ms)',
+                        'Event notes',
+                        'Attributes']
         super(QAbstractTableModel, self).__init__(None)
 
     def rowCount(self, *args, **kwargs):
@@ -41,16 +45,16 @@ class ObservationTableModel(QAbstractTableModel):
             else super(QAbstractTableModel, self).headerData(idx, orientation, role)
 
     def data(self, model_index, role=None):
-        return self.rows[model_index.row()].to_columns()[model_index.column()] \
+        return self.rows[model_index.row()].to_table_columns()[model_index.column()] \
             if role in [Qt.DisplayRole, Qt.EditRole] \
             else None
 
     def setData(self, model_index, value, role=None):
-        if role == Qt.EditRole and model_index.column() in [self.Columns.duration, self.Columns.notes]:
+        if role == Qt.EditRole and model_index.column() in [self.Columns.duration, self.Columns.event_notes]:
             obs = self.rows[model_index.row()]
             if model_index.column() == self.Columns.duration:
                 obs.duration = value
-            elif model_index.column() == self.Columns.notes:
+            elif model_index.column() == self.Columns.event_notes:
                 obs.comment = value
             self.observationUpdated.emit(obs)
             self.dataChanged.emit(model_index, model_index)
@@ -60,13 +64,12 @@ class ObservationTableModel(QAbstractTableModel):
     def flags(self, model_index):
         default_flags = (Qt.ItemIsEnabled | Qt.ItemIsSelectable)
         return (default_flags | Qt.ItemIsEditable) \
-            if model_index.column() in [self.Columns.duration, self.Columns.notes] \
+            if model_index.column() in [self.Columns.duration, self.Columns.event_notes] \
             else default_flags
 
     def insertRows(self, start, count, new_rows=None, *args, **kwargs):
         self.beginInsertRows(self.index(start, 0), start, start + count - 1)
         self.rows = self.rows[start:] + new_rows + self.rows[:start]
-        # self.rows.sort(key=lambda x: -1. * x.to_columns()[self.Columns.time])  # TODO solve sorting
         self.endInsertRows()
         return True
 
@@ -77,10 +80,10 @@ class ObservationTableModel(QAbstractTableModel):
         return True
 
     def append_row(self, row):
-        self.insertRows(self.rowCount(), 1 + len(row.events), new_rows=[row] + row.events)
+        self.insertRows(self.rowCount(), 1, new_rows=[row])
 
     def remove_row(self, row):
-        self.removeRows(row, 1 + len(row.events))
+        self.removeRows(row, 1)
 
     def empty(self):
         self.removeRows(0, self.rowCount())
@@ -108,6 +111,7 @@ class ObservationTableCell(QStyledItemDelegate):
 
 class ObservationTable(QTableView):
     source_model = None
+    current_set = None
     Columns = ObservationTableModel.Columns
 
     # signals
@@ -124,9 +128,11 @@ class ObservationTable(QTableView):
         # set columns
         self.setColumnHidden(self.Columns.id, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.type, True)  # TODO leave on for debug mode?
+        self.setColumnHidden(self.Columns.annotator, True)  # TODO leave on for debug mode?
         self.setColumnWidth(self.Columns.organism, 250)
+        self.setColumnWidth(self.Columns.observation_comment, 600)  # TODO make this width dynamic?
         self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
-        self.setColumnWidth(self.Columns.notes, 600)  # TODO make this width dynamic?
+        self.setColumnWidth(self.Columns.event_notes, 600)  # TODO make this width dynamic?
         # set rows
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.verticalHeader().setVisible(False)
@@ -147,15 +153,21 @@ class ObservationTable(QTableView):
         old_index = self.currentIndex()
         index = self.indexAt(evt.pos())
         self.setCurrentIndex(index)
-        if index.column() in [self.Columns.duration, self.Columns.notes] and old_index == index:
+        if index.column() in [self.Columns.duration, self.Columns.event_notes] and old_index == index:
             self.edit(index)
         self.cellClicked.emit(index.row(), index.column())
 
     def item(self, row, col):
         return self.source_model.index(row, col).data()
 
-    def add_row(self, obs):
-        self.source_model.append_row(obs)
+    def add_row(self, row):
+        self.source_model.append_row(row)
+
+    def load_set(self, current_set):
+        self.current_set = current_set
+        for o in self.current_set.observations:
+            for e in o.events:
+                self.add_row(e)
 
     def remove_row(self, row):
         self.clearSelection()
@@ -168,9 +180,10 @@ class ObservationTable(QTableView):
 
     def customContextMenu(self, pos):
         menu = QMenu(self)
+        menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         delete_action = menu.addAction("Delete")
         set_duration_action = menu.addAction("Set Duration") if GlobalFinPrintServer().is_lead() else None
-        go_to_observation_action = menu.addAction("Go To Observation")
+        go_to_observation_action = menu.addAction("Go To Event")
         row = self.indexAt(pos).row()
         if row >= 0:
             action = menu.exec_(self.mapToGlobal(pos))

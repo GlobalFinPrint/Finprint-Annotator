@@ -170,8 +170,7 @@ class VideoLayoutWidget(QWidget):
         self._slider.setMaximum(int(self._video_player.get_length()))
         self._slider.set_allowed_progress(set.progress)
 
-        for obs in set.observations:
-            self._observation_table.add_row(obs)
+        self._observation_table.load_set(set)
         self._data_loading = False
 
     def on_playstate_changed(self, play_state):
