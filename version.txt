@@ -1,0 +1,8 @@
+[version]
+version=1.0.0.0
+
+[version.files]
+01=config.py
+
+[config.py]
+01=__version__ = (<major>, <minor>, <build>, <hotfix>)
