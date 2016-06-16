@@ -1,5 +1,13 @@
 from .animal import Animal
 from .extent import Extent
+from math import floor
+
+
+# TODO figure out why this won't import form annotation_view.util
+def convert_position(pos):
+    s, m = divmod(floor(pos), 1000)
+    h, s = divmod(s, 60)
+    return "{0:02}:{1:02}:{2:03}".format(h, s, m)
 
 
 class Event(object):
@@ -48,7 +56,7 @@ class Event(object):
             self.observation.comment,
             self.observation.duration,
             'TODO frame capture',
-            self.event_time,
+            convert_position(self.event_time),
             self.note,
             ', '.join([a['name'] for a in self.attributes])
         ]
