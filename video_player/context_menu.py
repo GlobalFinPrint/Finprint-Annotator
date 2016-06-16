@@ -198,6 +198,7 @@ class ContextMenu(QMenu):
         # TODO update observation table
         # TODO add observation to set data
         # TODO add event to observation data
+        self.parent().save_image('test.png')  # TODO use set_id + obs_id + event_id to name image
         self.parent().play()
 
     def pushed_cancel(self):

@@ -192,6 +192,12 @@ class CvVideoWidget(QWidget):
         self._play_state = PlayState.Paused
         self.playStateChanged.emit(self._play_state)
 
+    def save_image(self, filename):
+        buffer = QBuffer()
+        buffer.open(QIODevice.ReadWrite)
+        self._image.save(buffer, 'PNG')
+        # TODO send to S3
+
     def play(self):
         if self._play_state == PlayState.EndOfStream:
             self.set_position(0)

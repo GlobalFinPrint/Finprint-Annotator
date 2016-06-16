@@ -3,3 +3,4 @@ finprint.log*
 __pycache__/
 build/
 dist/
+screens/*.png
