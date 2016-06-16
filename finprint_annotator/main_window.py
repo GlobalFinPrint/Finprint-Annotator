@@ -37,6 +37,7 @@ class MainWindow(QMainWindow):
 
     def _set_menus(self):
         menubar = QMenuBar()
+        menubar.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         fileMenu = menubar.addMenu('&File')
 
         if GlobalFinPrintServer().logged_in:
