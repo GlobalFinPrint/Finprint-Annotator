@@ -1,4 +1,3 @@
-from .menu_button import MenuButton
 from .observation_table import ObservationTable
 from .organism_selector import OrganismSelector
 from .util import convert_position
