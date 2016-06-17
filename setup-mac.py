@@ -20,18 +20,21 @@ def copy_dylib(self, src):
 py2app.build_app.PythonStandalone.copy_dylib = copy_dylib
 
 
+import glob
 from setuptools import setup
 
 APP = ['finprint_annotator.py']
 
-DATA_FILES = [
-    'config.ini',
-    'qt.conf',
-    'annotation_view.py',
-    'config.py',
-    'global_finprint.py',
-    'video_player.py',
+DATA_DIRECTORIES = [
+    'annotation_view',
+    'finprint_annotator',
+    'global_finprint',
+    'video_player'
 ]
+
+DATA_FILES = ['config.ini', 'qt.conf', 'config.py']
+for dd in DATA_DIRECTORIES:
+    DATA_FILES += glob.glob(dd + '/*.py')
 
 OPTIONS = {
     'iconfile': 'images/shark-icon.icns',
