@@ -165,6 +165,13 @@ class ObservationTable(QTableView):
 
     def load_set(self, current_set):
         self.current_set = current_set
+        self.refresh_model()
+
+    def update_obs(self, observations):
+        self.current_set.observations = observations
+        self.refresh_model()
+
+    def refresh_model(self):
         for o in self.current_set.observations:
             for e in o.events:
                 self.add_row(e)

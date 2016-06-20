@@ -1,6 +1,6 @@
 config.ini
 finprint.log*
+credentials.csv
 __pycache__/
 build/
 dist/
-screens/*.png

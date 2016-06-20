@@ -1,4 +1,4 @@
-from global_finprint import GlobalFinPrintServer
+from global_finprint import GlobalFinPrintServer, Observation
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
@@ -187,18 +187,22 @@ class ContextMenu(QMenu):
         self.event_dialog.show()
 
     def pushed_save(self):
-        # TODO save frame image
         if 'type_choice' in self.dialog_values:  # new obs
-            GlobalFinPrintServer().add_observation(self._set.id, **self.dialog_values)
+            obs_json = GlobalFinPrintServer().add_observation(self._set.id, **self.dialog_values)
         else:  # add event to obs
-            GlobalFinPrintServer().add_event(self._set.id, self.selected_obs.id, **self.dialog_values)
+            obs_json = GlobalFinPrintServer().add_event(self._set.id, self.selected_obs.id, **self.dialog_values)
+        observations = []
+        for oj in obs_json['observations']:
+            o = Observation()
+            o.load(oj)
+            observations.append(o)
+        self.parent().save_image(obs_json['filename'])
         self.dialog_values = {}
         self.event_dialog.close()
         self.event_dialog = None
         # TODO update observation table
         # TODO add observation to set data
         # TODO add event to observation data
-        self.parent().save_image('test.png')  # TODO use set_id + obs_id + event_id to name image
         self.parent().play()
 
     def pushed_cancel(self):

@@ -1,6 +1,8 @@
 import cv2
 import time
 import numpy as np
+from boto.s3.connection import S3Connection
+from boto import exception as BotoException
 from logging import getLogger
 from global_finprint import Extent
 from .play_state import PlayState
@@ -12,6 +14,9 @@ from PyQt4.QtGui import *
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
 VIDEO_HEIGHT = 600
+AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
+AWS_ACCESS_KEY_ID = ''
+AWS_SECRET_ACCESS_KEY = ''
 
 
 class CvVideoWidget(QWidget):
@@ -196,7 +201,16 @@ class CvVideoWidget(QWidget):
         buffer = QBuffer()
         buffer.open(QIODevice.ReadWrite)
         self._image.save(buffer, 'PNG')
-        # TODO send to S3
+        try:
+            conn = S3Connection(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+            bucket = conn.get_bucket(AWS_BUCKET_NAME)
+            if not bucket.get_key(filename):
+                key = bucket.new_key(filename)
+                key.set_contents_from_string(str(buffer), headers={'Content-Type': 'image/png'})
+            else:
+                raise getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
+        except BotoException as e:
+            getLogger('finprint').error('S3Boto exception: {0}'.format(str(e)))
 
     def play(self):
         if self._play_state == PlayState.EndOfStream:
