@@ -2,7 +2,7 @@ import cv2
 import time
 import numpy as np
 from boto.s3.connection import S3Connection
-from boto import exception as BotoException
+from boto.exception import S3ResponseError
 from logging import getLogger
 from global_finprint import Extent
 from .play_state import PlayState
@@ -15,8 +15,14 @@ PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
 VIDEO_HEIGHT = 600
 AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
-AWS_ACCESS_KEY_ID = ''
-AWS_SECRET_ACCESS_KEY = ''
+try:
+    creds = open('credentials.csv').readlines()[1].split(',')
+except FileNotFoundError:
+    getLogger('finprint').error('missing credentials.csv file; cannot communicate with S3')
+    creds = '0,0,0'
+finally:
+    AWS_ACCESS_KEY_ID = creds[1]
+    AWS_SECRET_ACCESS_KEY = creds[2]
 
 
 class CvVideoWidget(QWidget):
@@ -209,8 +215,8 @@ class CvVideoWidget(QWidget):
                 key.set_contents_from_string(str(buffer), headers={'Content-Type': 'image/png'})
             else:
                 raise getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
-        except BotoException as e:
-            getLogger('finprint').error('S3Boto exception: {0}'.format(str(e)))
+        except S3ResponseError as e:
+            getLogger('finprint').error(str(e))
 
     def play(self):
         if self._play_state == PlayState.EndOfStream:
