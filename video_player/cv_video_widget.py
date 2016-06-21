@@ -1,6 +1,7 @@
 import cv2
 import time
 import numpy as np
+from io import BytesIO
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
@@ -15,6 +16,7 @@ PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
 VIDEO_HEIGHT = 600
 AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
+SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 try:
     creds = open('credentials.csv').readlines()[1].split(',')
 except FileNotFoundError:
@@ -204,15 +206,17 @@ class CvVideoWidget(QWidget):
         self.playStateChanged.emit(self._play_state)
 
     def save_image(self, filename):
-        buffer = QBuffer()
-        buffer.open(QIODevice.ReadWrite)
-        self._image.save(buffer, 'PNG')
+        data = QByteArray()
+        buffer = QBuffer(data)
+        self._image.save(buffer, 'PNG', SCREEN_CAPTURE_QUALITY)
+        bio = BytesIO(data.data())
+        bio.seek(0)
         try:
             conn = S3Connection(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
             bucket = conn.get_bucket(AWS_BUCKET_NAME)
             if not bucket.get_key(filename):
                 key = bucket.new_key(filename)
-                key.set_contents_from_string(str(buffer), headers={'Content-Type': 'image/png'})
+                key.set_contents_from_string(bio.read(), headers={'Content-Type': 'image/png'})
             else:
                 raise getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
         except S3ResponseError as e:
