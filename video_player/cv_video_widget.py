@@ -14,7 +14,7 @@ from PyQt4.QtGui import *
 
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
-VIDEO_HEIGHT = 600
+VIDEO_HEIGHT = 450
 AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 FRAME_STEP = 50
