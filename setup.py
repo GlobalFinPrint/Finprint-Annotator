@@ -216,6 +216,10 @@ class BuildInstaller(py2exe):
         win32api.SetFileAttributes('dist/config.ini',
                                     win32con.FILE_ATTRIBUTE_NORMAL)
 
+        # include credentials file
+        shutil.copy('credentials.csv', 'dist/credentials.csv')
+        win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
+
         shutil.copy('lib/opencv_ffmpeg300.dll',
                     'dist/opencv_ffmpeg300.dll')
         win32api.SetFileAttributes('dist/opencv_ffmpeg300.dll',

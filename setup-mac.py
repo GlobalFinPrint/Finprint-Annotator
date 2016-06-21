@@ -32,7 +32,7 @@ DATA_DIRECTORIES = [
     'video_player'
 ]
 
-DATA_FILES = ['config.ini', 'qt.conf', 'config.py']
+DATA_FILES = ['config.ini', 'qt.conf', 'config.py', 'credentials.csv']
 for dd in DATA_DIRECTORIES:
     DATA_FILES += glob.glob(dd + '/*.py')
 
