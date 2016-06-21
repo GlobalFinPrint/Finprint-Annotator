@@ -17,6 +17,7 @@ VIDEO_WIDTH = 800  # make this more adjustable
 VIDEO_HEIGHT = 600
 AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
+FRAME_STEP = 50
 try:
     creds = open('credentials.csv').readlines()[1].split(',')
 except FileNotFoundError:
@@ -258,3 +259,11 @@ class CvVideoWidget(QWidget):
     def context_menu(self):
         if self._context_menu:
             self._context_menu.display()
+
+    def step_back(self):
+        self.pause()
+        self.set_position(self.get_position() - FRAME_STEP)
+
+    def step_forward(self):
+        self.pause()
+        self.set_position(self.get_position() + FRAME_STEP)

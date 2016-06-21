@@ -214,10 +214,10 @@ class VideoLayoutWidget(QWidget):
         self._video_player.rewind()
 
     def on_step_back(self):
-        pass  # TODO
+        self._video_player.step_back()
 
     def on_step_forward(self):
-        pass  # TODO
+        self._video_player.step_forward()
 
     def on_quit(self):
         self.on_progress_update(self._video_player.get_position())  # update position on quit
