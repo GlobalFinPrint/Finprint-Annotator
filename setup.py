@@ -229,7 +229,7 @@ class BuildInstaller(py2exe):
                     'dist/opencv_ffmpeg310.dll')
         win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
                                win32con.FILE_ATTRIBUTE_NORMAL)  # include the ini files in lib_files so they end up in the installer
-        files = ['config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll']
+        files = ['config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'credentials.csv']
         files = [os.path.join(self.dist_dir, path) for path in files]
         #todo create the lib_files,   console_exe_files, windows_exe_files, service_exe_files
         self.lib_dir = "dist\\lib"
@@ -239,7 +239,7 @@ class BuildInstaller(py2exe):
                 self.lib_files.append(path)
 
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'lib/shared.zip']
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'lib/shared.zip', 'credentials.csv']
         self.windows_exe_files = []
         self.service_exe_files = []
         #self.lib_files.extend(files)
