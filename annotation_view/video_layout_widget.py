@@ -198,9 +198,9 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.empty()
         self.current_set = None
 
-    def observation_selected(self, obs):
+    def observation_selected(self, evt):
         self._video_player.pause()
-        self._video_player.display_observation(obs.initial_observation_time, obs.extent)
+        self._video_player.display_observation(evt.event_time, evt.extent)
 
     def on_toggle_play(self):
         self._video_player.toggle_play()
@@ -225,7 +225,7 @@ class VideoLayoutWidget(QWidget):
 
     def set_duration(self, observation):
         pos = self._video_player.get_position()
-        duration = int(pos) - int(observation.initial_observation_time)
+        duration = int(pos) - int(observation.initial_time())
         if duration <= 0:
             msgbox = QMessageBox()
             msgbox.setText("Can not set a duration less than zero")

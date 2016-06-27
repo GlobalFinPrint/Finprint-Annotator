@@ -1,4 +1,4 @@
-from global_finprint import Observation, GlobalFinPrintServer
+from global_finprint import Event, Observation, GlobalFinPrintServer
 from enum import IntEnum
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -115,10 +115,10 @@ class ObservationTable(QTableView):
     Columns = ObservationTableModel.Columns
 
     # signals
-    observationRowDeleted = pyqtSignal(Observation)
+    observationRowDeleted = pyqtSignal(Event)
     durationClicked = pyqtSignal(Observation)
-    goToObservation = pyqtSignal(Observation)
-    observationUpdated = pyqtSignal(Observation)
+    goToObservation = pyqtSignal(Event)
+    observationUpdated = pyqtSignal(Event)
     cellClicked = pyqtSignal(int, int)  # emit manually (previously auto)
 
     def set_data(self):
@@ -197,6 +197,6 @@ class ObservationTable(QTableView):
             if action == delete_action:
                 self.remove_row(row)
             elif set_duration_action and action == set_duration_action:
-                self.durationClicked.emit(self.get_observation(row))
+                self.durationClicked.emit(self.get_observation(row).observation)
             elif action == go_to_observation_action:
                 self.goToObservation.emit(self.get_observation(row))
