@@ -28,6 +28,8 @@ except Exception as e:
 finally:
     AWS_ACCESS_KEY_ID = creds[1]
     AWS_SECRET_ACCESS_KEY = creds[2]
+    getLogger('finprint').info('AWS KEY: {0}'.format(AWS_ACCESS_KEY_ID))  # TODO REMOVE ME
+    getLogger('finprint').info('AWS SECRET: {0}'.format(AWS_SECRET_ACCESS_KEY))  # TODO REMOVE ME
 
 
 class CvVideoWidget(QWidget):
