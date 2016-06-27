@@ -1,5 +1,6 @@
 import cv2
 import time
+import os
 import numpy as np
 from io import BytesIO
 from boto.s3.connection import S3Connection
@@ -19,10 +20,10 @@ AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 FRAME_STEP = 50
 
-creds = open('credentials.csv').readlines()[1].split(',')
+creds = open('./credentials.csv').readlines()[1].split(',')
 AWS_ACCESS_KEY_ID = creds[1]
 AWS_SECRET_ACCESS_KEY = creds[2]
-getLogger('finprint').error('Debug names...')
+getLogger('finprint').error('Debug names...')  # TODO REMOVE ME
 getLogger('finprint').error('AWS KEY: {0}'.format(AWS_ACCESS_KEY_ID))  # TODO REMOVE ME
 getLogger('finprint').error('AWS SECRET: {0}'.format(AWS_SECRET_ACCESS_KEY))  # TODO REMOVE ME
 
