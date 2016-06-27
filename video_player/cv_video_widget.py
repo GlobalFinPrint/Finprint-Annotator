@@ -23,6 +23,8 @@ try:
 except FileNotFoundError:
     getLogger('finprint').error('missing credentials.csv file; cannot communicate with S3')
     creds = '0,0,0'
+except Exception as e:
+    getLogger('finprint').error('error reading credentials file: {0}'.format(str(e)))
 finally:
     AWS_ACCESS_KEY_ID = creds[1]
     AWS_SECRET_ACCESS_KEY = creds[2]
