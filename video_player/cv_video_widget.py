@@ -1,6 +1,5 @@
 import cv2
 import time
-import os
 import numpy as np
 from io import BytesIO
 from boto.s3.connection import S3Connection
@@ -21,11 +20,8 @@ SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher
 FRAME_STEP = 50
 
 creds = open('./credentials.csv').readlines()[1].split(',')
-AWS_ACCESS_KEY_ID = creds[1]
-AWS_SECRET_ACCESS_KEY = creds[2]
-getLogger('finprint').error('Debug names...')  # TODO REMOVE ME
-getLogger('finprint').error('AWS KEY: {0}'.format(AWS_ACCESS_KEY_ID))  # TODO REMOVE ME
-getLogger('finprint').error('AWS SECRET: {0}'.format(AWS_SECRET_ACCESS_KEY))  # TODO REMOVE ME
+AWS_ACCESS_KEY_ID = creds[1].strip()
+AWS_SECRET_ACCESS_KEY = creds[2].strip()
 
 
 class CvVideoWidget(QWidget):
@@ -218,6 +214,7 @@ class CvVideoWidget(QWidget):
             if not bucket.get_key(filename):
                 key = bucket.new_key(filename)
                 key.set_contents_from_string(bio.read(), headers={'Content-Type': 'image/png'})
+                key.set_acl('public-read')
             else:
                 raise getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
         except S3ResponseError as e:
