@@ -175,6 +175,7 @@ class ObservationTable(QTableView):
         for o in self.current_set.observations:
             for e in o.events:
                 self.add_row(e)
+        self.resizeRowsToContents()
 
     def remove_row(self, row):
         self.clearSelection()
