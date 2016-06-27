@@ -20,18 +20,26 @@ class ContextMenu(QMenu):
         # set
         self._set = current_set
 
-        # actions
-        self._animal_act = self.addAction('Organism >')  # TODO sub-menus instead of new menus?
-        self._interest_act = self.addAction('Of interest')
-        self._existing_act = self.addAction('Add to existing observation >')
-        self._cancel_act = self.addAction('Cancel')
-
         # animals
         self._grouping = {}
         for animal in self._set.animals:
             if animal.group not in self._grouping:
                 self._grouping[animal.group] = []
             self._grouping[animal.group].append(animal)
+
+        # actions
+        self._animal_group_menu = self.addMenu('Organism')
+        for group in self._grouping.keys():
+            group_menu = self._animal_group_menu.addMenu(group)
+            for animal in self._grouping[group]:
+                act = group_menu.addAction(str(animal))
+                act.setData(animal)
+        self._interest_act = self.addAction('Of interest')
+        self._observations_menu = self.addMenu('Add to existing observation')
+        for obs in self._set.observations:
+            act = self._observations_menu.addAction(str(obs))
+            act.setData(obs)
+        self._cancel_act = self.addAction('Cancel')
 
         # attributes
         def recur_attr(attrs):
@@ -55,46 +63,18 @@ class ContextMenu(QMenu):
 
     def display(self):
         action = self.exec_(QCursor.pos())  # TODO position better
-        if action == self._animal_act:
-            self.display_animals()
+        if type(action.data()).__name__ == 'Animal':
+            self.display_event_dialog(action=self.DialogActions.new_obs,
+                                      type_choice='A',
+                                      animal=action.data())
         elif action == self._interest_act:
             self.display_event_dialog(action=self.DialogActions.new_obs,
                                       type_choice='I')
-        elif action == self._existing_act:
-            self.display_observations()
+        elif type(action.data()).__name__ == 'Observation':
+            self.display_event_dialog(action=self.DialogActions.add_event,
+                                      obs=action.data())
         elif action == self._cancel_act or action is None:
             self.parent().clear_extent()
-
-    def display_observations(self):
-        observations = QMenu(self)
-        for obs in self._set.observations:
-            act = observations.addAction(str(obs))
-            act.setData(obs)
-        selected_obs = observations.exec_(QCursor.pos())
-        if selected_obs is None:
-            return self.parent().clear_extent()
-        self.display_event_dialog(action=self.DialogActions.add_event,
-                                  obs=selected_obs.data())
-
-    def display_animals(self):
-        groups = QMenu(self)
-        for group in self._grouping.keys():
-            groups.addAction(group + ' >')
-        group_action = groups.exec_(QCursor.pos())
-        if group_action is None:
-            return self.parent().clear_extent()
-        selected_group = group_action.text()[:-2]
-        if selected_group in self._grouping.keys():
-            animals = QMenu(self)
-            for animal in self._grouping[selected_group]:
-                act = animals.addAction(str(animal))
-                act.setData(animal)
-            selected_animal = animals.exec_(QCursor.pos())
-            if selected_animal is None:
-                return self.parent().clear_extent()
-            self.display_event_dialog(action=self.DialogActions.new_obs,
-                                      type_choice='A',
-                                      animal=selected_animal.data())
 
     def display_event_dialog(self, **kwargs):
         self.event_dialog = QDialog(self, Qt.WindowTitleHint)
