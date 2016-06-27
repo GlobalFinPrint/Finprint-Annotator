@@ -107,4 +107,5 @@ class Observation(object):
         ]
 
     def __str__(self):
-        return '{0}ms {1}'.format(self.initial_time(), 'Of interest' if self.type_choice == 'I' else str(self.animal))
+        return '{0}ms {1}'.format(convert_position(self.initial_time()),
+                                  'Of interest' if self.type_choice == 'I' else str(self.animal))
