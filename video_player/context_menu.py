@@ -36,9 +36,7 @@ class ContextMenu(QMenu):
                 act.setData(animal)
         self._interest_act = self.addAction('Of interest')
         self._observations_menu = self.addMenu('Add to existing observation')
-        for obs in self._set.observations:
-            act = self._observations_menu.addAction(str(obs))
-            act.setData(obs)
+        self._populate_obs_menu()
         self._cancel_act = self.addAction('Cancel')
 
         # attributes
@@ -61,20 +59,26 @@ class ContextMenu(QMenu):
         self.obs_text = None
         self.selected_obs = None
 
+    def _populate_obs_menu(self):
+        self._observations_menu.clear()
+        for obs in self._set.observations:
+            act = self._observations_menu.addAction(str(obs))
+            act.setData(obs)
+
     def display(self):
         action = self.exec_(QCursor.pos())  # TODO position better
-        if type(action.data()).__name__ == 'Animal':
-            self.display_event_dialog(action=self.DialogActions.new_obs,
-                                      type_choice='A',
-                                      animal=action.data())
+        if action is None or action == self._cancel_act:
+            self.parent().clear_extent()
         elif action == self._interest_act:
             self.display_event_dialog(action=self.DialogActions.new_obs,
                                       type_choice='I')
+        elif type(action.data()).__name__ == 'Animal':
+            self.display_event_dialog(action=self.DialogActions.new_obs,
+                                      type_choice='A',
+                                      animal=action.data())
         elif type(action.data()).__name__ == 'Observation':
             self.display_event_dialog(action=self.DialogActions.add_event,
                                       obs=action.data())
-        elif action == self._cancel_act or action is None:
-            self.parent().clear_extent()
 
     def display_event_dialog(self, **kwargs):
         self.event_dialog = QDialog(self, Qt.WindowTitleHint)
@@ -173,21 +177,23 @@ class ContextMenu(QMenu):
 
     def pushed_save(self):
         if 'type_choice' in self.dialog_values:  # new obs
-            obs_json = GlobalFinPrintServer().add_observation(self._set.id, **self.dialog_values)
+            filename = self._set.add_observation(self.dialog_values)
         else:  # add event to obs
-            obs_json = GlobalFinPrintServer().add_event(self._set.id, self.selected_obs.id, **self.dialog_values)
-        observations = []
-        for oj in obs_json['observations']:
-            o = Observation()
-            o.load(oj)
-            observations.append(o)
-        self.parent().save_image(obs_json['filename'])
+            filename = self._set.add_event(self.selected_obs.id, self.dialog_values)
+
+        # update obs menu
+        self._populate_obs_menu()
+
+        # update observation_table
+        self.parent().parent()._observation_table.refresh_model()
+
+        # save frame
+        self.parent().save_image(filename)
+
+        # close and clean up
         self.dialog_values = {}
         self.event_dialog.close()
         self.event_dialog = None
-        # TODO update observation table
-        # TODO add observation to set data
-        # TODO add event to observation data
         self.parent().clear_extent()
 
     def pushed_cancel(self):

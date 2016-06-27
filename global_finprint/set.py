@@ -39,13 +39,24 @@ class Set(object):
             for att in GlobalFinPrintServer().attributes(id):
                 self.attributes.append(att)
 
-    def add_observation(self, obs):
-        result = self._connection.add_observation(self.id, obs)
-        obs.id = max(o['id'] for o in result['observations'])
-        obs.animal = Animal()
-        if obs.animal_id is not None:
-            obs.animal = self.get_animal(obs.animal_id)
-        self.observations.append(obs)
+    def add_observation(self, obs_values):
+        result = self._connection.add_observation(self.id, **obs_values)
+        self._obs_from_json(result)
+        return result['filename']
+
+    def add_event(self, obs_id, evt_values):
+        result = self._connection.add_event(self.id, obs_id, **evt_values)
+        self._obs_from_json(result)
+        return result['filename']
+
+    def _obs_from_json(self, json):
+        self.observations = []
+        for oj in json['observations']:
+            o = Observation()
+            o.load(oj)
+            if o.animal_id:
+                o.animal = self.get_animal(o.animal_id)
+            self.observations.append(o)
 
     def edit_observation(self, obs):
         self._connection.edit_observation(self.id, obs)

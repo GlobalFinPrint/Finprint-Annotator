@@ -2,7 +2,6 @@ import os
 from logging import getLogger
 from video_player import CvVideoWidget, PlayState
 from config import global_config
-from global_finprint import Observation
 from .video_seek_widget import VideoSeekWidget
 from .observation_table import ObservationTable
 from .util import convert_position
@@ -25,7 +24,7 @@ class VideoLayoutWidget(QWidget):
 
         # UI widgets
         self.vid_box = None
-        self._video_player = CvVideoWidget(onPositionChange=self.on_position_change)
+        self._video_player = CvVideoWidget(parent=self, onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
         self._data_loading = False
 
@@ -55,7 +54,7 @@ class VideoLayoutWidget(QWidget):
         self.organism_selector_button = None
         self.organism_selector_table = None
 
-        self._observation_table = ObservationTable()
+        self._observation_table = ObservationTable(self)
 
         self.grouping = {}
 
