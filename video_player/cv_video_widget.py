@@ -22,8 +22,10 @@ FRAME_STEP = 50
 creds = open('credentials.csv').readlines()[1].split(',')
 AWS_ACCESS_KEY_ID = creds[1]
 AWS_SECRET_ACCESS_KEY = creds[2]
+1/0
 getLogger('finprint').error('AWS KEY: {0}'.format(AWS_ACCESS_KEY_ID))  # TODO REMOVE ME
 getLogger('finprint').error('AWS SECRET: {0}'.format(AWS_SECRET_ACCESS_KEY))  # TODO REMOVE ME
+
 
 class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
