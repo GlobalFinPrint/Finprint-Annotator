@@ -264,3 +264,6 @@ class CvVideoWidget(QWidget):
     def step_forward(self):
         self.pause()
         self.set_position(self.get_position() + FRAME_STEP)
+
+    def clear_extent(self):
+        self._highlighter.clear()

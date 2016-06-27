@@ -62,8 +62,8 @@ class ContextMenu(QMenu):
                                       type_choice='I')
         elif action == self._existing_act:
             self.display_observations()
-        elif action == self._cancel_act:
-            pass  # TODO on cancel and click away handle removing extent drawn and playing
+        elif action == self._cancel_act or action is None:
+            self.parent().clear_extent()
 
     def display_observations(self):
         observations = QMenu(self)
@@ -71,6 +71,8 @@ class ContextMenu(QMenu):
             act = observations.addAction(str(obs))
             act.setData(obs)
         selected_obs = observations.exec_(QCursor.pos())
+        if selected_obs is None:
+            return self.parent().clear_extent()
         self.display_event_dialog(action=self.DialogActions.add_event,
                                   obs=selected_obs.data())
 
@@ -79,6 +81,8 @@ class ContextMenu(QMenu):
         for group in self._grouping.keys():
             groups.addAction(group + ' >')
         group_action = groups.exec_(QCursor.pos())
+        if group_action is None:
+            return self.parent().clear_extent()
         selected_group = group_action.text()[:-2]
         if selected_group in self._grouping.keys():
             animals = QMenu(self)
@@ -86,10 +90,11 @@ class ContextMenu(QMenu):
                 act = animals.addAction(str(animal))
                 act.setData(animal)
             selected_animal = animals.exec_(QCursor.pos())
-            if selected_animal != 0:
-                self.display_event_dialog(action=self.DialogActions.new_obs,
-                                          type_choice='A',
-                                          animal=selected_animal.data())
+            if selected_animal is None:
+                return self.parent().clear_extent()
+            self.display_event_dialog(action=self.DialogActions.new_obs,
+                                      type_choice='A',
+                                      animal=selected_animal.data())
 
     def display_event_dialog(self, **kwargs):
         self.event_dialog = QDialog(self, Qt.WindowTitleHint)
@@ -203,13 +208,13 @@ class ContextMenu(QMenu):
         # TODO update observation table
         # TODO add observation to set data
         # TODO add event to observation data
-        self.parent().play()
+        self.parent().clear_extent()
 
     def pushed_cancel(self):
         self.dialog_values = {}
         self.event_dialog.close()
         self.event_dialog = None
-        self.parent().play()
+        self.parent().clear_extent()
 
     def attribute_select(self):
         self.dialog_values['attribute'] = self.att_dropdown.itemData(self.att_dropdown.currentIndex())
