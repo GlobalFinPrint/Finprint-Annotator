@@ -19,18 +19,11 @@ AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 FRAME_STEP = 50
 
-try:
-    creds = open('credentials.csv').readlines()[1].split(',')
-    AWS_ACCESS_KEY_ID = creds[1]
-    AWS_SECRET_ACCESS_KEY = creds[2]
-    getLogger('finprint').info('AWS KEY: {0}'.format(AWS_ACCESS_KEY_ID))  # TODO REMOVE ME
-    getLogger('finprint').info('AWS SECRET: {0}'.format(AWS_SECRET_ACCESS_KEY))  # TODO REMOVE ME
-except FileNotFoundError:
-    getLogger('finprint').error('missing credentials.csv file; cannot communicate with S3')
-    creds = '0,0,0'
-except Exception as e:
-    getLogger('finprint').error('error reading credentials file: {0}'.format(str(e)))
-
+creds = open('credentials.csv').readlines()[1].split(',')
+AWS_ACCESS_KEY_ID = creds[1]
+AWS_SECRET_ACCESS_KEY = creds[2]
+getLogger('finprint').error('AWS KEY: {0}'.format(AWS_ACCESS_KEY_ID))  # TODO REMOVE ME
+getLogger('finprint').error('AWS SECRET: {0}'.format(AWS_SECRET_ACCESS_KEY))  # TODO REMOVE ME
 
 class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
