@@ -235,15 +235,6 @@ class VideoLayoutWidget(QWidget):
             observation.duration = duration
             self.current_set.edit_observation(observation)
 
-    def on_observation(self, animal):
-        obs = Observation()
-        # Cheese... Still haven't sorted out animal look ups for observations
-        obs.animal_id = animal.id
-        obs.animal = animal
-        obs.initial_observation_time = int(self._video_player.get_position())
-        obs.extent = self._video_player.get_highlight_extent()
-        self.add_observation(obs)
-
     def on_organism_cell_changed(self, animal, row):
         obs = self._observation_table.get_observation(row)
         obs.animal_id = animal.id
@@ -256,20 +247,6 @@ class VideoLayoutWidget(QWidget):
 
     def on_observation_updated(self, obs):
         self.current_set.edit_observation(obs)
-
-    def of_interest(self):
-        self._video_player.pause()
-        obs = Observation()
-        obs.position = self._video_player.get_position()
-        obs.initial_observation_time = int(self._video_player.get_position())
-        obs.type_choice = "I"
-        obs.extent = self._video_player.get_highlight_extent()
-        dlg = QInputDialog(self)
-        dlg.setInputMode(QInputDialog.TextInput)
-        comment, ok = dlg.getText(self, 'Observation of Interest', 'Please enter detail of your observation')
-        if ok:
-            obs.comment = comment
-            self.add_observation(obs)
 
     def add_observation(self, obs):
         self._data_loading = True
