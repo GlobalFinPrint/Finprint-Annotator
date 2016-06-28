@@ -11,6 +11,7 @@ class ContextMenu(QMenu):
         new_obs = 1
         add_event = 2
         edit_obs = 3
+        edit_event = 4
 
     def __init__(self, current_set, parent):
         super(ContextMenu, self).__init__(parent)
@@ -36,7 +37,6 @@ class ContextMenu(QMenu):
                 act.setData(animal)
         self._interest_act = self.addAction('Of interest')
         self._observations_menu = self.addMenu('Add to existing observation')
-        self._populate_obs_menu()
         self._cancel_act = self.addAction('Cancel')
 
         # attributes
@@ -66,6 +66,7 @@ class ContextMenu(QMenu):
             act.setData(obs)
 
     def display(self):
+        self._populate_obs_menu()
         action = self.exec_(QCursor.pos())  # TODO position better
         if action is None or action == self._cancel_act:
             self.parent().clear_extent()
@@ -180,9 +181,6 @@ class ContextMenu(QMenu):
             filename = self._set.add_observation(self.dialog_values)
         else:  # add event to obs
             filename = self._set.add_event(self.selected_obs.id, self.dialog_values)
-
-        # update obs menu
-        self._populate_obs_menu()
 
         # update observation_table
         self.parent().parent()._observation_table.refresh_model()

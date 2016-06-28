@@ -6,6 +6,7 @@ from PyQt4.QtGui import *
 
 class ObservationTableModel(QAbstractTableModel):
     observationUpdated = pyqtSignal(Observation)
+    eventUpdated = pyqtSignal(Event)
 
     class Columns(IntEnum):
         id = 0
@@ -51,12 +52,16 @@ class ObservationTableModel(QAbstractTableModel):
 
     def setData(self, model_index, value, role=None):
         if role == Qt.EditRole and model_index.column() in [self.Columns.duration, self.Columns.event_notes]:
-            obs = self.rows[model_index.row()]
+            evt = self.rows[model_index.row()]
             if model_index.column() == self.Columns.duration:
-                obs.duration = value
+                evt.observation.duration = value
+                self.observationUpdated.emit(evt.observation)
+            elif model_index.column() == self.Columns.observation_comment:
+                evt.observation.comment = value
+                self.observationUpdated.emit(evt.observation)
             elif model_index.column() == self.Columns.event_notes:
-                obs.comment = value
-            self.observationUpdated.emit(obs)
+                evt.notes = value
+                self.eventUpdated.emit(evt)
             self.dataChanged.emit(model_index, model_index)
             return True
         return False
@@ -115,10 +120,12 @@ class ObservationTable(QTableView):
     Columns = ObservationTableModel.Columns
 
     # signals
-    observationRowDeleted = pyqtSignal(Event)
+    eventRowDeleted = pyqtSignal(Event)
+    observationDeleted = pyqtSignal(Observation)
     durationClicked = pyqtSignal(Observation)
-    goToObservation = pyqtSignal(Event)
-    observationUpdated = pyqtSignal(Event)
+    goToEvent = pyqtSignal(Event)
+    observationUpdated = pyqtSignal(Observation)
+    eventUpdated = pyqtSignal(Event)
     cellClicked = pyqtSignal(int, int)  # emit manually (previously auto)
 
     def set_data(self):
@@ -129,6 +136,7 @@ class ObservationTable(QTableView):
         self.setColumnHidden(self.Columns.id, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.type, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.annotator, True)  # TODO leave on for debug mode?
+        self.setColumnHidden(self.Columns.frame_capture, True)  # TODO verify we want on/off
         self.setColumnWidth(self.Columns.organism, 250)
         self.setColumnWidth(self.Columns.observation_comment, 600)  # TODO make this width dynamic?
         self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
@@ -146,7 +154,10 @@ class ObservationTable(QTableView):
     def on_observation_updated(self, obs):
         self.observationUpdated.emit(obs)
 
-    def get_observation(self, row):
+    def on_event_updated(self, evt):
+        self.eventUpdated.emit(evt)
+
+    def get_event(self, row):
         return self.source_model.rows[row]
 
     def mousePressEvent(self, evt):
@@ -178,10 +189,17 @@ class ObservationTable(QTableView):
                 self.add_row(e)
         self.resizeRowsToContents()
 
-    def remove_row(self, row):
+    def remove_event(self, evt):
         self.clearSelection()
-        self.source_model.remove_row(row)
-        self.observationRowDeleted.emit(self.get_observation(row))
+        # TODO busy cursor
+        self.current_set.delete_event(evt)
+        self.refresh_model()
+
+    def remove_observation(self, obs):
+        self.clearSelection()
+        # TODO busy cursor
+        self.current_set.delete_observation(obs)
+        self.refresh_model()
 
     def empty(self):
         if self.source_model is not None:
@@ -190,15 +208,28 @@ class ObservationTable(QTableView):
     def customContextMenu(self, pos):
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
-        delete_action = menu.addAction("Delete")
+        delete_menu = menu.addMenu("Delete")
+        delete_evt_action = delete_menu.addAction('Event')
+        delete_obs_action = delete_menu.addAction('Entire observation')
         set_duration_action = menu.addAction("Set Duration") if GlobalFinPrintServer().is_lead() else None
         go_to_observation_action = menu.addAction("Go To Event")
         row = self.indexAt(pos).row()
         if row >= 0:
             action = menu.exec_(self.mapToGlobal(pos))
-            if action == delete_action:
-                self.remove_row(row)
+            if action == delete_evt_action:
+                evt = self.get_event(row)
+                if self.confirm_delete_dialog(evt):
+                    self.remove_event(evt)
+            elif action == delete_obs_action:
+                obs = self.get_event(row).observation
+                if self.confirm_delete_dialog(obs):
+                    self.remove_observation(obs)
             elif set_duration_action and action == set_duration_action:
-                self.durationClicked.emit(self.get_observation(row).observation)
+                self.durationClicked.emit(self.get_event(row).observation)
             elif action == go_to_observation_action:
-                self.goToObservation.emit(self.get_observation(row))
+                self.goToEvent.emit(self.get_event(row))
+
+    def confirm_delete_dialog(self, obj):
+        msg = 'Are you sure you want to delete {0}?'.format(str(obj))
+        reply = QMessageBox.question(self, 'Delete confirmation', msg, QMessageBox.Yes, QMessageBox.No)
+        return reply == QMessageBox.Yes

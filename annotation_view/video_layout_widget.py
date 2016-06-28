@@ -74,9 +74,10 @@ class VideoLayoutWidget(QWidget):
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
         self._video_player.progressUpdate.connect(self.on_progress_update)
 
-        self._observation_table.observationRowDeleted.connect(self.delete_observation)
+        self._observation_table.eventRowDeleted.connect(self.delete_event)
+        self._observation_table.observationDeleted.connect(self.delete_observation)
         self._observation_table.durationClicked.connect(self.set_duration)
-        self._observation_table.goToObservation.connect(self.observation_selected)
+        self._observation_table.goToEvent.connect(self.event_selected)
         self._observation_table.cellClicked.connect(self.on_table_cell_click)
         self._observation_table.observationUpdated.connect(self.on_observation_updated)
 
@@ -197,9 +198,9 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.empty()
         self.current_set = None
 
-    def observation_selected(self, evt):
+    def event_selected(self, evt):
         self._video_player.pause()
-        self._video_player.display_observation(evt.event_time, evt.extent)
+        self._video_player.display_event(evt.event_time, evt.extent)
 
     def on_toggle_play(self):
         self._video_player.toggle_play()
@@ -244,8 +245,8 @@ class VideoLayoutWidget(QWidget):
         if col == self._observation_table.Columns.organism and self._observation_table.item(row, col) != '':
             self.organism_selector_table.popup_menu(QCursor.pos(), row)
 
-    def on_observation_updated(self, obs):
-        self.current_set.edit_observation(obs)
+    def on_observation_updated(self, evt):
+        self.current_set.edit_observation(evt)
 
     def add_observation(self, obs):
         self._data_loading = True
@@ -253,6 +254,9 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.add_row(obs)
         self._data_loading = False
         self._observation_table.scrollToBottom()
+
+    def delete_event(self, evt):
+        pass  # TODO delete event
 
     def delete_observation(self, obs):
         self.current_set.delete_observation(obs)

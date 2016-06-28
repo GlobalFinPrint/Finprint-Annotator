@@ -39,15 +39,31 @@ class Set(object):
             for att in GlobalFinPrintServer().attributes(id):
                 self.attributes.append(att)
 
+    def add_event(self, obs_id, evt_values):
+        result = self._connection.add_event(self.id, obs_id, **evt_values)
+        self._obs_from_json(result)
+        return result['filename']
+
+    def edit_event(self, evt, evt_values):
+        result = self._connection.edit_event(self.id, evt.observation.id, evt.id, **evt_values)
+        self._obs_from_json(result)
+
+    def delete_event(self, evt):
+        result = self._connection.delete_event(self.id, evt.observation.id, evt.id)
+        self._obs_from_json(result)
+
     def add_observation(self, obs_values):
         result = self._connection.add_observation(self.id, **obs_values)
         self._obs_from_json(result)
         return result['filename']
 
-    def add_event(self, obs_id, evt_values):
-        result = self._connection.add_event(self.id, obs_id, **evt_values)
+    def edit_observation(self, obs):
+        result = self._connection.edit_observation(self.id, obs)
         self._obs_from_json(result)
-        return result['filename']
+
+    def delete_observation(self, obs):
+        result = self._connection.delete_observation(self.id, obs.id)
+        self._obs_from_json(result)
 
     def _obs_from_json(self, json):
         self.observations = []
@@ -57,12 +73,6 @@ class Set(object):
             if o.animal_id:
                 o.animal = self.get_animal(o.animal_id)
             self.observations.append(o)
-
-    def edit_observation(self, obs):
-        self._connection.edit_observation(self.id, obs)
-
-    def delete_observation(self, obs):
-        self._connection.delete_observation(self.id, obs.id)
 
     def get_animal(self, id):
         a = [animal for animal in self.animals if animal.id == id]
