@@ -1,4 +1,3 @@
-from global_finprint import GlobalFinPrintServer, Observation
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
@@ -61,7 +60,7 @@ class ContextMenu(QMenu):
 
     def _populate_obs_menu(self):
         self._observations_menu.clear()
-        sorted(self._set.observations, key=lambda o: o.initial_time())
+        self._set.observations.sort(key=lambda o: o.initial_time())
         for obs in self._set.observations:
             act = self._observations_menu.addAction(str(obs))
             act.setData(obs)
@@ -184,7 +183,7 @@ class ContextMenu(QMenu):
             filename = self._set.add_event(self.selected_obs.id, self.dialog_values)
 
         # update observation_table
-        self.parent().parent()._observation_table.refresh_model()
+        self.observation_table().refresh_model()
 
         # save frame
         self.parent().save_image(filename)
@@ -212,3 +211,6 @@ class ContextMenu(QMenu):
 
     def obs_note_change(self):
         self.dialog_values['comment'] = self.obs_text.toPlainText()
+
+    def observation_table(self):
+        return self.parent().parent()._observation_table
