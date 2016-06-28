@@ -74,8 +74,6 @@ class VideoLayoutWidget(QWidget):
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
         self._video_player.progressUpdate.connect(self.on_progress_update)
 
-        self._observation_table.eventRowDeleted.connect(self.delete_event)
-        self._observation_table.observationDeleted.connect(self.delete_observation)
         self._observation_table.durationClicked.connect(self.set_duration)
         self._observation_table.goToEvent.connect(self.event_selected)
         self._observation_table.cellClicked.connect(self.on_table_cell_click)
@@ -254,12 +252,6 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.add_row(obs)
         self._data_loading = False
         self._observation_table.scrollToBottom()
-
-    def delete_event(self, evt):
-        pass  # TODO delete event
-
-    def delete_observation(self, obs):
-        self.current_set.delete_observation(obs)
 
     def on_position_change(self, pos):
         self._pos_label.setText(convert_position(pos))

@@ -120,8 +120,6 @@ class ObservationTable(QTableView):
     Columns = ObservationTableModel.Columns
 
     # signals
-    eventRowDeleted = pyqtSignal(Event)
-    observationDeleted = pyqtSignal(Observation)
     durationClicked = pyqtSignal(Observation)
     goToEvent = pyqtSignal(Event)
     observationUpdated = pyqtSignal(Observation)
