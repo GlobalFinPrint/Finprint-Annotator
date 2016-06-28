@@ -77,7 +77,6 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.durationClicked.connect(self.set_duration)
         self._observation_table.goToEvent.connect(self.event_selected)
         self._observation_table.cellClicked.connect(self.on_table_cell_click)
-        self._observation_table.observationUpdated.connect(self.on_observation_updated)
 
         self._observation_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self._observation_table.customContextMenuRequested.connect(self._observation_table.customContextMenu)
@@ -221,17 +220,16 @@ class VideoLayoutWidget(QWidget):
         self.on_progress_update(self._video_player.get_position())  # update position on quit
         QCoreApplication.instance().quit()
 
-    def set_duration(self, observation):
+    def set_duration(self, obs):
         pos = self._video_player.get_position()
-        duration = int(pos) - int(observation.initial_time())
+        duration = int(pos) - int(obs.initial_time())
         if duration <= 0:
             msgbox = QMessageBox()
             msgbox.setText("Can not set a duration less than zero")
             msgbox.setWindowTitle("Error Setting Duration")
             msgbox.exec_()
         else:
-            observation.duration = duration
-            self.current_set.edit_observation(observation)
+            self.current_set.edit_observation(obs, {'duration': duration})
 
     def on_organism_cell_changed(self, animal, row):
         obs = self._observation_table.get_observation(row)
@@ -242,9 +240,6 @@ class VideoLayoutWidget(QWidget):
     def on_table_cell_click(self, row, col):
         if col == self._observation_table.Columns.organism and self._observation_table.item(row, col) != '':
             self.organism_selector_table.popup_menu(QCursor.pos(), row)
-
-    def on_observation_updated(self, evt):
-        self.current_set.edit_observation(evt)
 
     def add_observation(self, obs):
         self._data_loading = True

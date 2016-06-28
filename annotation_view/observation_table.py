@@ -48,7 +48,7 @@ class ObservationTableModel(QAbstractTableModel):
     def data(self, model_index, role=None):
         return self.rows[model_index.row()].to_table_columns()[model_index.column()] \
             if role in [Qt.DisplayRole, Qt.EditRole] \
-            else None
+            else None  # TODO figure out random index error for self.rows[model_index.row()]
 
     def setData(self, model_index, value, role=None):
         if role == Qt.EditRole and model_index.column() in [self.Columns.duration, self.Columns.event_notes]:
@@ -122,38 +122,36 @@ class ObservationTable(QTableView):
     # signals
     durationClicked = pyqtSignal(Observation)
     goToEvent = pyqtSignal(Event)
-    observationUpdated = pyqtSignal(Observation)
-    eventUpdated = pyqtSignal(Event)
     cellClicked = pyqtSignal(int, int)  # emit manually (previously auto)
 
     def set_data(self):
         # set model
         self.source_model = ObservationTableModel()
         self.setModel(self.source_model)
+
         # set columns
         self.setColumnHidden(self.Columns.id, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.type, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.annotator, True)  # TODO leave on for debug mode?
-        self.setColumnHidden(self.Columns.frame_capture, True)  # TODO verify we want on/off
+        self.setColumnHidden(self.Columns.frame_capture, True)  # hide for now
         self.setColumnWidth(self.Columns.organism, 250)
-        self.setColumnWidth(self.Columns.observation_comment, 600)  # TODO make this width dynamic?
+        self.setColumnWidth(self.Columns.observation_comment, 600)
         self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
-        self.setColumnWidth(self.Columns.event_notes, 600)  # TODO make this width dynamic?
+        self.setColumnWidth(self.Columns.event_notes, 600)
+
         # set rows
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.verticalHeader().setVisible(False)
+
         # set cells
         self.setItemDelegate(ObservationTableCell(self))
+
         # set events
-        self.source_model.observationUpdated.connect(self.on_observation_updated)
+        self.source_model.observationUpdated.connect(self.edit_observation)
+        self.source_model.eventUpdated.connect(self.edit_event)
+
         # show widget
         self.show()
-
-    def on_observation_updated(self, obs):
-        self.observationUpdated.emit(obs)
-
-    def on_event_updated(self, evt):
-        self.eventUpdated.emit(evt)
 
     def get_event(self, row):
         return self.source_model.rows[row]
@@ -176,16 +174,22 @@ class ObservationTable(QTableView):
         self.current_set = current_set
         self.refresh_model()
 
-    def update_obs(self, observations):
-        self.current_set.observations = observations
-        self.refresh_model()
-
     def refresh_model(self):
+        # TODO note current row
         self.empty()
         for o in self.current_set.observations:
             for e in o.events:
                 self.add_row(e)
         self.resizeRowsToContents()
+        # TODO return to noted row
+
+    def edit_event(self, evt):
+        self.current_set.edit_event(evt, evt.to_dict())
+        self.refresh_model()
+
+    def edit_observation(self, obs):
+        self.current_set.edit_observation(obs, obs.to_dict())
+        self.refresh_model()
 
     def remove_event(self, evt):
         self.clearSelection()
@@ -206,25 +210,34 @@ class ObservationTable(QTableView):
     def customContextMenu(self, pos):
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
-        delete_menu = menu.addMenu("Delete")
+        delete_menu = menu.addMenu('Delete')
         delete_evt_action = delete_menu.addAction('Event')
-        delete_obs_action = delete_menu.addAction('Entire observation')
-        set_duration_action = menu.addAction("Set Duration") if GlobalFinPrintServer().is_lead() else None
-        go_to_observation_action = menu.addAction("Go To Event")
+        delete_obs_action = delete_menu.addAction('Observation')
+        edit_menu = menu.addMenu('Edit')
+        edit_evt_action = edit_menu.addAction('Event')
+        edit_obs_action = edit_menu.addAction('Observation')
+        set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
+        go_to_event_action = menu.addAction('Go To Event')
         row = self.indexAt(pos).row()
         if row >= 0:
             action = menu.exec_(self.mapToGlobal(pos))
-            if action == delete_evt_action:
+            if action is None:  # menu cancelled
+                pass
+            elif action == delete_evt_action:  # delete event
                 evt = self.get_event(row)
                 if self.confirm_delete_dialog(evt):
                     self.remove_event(evt)
-            elif action == delete_obs_action:
+            elif action == delete_obs_action:  # delete observation
                 obs = self.get_event(row).observation
                 if self.confirm_delete_dialog(obs):
                     self.remove_observation(obs)
-            elif set_duration_action and action == set_duration_action:
+            elif action == edit_evt_action:  # edit event
+                pass  # TODO edit event dialog
+            elif action == edit_obs_action:  # edit observation
+                pass  # TODO edit observation dialog
+            elif set_duration_action and action == set_duration_action:  # set duration
                 self.durationClicked.emit(self.get_event(row).observation)
-            elif action == go_to_observation_action:
+            elif action == go_to_event_action:  # goto event
                 self.goToEvent.emit(self.get_event(row))
 
     def confirm_delete_dialog(self, obj):

@@ -57,8 +57,8 @@ class Set(object):
         self._obs_from_json(result)
         return result['filename']
 
-    def edit_observation(self, obs):
-        result = self._connection.edit_observation(self.id, obs)
+    def edit_observation(self, obs, obs_values):
+        result = self._connection.edit_observation(self.id, obs.id, **obs_values)
         self._obs_from_json(result)
 
     def delete_observation(self, obs):
