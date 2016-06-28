@@ -76,7 +76,6 @@ class VideoLayoutWidget(QWidget):
 
         self._observation_table.durationClicked.connect(self.set_duration)
         self._observation_table.goToEvent.connect(self.event_selected)
-        self._observation_table.cellClicked.connect(self.on_table_cell_click)
 
         self._observation_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self._observation_table.customContextMenuRequested.connect(self._observation_table.customContextMenu)
@@ -236,10 +235,6 @@ class VideoLayoutWidget(QWidget):
         obs.animal_id = animal.id
         obs.animal = animal
         self.current_set.edit_observation(obs)
-
-    def on_table_cell_click(self, row, col):
-        if col == self._observation_table.Columns.organism and self._observation_table.item(row, col) != '':
-            self.organism_selector_table.popup_menu(QCursor.pos(), row)
 
     def add_observation(self, obs):
         self._data_loading = True

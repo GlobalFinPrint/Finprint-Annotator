@@ -51,9 +51,12 @@ class ObservationTableModel(QAbstractTableModel):
             else super(QAbstractTableModel, self).headerData(idx, orientation, role)
 
     def data(self, model_index, role=None):
-        return self.rows[model_index.row()].to_table_columns()[model_index.column()] \
-            if role in [Qt.DisplayRole, Qt.EditRole] \
-            else None  # TODO figure out random index error for self.rows[model_index.row()]
+        if len(self.rows) > 0 and role in [Qt.DisplayRole, Qt.EditRole]:
+            row = self.rows[model_index.row()]
+            columns = row.to_table_columns()
+            return columns[model_index.column()]
+        else:
+            return None
 
     def setData(self, model_index, value, role=None):
         if role == Qt.EditRole and model_index.column() in self.editable_columns:
@@ -127,7 +130,6 @@ class ObservationTable(QTableView):
     # signals
     durationClicked = pyqtSignal(Observation)
     goToEvent = pyqtSignal(Event)
-    cellClicked = pyqtSignal(int, int)  # emit manually (previously auto)
 
     def set_data(self):
         # set model
@@ -167,7 +169,6 @@ class ObservationTable(QTableView):
         self.setCurrentIndex(index)
         if index.column() in self.source_model.editable_columns and old_index == index:
             self.edit(index)
-        self.cellClicked.emit(index.row(), index.column())
 
     def item(self, row, col):
         return self.source_model.index(row, col).data()
