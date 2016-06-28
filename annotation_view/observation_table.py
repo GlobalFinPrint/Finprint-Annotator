@@ -32,6 +32,11 @@ class ObservationTableModel(QAbstractTableModel):
                         'Event time (ms)',
                         'Event notes',
                         'Attributes']
+        self.editable_columns = [
+            self.Columns.observation_comment,
+            self.Columns.duration,
+            self.Columns.event_notes
+        ]
         super(QAbstractTableModel, self).__init__(None)
 
     def rowCount(self, *args, **kwargs):
@@ -51,7 +56,7 @@ class ObservationTableModel(QAbstractTableModel):
             else None  # TODO figure out random index error for self.rows[model_index.row()]
 
     def setData(self, model_index, value, role=None):
-        if role == Qt.EditRole and model_index.column() in [self.Columns.duration, self.Columns.event_notes]:
+        if role == Qt.EditRole and model_index.column() in self.editable_columns:
             evt = self.rows[model_index.row()]
             if model_index.column() == self.Columns.duration:
                 evt.observation.duration = value
@@ -60,7 +65,7 @@ class ObservationTableModel(QAbstractTableModel):
                 evt.observation.comment = value
                 self.observationUpdated.emit(evt.observation)
             elif model_index.column() == self.Columns.event_notes:
-                evt.notes = value
+                evt.note = value
                 self.eventUpdated.emit(evt)
             self.dataChanged.emit(model_index, model_index)
             return True
@@ -69,7 +74,7 @@ class ObservationTableModel(QAbstractTableModel):
     def flags(self, model_index):
         default_flags = (Qt.ItemIsEnabled | Qt.ItemIsSelectable)
         return (default_flags | Qt.ItemIsEditable) \
-            if model_index.column() in [self.Columns.duration, self.Columns.event_notes] \
+            if model_index.column() in self.editable_columns \
             else default_flags
 
     def insertRows(self, start, count, new_rows=None, *args, **kwargs):
@@ -160,7 +165,7 @@ class ObservationTable(QTableView):
         old_index = self.currentIndex()
         index = self.indexAt(evt.pos())
         self.setCurrentIndex(index)
-        if index.column() in [self.Columns.duration, self.Columns.event_notes] and old_index == index:
+        if index.column() in self.source_model.editable_columns and old_index == index:
             self.edit(index)
         self.cellClicked.emit(index.row(), index.column())
 
