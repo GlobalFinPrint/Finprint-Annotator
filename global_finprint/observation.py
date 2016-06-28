@@ -55,11 +55,14 @@ class Event(object):
             str(self.observation.animal),
             self.observation.comment,
             self.observation.duration,
-            'TODO frame capture',
+            'TODO frame capture',  # just keep empty for now
             convert_position(self.event_time),
             self.note,
             ', '.join([a['name'] for a in self.attributes])
         ]
+
+    def __str__(self):
+        return '{0}'.format(convert_position(self.event_time))
 
 
 class Observation(object):
@@ -107,5 +110,5 @@ class Observation(object):
         ]
 
     def __str__(self):
-        return '{0}ms {1}'.format(convert_position(self.initial_time()),
-                                  'Of interest' if self.type_choice == 'I' else str(self.animal))
+        return '{0} {1}'.format(convert_position(self.initial_time()),
+                                'Of interest' if self.type_choice == 'I' else str(self.animal))
