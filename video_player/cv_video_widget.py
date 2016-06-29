@@ -102,8 +102,12 @@ class CvVideoWidget(QWidget):
                 self._last_progress = pos
                 self.progressUpdate.emit(pos)
             self.load_frame()
+        elif self._play_state == PlayState.SeekForward:
+            pos += 360
+            self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+            self.load_frame()
         elif self._play_state == PlayState.SeekBack:
-            pos -= 120
+            pos -= 360
             self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
             self.load_frame()
 
@@ -244,7 +248,11 @@ class CvVideoWidget(QWidget):
             return (num_frames / fps) * 1000  # Returns milliseconds as a float
 
     def fast_forward(self):
-        self._capture.set(cv2.CAP_PROP_FPS, 120)
+        if self._play_state == PlayState.SeekForward:
+            self.pause()
+        else:
+            self._play_state = PlayState.SeekForward
+        self.playStateChanged.emit(self._play_state)
 
     def rewind(self):
         if self._play_state == PlayState.SeekBack:

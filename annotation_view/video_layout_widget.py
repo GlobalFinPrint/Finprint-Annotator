@@ -1,6 +1,7 @@
 import os
 from logging import getLogger
 from video_player import CvVideoWidget, PlayState
+from global_finprint import GlobalFinPrintServer
 from config import global_config
 from .video_seek_widget import VideoSeekWidget
 from .observation_table import ObservationTable
@@ -36,6 +37,10 @@ class VideoLayoutWidget(QWidget):
         self._rew_button = ClickLabel()
         self._rew_button.setPixmap(QPixmap('images/video_control-rewind.png'))
 
+        self._ff_button = ClickLabel()
+        self._ff_button.setPixmap(QPixmap('images/video_control-fast_forward.png'))
+        self._ff_button.setVisible(False)
+
         self._step_back_button = ClickLabel()
         self._step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
 
@@ -68,6 +73,7 @@ class VideoLayoutWidget(QWidget):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
         self._submit_button.clicked.connect(self.on_submit)
         self._rew_button.clicked.connect(self.on_rewind)
+        self._ff_button.clicked.connect(self.on_fast_forward)
         self._step_back_button.clicked.connect(self.on_step_back)
         self._step_forward_button.clicked.connect(self.on_step_forward)
 
@@ -104,6 +110,7 @@ class VideoLayoutWidget(QWidget):
         video_controls_box.addWidget(self._step_back_button)
         video_controls_box.addWidget(self._toggle_play_button)
         video_controls_box.addWidget(self._step_forward_button)
+        video_controls_box.addWidget(self._ff_button)
 
         # Buttons
         button_box = QVBoxLayout()
@@ -149,6 +156,9 @@ class VideoLayoutWidget(QWidget):
         self.current_set = set
 
         self._rew_button.setDisabled(False)
+        if GlobalFinPrintServer().is_lead():
+            self._ff_button.setDisabled(False)
+            self._ff_button.setVisible(True)
         self._toggle_play_button.setDisabled(False)
         self._step_back_button.setDisabled(False)
         self._step_forward_button.setDisabled(False)
@@ -188,6 +198,7 @@ class VideoLayoutWidget(QWidget):
         self.clear_buttons()
         self._submit_button.setDisabled(True)
         self._rew_button.setDisabled(True)
+        self._ff_button.setDisabled(True)
         self._step_forward_button.setDisabled(True)
         self._step_back_button.setDisabled(True)
         self._toggle_play_button.setDisabled(True)
@@ -208,6 +219,9 @@ class VideoLayoutWidget(QWidget):
 
     def on_rewind(self):
         self._video_player.rewind()
+
+    def on_fast_forward(self):
+        self._video_player.fast_forward()
 
     def on_step_back(self):
         self._video_player.step_back()
