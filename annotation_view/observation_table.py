@@ -132,6 +132,14 @@ class ObservationTable(QTableView):
     durationClicked = pyqtSignal(Observation)
     goToEvent = pyqtSignal(Event)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        stylesheet = 'QHeaderView::section {  height: 30px; }'
+        self.setStyleSheet(stylesheet)
+        font = self.horizontalHeader().font()
+        font.setPointSize(12)
+        self.horizontalHeader().setFont(font)
+
     def set_data(self):
         # set model
         self.source_model = ObservationTableModel()
