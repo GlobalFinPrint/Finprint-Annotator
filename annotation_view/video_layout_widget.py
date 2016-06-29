@@ -243,6 +243,7 @@ class VideoLayoutWidget(QWidget):
             msgbox.exec_()
         else:
             self.current_set.edit_observation(obs, {'duration': duration})
+            self._observation_table.refresh_model()
 
     def on_organism_cell_changed(self, animal, row):
         obs = self._observation_table.get_observation(row)

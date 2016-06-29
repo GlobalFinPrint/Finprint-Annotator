@@ -53,6 +53,9 @@ class CvVideoWidget(QWidget):
         self._current_set = set
         self._context_menu = ContextMenu(set, parent=self)
 
+    def context_menu(self):
+        return self._context_menu
+
     # listen for any spacebar touches for play/pause
     def eventFilter(self, obj, evt):
         if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
@@ -220,7 +223,7 @@ class CvVideoWidget(QWidget):
                 key.set_contents_from_string(bio.read(), headers={'Content-Type': 'image/png'})
                 key.set_acl('public-read')
             else:
-                raise getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
+                getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
         except S3ResponseError as e:
             getLogger('finprint').error(str(e))
 

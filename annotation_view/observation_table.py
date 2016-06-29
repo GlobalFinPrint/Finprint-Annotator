@@ -238,9 +238,15 @@ class ObservationTable(QTableView):
                 if self.confirm_delete_dialog(obs):
                     self.remove_observation(obs)
             elif action == edit_evt_action:  # edit event
-                pass  # TODO edit event dialog
+                self.video_context_menu().display_event_dialog(
+                    action=self.video_context_menu().DialogActions.edit_event,
+                    event=self.get_event(row)
+                )
             elif action == edit_obs_action:  # edit observation
-                pass  # TODO edit observation dialog
+                self.video_context_menu().display_event_dialog(
+                    action=self.video_context_menu().DialogActions.edit_obs,
+                    obs=self.get_event(row).observation
+                )
             elif set_duration_action and action == set_duration_action:  # set duration
                 self.durationClicked.emit(self.get_event(row).observation)
             elif action == go_to_event_action:  # goto event
@@ -250,3 +256,6 @@ class ObservationTable(QTableView):
         msg = 'Are you sure you want to delete {0}?'.format(str(obj))
         reply = QMessageBox.question(self, 'Delete confirmation', msg, QMessageBox.Yes, QMessageBox.No)
         return reply == QMessageBox.Yes
+
+    def video_context_menu(self):
+        return self.parent()._video_player._context_menu
