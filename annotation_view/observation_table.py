@@ -224,10 +224,22 @@ class ObservationTable(QTableView):
         edit_obs_action = edit_menu.addAction('Observation')
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
+        change_organism_menu = menu.addMenu('Change organism')
+        grouping = {}
+        for animal in self.current_set.animals:
+            if animal.group not in grouping:
+                grouping[animal.group] = []
+            grouping[animal.group].append(animal)
+        for group in grouping.keys():
+            group_menu = change_organism_menu.addMenu(group)
+            for animal in grouping[group]:
+                act = group_menu.addAction(str(animal))
+                act.setData(animal)
+        cancel_action = menu.addAction('Cancel')
         row = self.indexAt(pos).row()
         if row >= 0:
             action = menu.exec_(self.mapToGlobal(pos))
-            if action is None:  # menu cancelled
+            if action is None or action == cancel_action:  # menu cancelled
                 pass
             elif action == delete_evt_action:  # delete event
                 evt = self.get_event(row)
@@ -249,8 +261,12 @@ class ObservationTable(QTableView):
                 )
             elif set_duration_action and action == set_duration_action:  # set duration
                 self.durationClicked.emit(self.get_event(row).observation)
-            elif action == go_to_event_action:  # goto event
+            elif action == go_to_event_action:  # go to event
                 self.goToEvent.emit(self.get_event(row))
+            elif type(action.data()).__name__ == 'Animal':  # change organism
+                obs = self.get_event(row).observation
+                self.current_set.edit_observation(obs, {'animal_id': action.data().id})
+                self.refresh_model()
 
     def confirm_delete_dialog(self, obj):
         msg = 'Are you sure you want to delete {0}?'.format(str(obj))
