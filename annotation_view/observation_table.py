@@ -100,6 +100,7 @@ class ObservationTableModel(QAbstractTableModel):
 
     def empty(self):
         self.removeRows(0, self.rowCount())
+        self.reset()
 
 
 class ObservationTableCell(QStyledItemDelegate):
