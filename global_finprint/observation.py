@@ -49,6 +49,7 @@ class Event(object):
 
     def to_table_columns(self):
         return [
+            convert_position(self.event_time),
             self.observation.id,
             self.observation.type_choice,
             'TODO Annotator',
@@ -56,7 +57,6 @@ class Event(object):
             self.observation.comment,
             self.observation.duration,
             'TODO frame capture',  # just keep empty for now
-            convert_position(self.event_time),
             self.note,
             ', '.join([a['name'] for a in self.attributes])
         ]

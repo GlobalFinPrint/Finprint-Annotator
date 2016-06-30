@@ -1,6 +1,8 @@
+from .attribute_selector import AttributeSelector
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
+from logging import getLogger
 
 
 class ContextMenu(QMenu):
@@ -37,16 +39,6 @@ class ContextMenu(QMenu):
         self._interest_act = self.addAction('Of interest')
         self._observations_menu = self.addMenu('Add to existing observation')
         self._cancel_act = self.addAction('Cancel')
-
-        # attributes
-        def recur_attr(attrs):
-            attr_list = []
-            for attr in attrs:
-                attr_list.append({'id': attr['id'], 'name': attr['name'], 'level': attr['level']})
-                if 'children' in attr:
-                    attr_list += recur_attr(attr['children'])
-            return attr_list
-        self._attributes = recur_attr(self._set.attributes)
 
         # event params
         self.dialog_values = {}
@@ -102,7 +94,7 @@ class ContextMenu(QMenu):
         self.event_dialog.setWindowTitle(title)
 
         self.dialog_values['note'] = ''
-        self.dialog_values['attribute'] = None
+        self.dialog_values['attributes'] = None
 
         # set dialog data for submit
         if 'obs' in kwargs:
@@ -114,16 +106,15 @@ class ContextMenu(QMenu):
         elif 'event' in kwargs:
             self.selected_event = kwargs['event']
             self.dialog_values['note'] = self.selected_event.note
-            self.dialog_values['attribute'] = self.selected_event.attributes[0]['id'] \
-                if len(self.selected_event.attributes) > 0 \
-                else None
+            self.dialog_values['attributes'] = [a['id'] for a in self.selected_event.attributes]
         else:
             self.dialog_values['type_choice'] = kwargs['type_choice']
             if self.dialog_values['type_choice'] == 'A' and 'animal' in kwargs:
                 self.dialog_values['animal_id'] = kwargs['animal'].id
 
-        self.dialog_values['event_time'] = int(self.parent().get_position())
-        self.dialog_values['extent'] = self.parent().get_highlight_extent().to_wkt()
+        if kwargs['action'] in [self.DialogActions.new_obs, self.DialogActions.add_event]:
+            self.dialog_values['event_time'] = int(self.parent().get_position())
+            self.dialog_values['extent'] = self.parent().get_highlight_extent().to_wkt()
 
         # set up dialog view
         layout = QVBoxLayout()
@@ -150,17 +141,10 @@ class ContextMenu(QMenu):
 
         # attributes
         if kwargs['action'] != self.DialogActions.edit_obs:
-            attributes_label = QLabel('Attribute:')
-            self.att_dropdown = QComboBox()
+            attributes_label = QLabel('Attributes:')
+            self.att_dropdown = AttributeSelector(self._set.attributes, selected_ids=self.dialog_values['attributes'])
             attributes_label.setBuddy(self.att_dropdown)
-            self.att_dropdown.addItem('---')  # TODO require a value for submit
-            for att in self._attributes:  # TODO multiple selection
-                label = (att['level'] * '-') + (' ' if att['level'] > 0 else '') + att['name']
-                self.att_dropdown.addItem(label, att['id'])
-            if self.dialog_values['attribute']:
-                index = self.att_dropdown.findData(self.dialog_values['attribute'])
-                self.att_dropdown.setCurrentIndex(index)
-            self.att_dropdown.currentIndexChanged.connect(self.attribute_select)
+            self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addWidget(attributes_label)
             layout.addWidget(self.att_dropdown)
 
@@ -245,7 +229,8 @@ class ContextMenu(QMenu):
         self.parent().clear_extent()
 
     def attribute_select(self):
-        self.dialog_values['attribute'] = self.att_dropdown.itemData(self.att_dropdown.currentIndex())
+        # note that API is expecting singular "attribute" here, no "attributes"
+        self.dialog_values['attribute'] = self.att_dropdown.get_selected()
 
     def animal_select(self):
         self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())

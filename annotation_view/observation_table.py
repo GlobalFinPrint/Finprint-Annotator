@@ -9,27 +9,27 @@ class ObservationTableModel(QAbstractTableModel):
     eventUpdated = pyqtSignal(Event)
 
     class Columns(IntEnum):
-        id = 0
-        type = 1
-        annotator = 2
-        organism = 3
-        observation_comment = 4
-        duration = 5
-        frame_capture = 6
-        event_time = 7
+        event_time = 0
+        id = 1
+        type = 2
+        annotator = 3
+        organism = 4
+        observation_comment = 5
+        duration = 6
+        frame_capture = 7
         event_notes = 8
         attributes = 9
 
     def __init__(self):
         self.rows = []
-        self.columns = ['ID',
+        self.columns = ['Event time (ms)',
+                        'ID',
                         'Type',
                         'Annotator',
                         'Organism',
                         'Observation Comment',
                         'Duration (ms)',
                         'Frame capture',
-                        'Event time (ms)',
                         'Event notes',
                         'Attributes']
         self.editable_columns = [
