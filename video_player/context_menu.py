@@ -2,7 +2,6 @@ from .attribute_selector import AttributeSelector
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
-from logging import getLogger
 
 
 class ContextMenu(QMenu):
