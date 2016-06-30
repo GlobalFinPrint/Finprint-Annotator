@@ -192,8 +192,10 @@ class ObservationTable(QTableView):
     def refresh_model(self):
         # TODO note current row
         self.empty()
-        for o in self.current_set.observations:
-            for e in o.events:
+        obs = sorted(self.current_set.observations, key=lambda o: o.initial_time(), reverse=True)
+        for o in obs:
+            events = sorted(o.events, key=lambda e: e.event_time, reverse=True)
+            for e in events:
                 self.add_row(e)
         self.resizeRowsToContents()
         # TODO return to noted row
