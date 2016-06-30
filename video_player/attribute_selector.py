@@ -32,6 +32,9 @@ class AttributeSelector(QComboBox):
             item.setCheckState(Qt.Checked)
         self.selected_changed.emit()
 
+    def hidePopup(self):
+        pass  # stay open (press escape to close)
+
     def _all_items(self):
         return [self.itemText(i) for i in range(self.count())]
 
