@@ -25,6 +25,7 @@ class VideoLayoutWidget(QWidget):
 
         # UI widgets
         self.vid_box = None
+        self._video_label = QLabel('Video name:')
         self._video_player = CvVideoWidget(parent=self, onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
         self._data_loading = False
@@ -96,6 +97,7 @@ class VideoLayoutWidget(QWidget):
 
         # Video screen and slider
         vid_box = QVBoxLayout()
+        vid_box.addWidget(self._video_label)
         vid_box.addWidget(self._video_player)
         vid_box.addWidget(self._slider)
         vid_box.addWidget(self._pos_label)  # TODO move this under the cursor
@@ -154,6 +156,8 @@ class VideoLayoutWidget(QWidget):
         self._data_loading = True
         self.clear()
         self.current_set = set
+
+        self._video_label.setText('Video name: {0}'.format(self.current_set.file))
 
         self._rew_button.setDisabled(False)
         if GlobalFinPrintServer().is_lead():
