@@ -225,6 +225,8 @@ class ObservationTable(QTableView):
             self.source_model.empty()
 
     def customContextMenu(self, pos):
+        row = self.indexAt(pos).row()
+
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         delete_menu = menu.addMenu('Delete')
@@ -235,19 +237,20 @@ class ObservationTable(QTableView):
         edit_obs_action = edit_menu.addAction('Observation')
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
-        change_organism_menu = menu.addMenu('Change organism')
-        grouping = {}
-        for animal in self.current_set.animals:
-            if animal.group not in grouping:
-                grouping[animal.group] = []
-            grouping[animal.group].append(animal)
-        for group in grouping.keys():
-            group_menu = change_organism_menu.addMenu(group)
-            for animal in grouping[group]:
-                act = group_menu.addAction(str(animal))
-                act.setData(animal)
+        if self.get_event(row).observation.type_choice == 'A':
+            change_organism_menu = menu.addMenu('Change organism')
+            grouping = {}
+            for animal in self.current_set.animals:
+                if animal.group not in grouping:
+                    grouping[animal.group] = []
+                grouping[animal.group].append(animal)
+            for group in grouping.keys():
+                group_menu = change_organism_menu.addMenu(group)
+                for animal in grouping[group]:
+                    act = group_menu.addAction(str(animal))
+                    act.setData(animal)
         cancel_action = menu.addAction('Cancel')
-        row = self.indexAt(pos).row()
+
         if row >= 0:
             action = menu.exec_(self.mapToGlobal(pos))
             if action is None or action == cancel_action:  # menu cancelled
