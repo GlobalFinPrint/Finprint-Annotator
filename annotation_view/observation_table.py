@@ -105,19 +105,30 @@ class ObservationTableModel(QAbstractTableModel):
 
 class ObservationTableCell(QStyledItemDelegate):
     disabled_color = None
+    obs_dupe_color = None
     Columns = ObservationTableModel.Columns
 
     def __init__(self, parent):
         super(QStyledItemDelegate, self).__init__(parent)
         self.disabled_color = QColor(Qt.lightGray)
         self.disabled_color.setAlphaF(0.5)
+        self.obs_dupe_color = QColor(Qt.white)
 
     def paint(self, painter, style, model_index):
         row, col = model_index.row(), model_index.column()
+        event = self.parent().get_event(row)
+
         # disabled look for organism column for Of Interest
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
             painter.fillRect(style.rect, self.disabled_color)
+            painter.restore()
+
+        # don't fill in observation values after the first row
+        elif col in [self.Columns.organism, self.Columns.observation_comment, self.Columns.duration] \
+                and sorted(event.observation.events, key=lambda e: e.event_time)[0].id != event.id:
+            painter.save()
+            painter.fillRect(style.rect, self.obs_dupe_color)
             painter.restore()
         else:
             super().paint(painter, style, model_index)
