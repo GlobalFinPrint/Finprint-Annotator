@@ -1,5 +1,6 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+import re
 
 
 class AttributeSelector(QComboBox):
@@ -9,6 +10,10 @@ class AttributeSelector(QComboBox):
         super().__init__()
         self.view().pressed.connect(self.item_pressed)
         self.setModel(QStandardItemModel(self))
+        self.setEditable(True)
+        self.lineEdit().setReadOnly(True)
+
+        self.currentIndexChanged.connect(self.on_current_index_change)
 
         attrs = self._make_attr_list(attrs)
         if selected_ids is None:
@@ -21,8 +26,19 @@ class AttributeSelector(QComboBox):
             item = self.model().item(index, 0)
             item.setCheckState(Qt.Checked if attr['id'] in selected_ids else Qt.Unchecked)
 
+        self.update_button_text()
+
     def get_selected(self):
         return [self.itemData(i) for i in range(self.count()) if self.model().item(i).checkState() == Qt.Checked]
+
+    def get_selected_text(self):
+        clean_text = re.compile(r'(^-+\s)?(.*)$')
+        selected_text = [clean_text.match(self.itemText(i)).groups()[-1] for i in range(self.count())
+                         if self.model().item(i).checkState() == Qt.Checked]
+        return ', '.join(selected_text) if len(selected_text) > 0 else '--- NONE ---'
+
+    def update_button_text(self):
+        self.lineEdit().setText(self.get_selected_text())
 
     def item_pressed(self, index):
         item = self.model().itemFromIndex(index)
@@ -34,6 +50,9 @@ class AttributeSelector(QComboBox):
 
     def hidePopup(self):
         pass  # stay open (press escape to close)
+
+    def on_current_index_change(self, *args, **kwargs):
+        self.update_button_text()
 
     def _all_items(self):
         return [self.itemText(i) for i in range(self.count())]
