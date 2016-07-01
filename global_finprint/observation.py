@@ -14,7 +14,7 @@ class Event(object):
     def __init__(self):
         self.id = None
         self.event_time = None
-        self.attributes = []
+        self.attribute = []
         self.note = None
         self.extent = Extent()
         self.observation = None
@@ -22,7 +22,7 @@ class Event(object):
     def load(self, evt_dict, obs):
         self.id = evt_dict['id']
         self.event_time = evt_dict['event_time']
-        self.attributes = evt_dict['attributes']
+        self.attribute = evt_dict['attribute']
         self.note = evt_dict['note']
         if 'extent' in evt_dict:
             self.extent.from_wkt(evt_dict['extent'])
@@ -32,7 +32,7 @@ class Event(object):
         return {
             'id': self.id,
             'event_time': self.event_time,
-            'attributes': self.attributes,
+            'attribute': self.attribute,
             'note': self.note,
             'extent': self.extent.to_wkt()
         }
@@ -42,7 +42,7 @@ class Event(object):
             self.id,
             'event',
             self.event_time,
-            ', '.join(list(a['name'] for a in self.attributes)),
+            ', '.join(list(a['name'] for a in self.attribute)),
             None,  # placeholder
             self.note
         ]
@@ -58,7 +58,7 @@ class Event(object):
             self.observation.duration,
             'TODO frame capture',  # just keep empty for now
             self.note,
-            ', '.join([a['name'] for a in self.attributes])
+            ', '.join([a['name'] for a in self.attribute])
         ]
 
     def __str__(self):

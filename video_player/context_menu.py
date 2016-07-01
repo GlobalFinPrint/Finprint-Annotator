@@ -93,7 +93,7 @@ class ContextMenu(QMenu):
         self.event_dialog.setWindowTitle(title)
 
         self.dialog_values['note'] = ''
-        self.dialog_values['attributes'] = None
+        self.dialog_values['attribute'] = None
 
         # set dialog data for submit
         if 'obs' in kwargs:
@@ -105,7 +105,7 @@ class ContextMenu(QMenu):
         elif 'event' in kwargs:
             self.selected_event = kwargs['event']
             self.dialog_values['note'] = self.selected_event.note
-            self.dialog_values['attributes'] = [a['id'] for a in self.selected_event.attributes]
+            self.dialog_values['attribute'] = [a['id'] for a in self.selected_event.attribute]
         else:
             self.dialog_values['type_choice'] = kwargs['type_choice']
             if self.dialog_values['type_choice'] == 'A' and 'animal' in kwargs:
@@ -141,7 +141,7 @@ class ContextMenu(QMenu):
         # attributes
         if kwargs['action'] != self.DialogActions.edit_obs:
             attributes_label = QLabel('Attributes:')
-            self.att_dropdown = AttributeSelector(self._set.attributes, selected_ids=self.dialog_values['attributes'])
+            self.att_dropdown = AttributeSelector(self._set.attributes, selected_ids=self.dialog_values['attribute'])
             attributes_label.setBuddy(self.att_dropdown)
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addWidget(attributes_label)

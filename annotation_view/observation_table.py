@@ -213,7 +213,9 @@ class ObservationTable(QTableView):
         # TODO return to noted row
 
     def edit_event(self, evt):
-        self.current_set.edit_event(evt, evt.to_dict())
+        values = evt.to_dict()
+        values['attribute'] = [a['id'] for a in values['attribute'][:]]
+        self.current_set.edit_event(evt, values)
         self.refresh_model()
 
     def edit_observation(self, obs):
