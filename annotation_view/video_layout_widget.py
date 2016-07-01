@@ -130,7 +130,7 @@ class VideoLayoutWidget(QWidget):
         # Observation table
         bottom_box = QVBoxLayout()
         header = QLabel()
-        header.setStyleSheet("background-color: rgb(41, 86, 109);color: rgb(255, 255, 255);font: 75 16pt \"Arial\";")
+        header.setStyleSheet("background-color: rgb(41, 86, 109);color: rgb(255, 255, 255);font: 75 18pt \"Arial\";")
         header.setText("   Observations")
         header.setMinimumHeight(40)
         bottom_box.addWidget(header)
