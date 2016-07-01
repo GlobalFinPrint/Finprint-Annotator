@@ -6,6 +6,7 @@ from enum import IntEnum
 
 class ContextMenu(QMenu):
     event_dialog = None
+    action = None
 
     class DialogActions(IntEnum):
         new_obs = 1
@@ -79,6 +80,8 @@ class ContextMenu(QMenu):
         self.event_dialog.setModal(True)
         self.event_dialog.setStyleSheet('background:#fff;')
         self.event_dialog.finished.connect(self.cleanup)
+
+        self.action = kwargs['action']
 
         if kwargs['action'] == self.DialogActions.new_obs:
             title = 'New observation'
@@ -195,7 +198,7 @@ class ContextMenu(QMenu):
         self.event_dialog.show()
 
     def pushed_save(self):
-        if 'type_choice' in self.dialog_values:  # new obs
+        if self.action == self.DialogActions.new_obs:  # new obs
             filename = self._set.add_observation(self.dialog_values)
         else:  # add event to obs
             filename = self._set.add_event(self.selected_obs.id, self.dialog_values)
@@ -210,7 +213,7 @@ class ContextMenu(QMenu):
         self.cleanup()
 
     def pushed_update(self):
-        if self.selected_obs:
+        if self.action == self.DialogActions.edit_obs:
             self._set.edit_observation(self.selected_obs, self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
@@ -223,6 +226,9 @@ class ContextMenu(QMenu):
 
     def cleanup(self):
         self.dialog_values = {}
+        self.action = None
+        self.selected_obs = None
+        self.selected_event = None
         self.event_dialog.close()
         self.event_dialog = None
         self.parent().clear_extent()
