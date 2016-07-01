@@ -145,7 +145,8 @@ class ObservationTable(QTableView):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        stylesheet = 'QHeaderView::section {  height: 30px; }'
+        stylesheet = """QTableView { gridline-color #cccccc; border: 1px solid #cccccc;}
+                        QHeaderView::section {  height: 30px; background-color: rgb(131,140,158,51); color: rgb(41,86,109,254); }"""
         self.setStyleSheet(stylesheet)
         font = self.horizontalHeader().font()
         font.setPointSize(12)
