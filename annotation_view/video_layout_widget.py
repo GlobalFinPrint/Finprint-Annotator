@@ -53,9 +53,10 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button = ClickLabel()
         self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
 
-        self._submit_button = QPushButton('Submit for Review')
+        self._submit_button = QPushButton('Send for Review')
         self._submit_button.setFixedWidth(150)
         self._submit_button.setDisabled(True)
+        self._submit_button.setStyleSheet("""background: #29566D; color:white; font: 12pt "Arial"; radius: 4px; padding-top -bottom: 4px; padding-left -right: 20px""")
 
         self._obs_btn_box = QHBoxLayout()
 
