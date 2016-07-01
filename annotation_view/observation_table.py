@@ -213,8 +213,7 @@ class ObservationTable(QTableView):
 
     def edit_event(self, evt):
         values = evt.to_dict()
-        values['attribute'] = [a['id'] for a in values['attributes']]
-        del values['attributes']
+        values['attribute'] = [a['id'] for a in values['attribute'][:]]
         self.current_set.edit_event(evt, values)
         self.refresh_model()
 
