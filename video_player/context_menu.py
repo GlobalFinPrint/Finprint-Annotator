@@ -131,7 +131,7 @@ class ContextMenu(QMenu):
         # obs animal (if applicable)
         # TODO only editable on new obs/obs edit
         if 'animal' in kwargs:
-            animal_label = QLabel('Animal:')
+            animal_label = QLabel('Organism:')
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
             for an in self._set.animals:
@@ -143,7 +143,7 @@ class ContextMenu(QMenu):
 
         # attributes
         if kwargs['action'] != self.DialogActions.edit_obs:
-            attributes_label = QLabel('Attributes:')
+            attributes_label = QLabel('Tags:')
             self.att_dropdown = AttributeSelector(self._set.attributes, selected_ids=self.dialog_values['attribute'])
             attributes_label.setBuddy(self.att_dropdown)
             self.att_dropdown.selected_changed.connect(self.attribute_select)
@@ -152,7 +152,7 @@ class ContextMenu(QMenu):
 
         # observation notes
         if kwargs['action'] in [self.DialogActions.new_obs, self.DialogActions.edit_obs]:
-            obs_notes_label = QLabel('Observation notes:')
+            obs_notes_label = QLabel('Observation Note:')
             self.obs_text = QPlainTextEdit()
             if 'obs' in kwargs:
                 self.obs_text.setPlainText(kwargs['obs'].comment)
@@ -164,7 +164,7 @@ class ContextMenu(QMenu):
 
         # event notes
         if kwargs['action'] != self.DialogActions.edit_obs:
-            notes_label = QLabel('Event notes:')
+            notes_label = QLabel('Image notes:')
             self.text_area = QPlainTextEdit()
             self.text_area.setPlainText(self.dialog_values['note'])
             notes_label.setBuddy(self.text_area)
