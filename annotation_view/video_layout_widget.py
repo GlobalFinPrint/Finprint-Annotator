@@ -25,7 +25,8 @@ class VideoLayoutWidget(QWidget):
 
         # UI widgets
         self.vid_box = None
-        self._video_label = QLabel('Video name:')
+        self._video_label = QLabel('')
+        self._video_label.setStyleSheet("""color:rgb(74,74,74); font: 75 12pt "Arial";""")
         self._video_player = CvVideoWidget(parent=self, onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
         self._data_loading = False
@@ -34,6 +35,7 @@ class VideoLayoutWidget(QWidget):
         self._pause_pixmap = QPixmap('images/video_control-pause.png')
 
         self._slider = VideoSeekWidget(self._video_player)
+        self._slider.hide()
 
         self._rew_button = ClickLabel()
         self._rew_button.setPixmap(QPixmap('images/video_control-rewind.png'))
@@ -130,7 +132,7 @@ class VideoLayoutWidget(QWidget):
         # Observation table
         bottom_box = QVBoxLayout()
         header = QLabel()
-        header.setStyleSheet("background-color: rgb(41, 86, 109);color: rgb(255, 255, 255);font: 75 18pt \"Arial\";")
+        header.setStyleSheet("""background-color: rgb(41, 86, 109);color: rgb(255, 255, 255);font: 75 18pt "Arial";""")
         header.setText("   Observations")
         header.setMinimumHeight(40)
         bottom_box.addWidget(header)
@@ -162,7 +164,8 @@ class VideoLayoutWidget(QWidget):
         self.clear()
         self.current_set = set
 
-        self._video_label.setText('Video name: {0}'.format(self.current_set.file))
+        self._video_label.setText('{0}'.format(self.current_set.file))
+        self._slider.show()
 
         self._rew_button.setDisabled(False)
         if GlobalFinPrintServer().is_lead():
@@ -203,6 +206,8 @@ class VideoLayoutWidget(QWidget):
             self.current_set.update_progress(progress)
 
     def clear(self):
+        self._video_label.setText('')
+        self._slider.hide()
         self._video_player.clear()
         self.clear_buttons()
         self._submit_button.setDisabled(True)
