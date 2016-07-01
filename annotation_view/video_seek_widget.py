@@ -45,44 +45,38 @@ class VideoSeekWidget(QSlider):
     def style(self):
         return """
             QSlider::groove:horizontal {
-                border: 1px solid #bbb;
-                background: white;
-                height: 10px;
-                border-radius: 4px;
+                background: rgb(126,211,33, 64);
+                height: 2px;
+                border-radius: 1px;
             }
 
             QSlider::sub-page:horizontal {
                 background: qlineargradient(x1: 0, y1: 0,    x2: 0, y2: 1,
-                    stop: 0 #66e, stop: 1 #bbf);
-                background: qlineargradient(x1: 0, y1: 0.2, x2: 1, y2: 1,
-                    stop: 0 #bbf, stop: 1 #55f);
-                border: 1px solid #777;
-                height: 10px;
-                border-radius: 4px;
+                    stop: 0 #33CC33, stop: 1 #99FF33);
+                height: 2px;
             }
 
             QSlider::add-page:horizontal {
-                background: #fff;
-                border: 1px solid #777;
-                height: 10px;
-                border-radius: 4px;
+                background: rgb(126,211,33, 64);
+                height: 2px;
             }
 
             QSlider::handle:horizontal {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #eee, stop:1 #ccc);
-                border: 1px solid #777;
+                background: rgb(126,211,33);
                 width: 13px;
-                margin-top: -2px;
-                margin-bottom: -2px;
-                border-radius: 4px;
+                height: 13px;
+                margin-top: -6px;
+                margin-bottom: -6px;
+                border-radius: 6px;
             }
 
             QSlider::handle:horizontal:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #fff, stop:1 #ddd);
-                border: 1px solid #444;
-                border-radius: 4px;
+                background: rgb(0, 153, 0);
+                width: 13px;
+                height: 13px;
+                margin-top: -6px;
+                margin-bottom: -6px;
+                border-radius: 6px;
             }
 
             QSlider::sub-page:horizontal:disabled {
