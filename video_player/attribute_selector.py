@@ -12,8 +12,15 @@ class AttributeSelector(QComboBox):
         self.setModel(QStandardItemModel(self))
         self.setEditable(True)
         self.lineEdit().setReadOnly(True)
+        self.setStyleSheet('QComboBox QAbstractItemView { margin-top: 27px; }')
 
         self.currentIndexChanged.connect(self.on_current_index_change)
+
+        self.done_button = QPushButton(parent=self.view())
+        self.done_button.setText('Done')
+        self.done_button.setVisible(False)
+        self.done_button.setFixedSize(200, 25)
+        self.done_button.pressed.connect(self.done_pressed)
 
         attrs = self._make_attr_list(attrs)
         if selected_ids is None:
@@ -47,6 +54,14 @@ class AttributeSelector(QComboBox):
         else:
             item.setCheckState(Qt.Checked)
         self.selected_changed.emit()
+
+    def done_pressed(self):
+        self.done_button.setVisible(False)
+        super().hidePopup()
+
+    def showPopup(self):
+        super().showPopup()
+        self.done_button.setVisible(True)
 
     def hidePopup(self):
         pass  # stay open (press escape to close)
