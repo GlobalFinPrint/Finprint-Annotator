@@ -126,7 +126,7 @@ class ObservationTableCell(QStyledItemDelegate):
 
         # don't fill in observation values after the first row
         elif col in [self.Columns.organism, self.Columns.observation_comment, self.Columns.duration] \
-                and sorted(event.observation.events, key=lambda e: e.event_time)[0].id != event.id:
+                and sorted(event.observation.events, key=lambda e: e.event_time, reverse=True)[0].id != event.id:
             painter.save()
             painter.fillRect(style.rect, self.obs_dupe_color)
             painter.restore()
@@ -204,9 +204,9 @@ class ObservationTable(QTableView):
     def refresh_model(self):
         # TODO note current row
         self.empty()
-        obs = sorted(self.current_set.observations, key=lambda o: o.initial_time(), reverse=True)
+        obs = sorted(self.current_set.observations, key=lambda o: o.initial_time())
         for o in obs:
-            events = sorted(o.events, key=lambda e: e.event_time, reverse=True)
+            events = sorted(o.events, key=lambda e: e.event_time)
             for e in events:
                 self.add_row(e)
         self.resizeRowsToContents()
