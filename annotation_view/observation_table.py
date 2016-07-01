@@ -22,7 +22,7 @@ class ObservationTableModel(QAbstractTableModel):
 
     def __init__(self):
         self.rows = []
-        self.columns = ['Event time (ms)',
+        self.columns = ['Time',
                         'ID',
                         'Type',
                         'Annotator',
