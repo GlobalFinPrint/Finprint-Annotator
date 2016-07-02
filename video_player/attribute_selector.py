@@ -19,7 +19,9 @@ class AttributeSelector(QComboBox):
         self.done_button = QPushButton(parent=self.view())
         self.done_button.setText('Done')
         self.done_button.setVisible(False)
-        self.done_button.setFixedSize(200, 25)
+        combo_width = self.view().sizeHint().width()
+        scrollbar_width = self.view().verticalScrollBar().sizeHint().width()
+        self.done_button.setFixedSize(combo_width + scrollbar_width + 6, 25)
         self.done_button.pressed.connect(self.done_pressed)
 
         attrs = self._make_attr_list(attrs)
