@@ -27,11 +27,11 @@ class ObservationTableModel(QAbstractTableModel):
                         'Type',
                         'Annotator',
                         'Organism',
-                        'Observation Comment',
-                        'Duration (ms)',
+                        'Observation Note',
+                        'Duration',
                         'Frame capture',
-                        'Event notes',
-                        'Attributes']
+                        'Image notes',
+                        'Tags']
         self.editable_columns = [
             self.Columns.observation_comment,
             self.Columns.duration,
