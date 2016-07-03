@@ -118,20 +118,31 @@ class ObservationTableCell(QStyledItemDelegate):
         row, col = model_index.row(), model_index.column()
         event = self.parent().get_event(row)
 
-        # disabled look for organism column for Of Interest
+        #disabled look for organism column for Of Interest
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
             painter.fillRect(style.rect, self.disabled_color)
             painter.restore()
-
-        # don't fill in observation values after the first row
-        elif col in [self.Columns.organism, self.Columns.observation_comment, self.Columns.duration] \
-                and sorted(event.observation.events, key=lambda e: e.event_time, reverse=True)[0].id != event.id:
-            painter.save()
-            painter.fillRect(style.rect, self.obs_dupe_color)
-            painter.restore()
         else:
+            painter.save()
+            painter.fillRect(style.rect, event.obs_color)
+            painter.restore()
             super().paint(painter, style, model_index)
+
+        # disabled look for organism column for Of Interest
+        # if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
+        #     painter.save()
+        #     painter.fillRect(style.rect, self.disabled_color)
+        #     painter.restore()
+        #
+        # # don't fill in observation values after the first row
+        # elif col in [self.Columns.organism, self.Columns.observation_comment, self.Columns.duration] \
+        #         and sorted(event.observation.events, key=lambda e: e.event_time, reverse=True)[0].id != event.id:
+        #     painter.save()
+        #     painter.fillRect(style.rect, self.obs_dupe_color)
+        #     painter.restore()
+        # else:
+        #     super().paint(painter, style, model_index)
 
 
 class ObservationTable(QTableView):
@@ -202,13 +213,17 @@ class ObservationTable(QTableView):
         self.refresh_model()
 
     def refresh_model(self):
+        rotate_colors = [QColor(126,211,33, 128), QColor(126,211,33, 64)]
+        rotate_index = 0
         # TODO note current row
         self.empty()
         obs = sorted(self.current_set.observations, key=lambda o: o.initial_time())
         for o in obs:
             events = sorted(o.events, key=lambda e: e.event_time)
             for e in events:
+                e.obs_color = rotate_colors[rotate_index]
                 self.add_row(e)
+            rotate_index ^= 1
         self.resizeRowsToContents()
         # TODO return to noted row
 
