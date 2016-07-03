@@ -12,6 +12,8 @@ from .context_menu import ContextMenu
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+from threading import Thread, Event
+
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
 VIDEO_HEIGHT = 450
@@ -23,6 +25,32 @@ creds = open('./credentials.csv').readlines()[1].split(',')
 AWS_ACCESS_KEY_ID = creds[1].strip()
 AWS_SECRET_ACCESS_KEY = creds[2].strip()
 
+class RepeatingTimer():
+   def __init__(self, interval, callback):
+      self.interval = interval
+      self.callback = callback
+      self.active = False
+      self.elapse_event = Event()
+      self.thread = Thread(group=None, target=self.wrapper_function, daemon=True)
+
+   def wrapper_function(self):
+        self.active = True
+        self.elapse_event.clear()
+        timeout = self.interval
+        while self.active:
+            if self.elapse_event.wait(timeout=timeout):
+                self.active = False
+            else:
+                t = time.perf_counter()
+                self.callback()
+                timeout = self.interval - (time.perf_counter() - t) #adjust for time spent in callback
+
+   def start(self):
+      self.thread.start()
+
+   def cancel(self):
+      self.elapse_event.set()
+
 
 class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
@@ -33,17 +61,18 @@ class CvVideoWidget(QWidget):
         self._capture = None
         self._paused = True
         self._play_state = PlayState.NotReady
-        self._frame = None
         self._file_name = None
 
         self._dragging = False
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
+        self.start_time = time.perf_counter()
         self.last_time = time.perf_counter()
         self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
         self._image.fill(Qt.black)
-        self._timer = QTimer(self)
-        self._timer.timeout.connect(self.on_timer)
+
+        self._timer = RepeatingTimer(0.0416, self.on_timer)
+
         self._last_progress = 0
 
         self._context_menu = None
@@ -95,10 +124,11 @@ class CvVideoWidget(QWidget):
 
         # Base line for measuring frame rate
         self.last_time = time.perf_counter()
-        self._timer.start(33)
+        self._timer.start()
         return True
 
     def on_timer(self):
+        t = time.perf_counter()
         pos = self.get_position()
         if self._play_state == PlayState.Playing:
             if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
@@ -117,7 +147,7 @@ class CvVideoWidget(QWidget):
         self.update()
 
     def clear(self):
-        self._timer.stop()
+        self._timer.cancel()
         if self._capture is not None:
             self._capture.release()
         self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
@@ -125,15 +155,13 @@ class CvVideoWidget(QWidget):
         self.update()
 
     def _build_image(self, frame):
+        t = time.perf_counter()
         image = None
         try:
             height, width, channels = frame.shape
-            if self._frame is None:
-                self._frame = np.zeros((width, height, channels), np.uint8)
-
             image = QImage(frame, width, height, QImage.Format_RGB888)
-            image = image.rgbSwapped()
             image = image.scaledToWidth(VIDEO_WIDTH)
+            image = image.rgbSwapped()
         except Exception as ex:
             getLogger('finprint').exception('Exception building image')
 
@@ -148,18 +176,24 @@ class CvVideoWidget(QWidget):
             painter.drawRect(self._highlighter.get_rect())
 
     def load_frame(self, current=False):
+        t = time.perf_counter()
+        diff = t - self.last_time
+        self.last_time = t
+        getLogger('finprint').debug("frame load diff {0:.4f}".format(diff))
+
         grabbed, frame = self._capture.retrieve() if current else self._capture.read()
         if grabbed:
-            t = time.perf_counter()
-            diff = t - self.last_time
-            self.last_time = t
-            getLogger('finprint').debug("frame load diff {0:.4f}".format(diff))
-            self._image = self._build_image(frame)
-            self._onPositionChange(self.get_position())
+            if diff < 0.06:  #skip frames if we start getting behind
+                self._image = self._build_image(frame)
+                self._onPositionChange(self.get_position())
+            else:
+                getLogger('finprint').debug('Skipping frame')
+
         else:
             # Hit the end
             self._play_state = PlayState.EndOfStream
             self.playStateChanged.emit(self._play_state)
+
 
     def get_highlight_extent(self):
         ext = Extent()
