@@ -112,10 +112,13 @@ class CvVideoWidget(QWidget):
         # don't start listening for spacebar until video is loaded and playable
         QCoreApplication.instance().installEventFilter(self)
 
+        fps = self._capture.get(cv2.CAP_PROP_FPS)
+        getLogger('finprint').debug("FPS {0}".format(fps))
         getLogger('finprint').debug("frame height {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         getLogger('finprint').debug("frame width {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)))
         getLogger('finprint').debug("widget height {0}".format(self.height()))
         getLogger('finprint').debug("widget width {0}".format(self.width()))
+
 
         # Take one frame to query height
         self.set_position(0)
@@ -124,6 +127,7 @@ class CvVideoWidget(QWidget):
 
         # Base line for measuring frame rate
         self.last_time = time.perf_counter()
+        self._timer.interval = 1/fps #Set the timer to the frame rate of the video
         self._timer.start()
         return True
 
