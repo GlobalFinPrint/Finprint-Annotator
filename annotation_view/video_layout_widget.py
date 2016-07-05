@@ -56,7 +56,10 @@ class VideoLayoutWidget(QWidget):
         self._submit_button = QPushButton('Send for Review')
         self._submit_button.setFixedWidth(150)
         self._submit_button.setDisabled(True)
-        self._submit_button.setStyleSheet("""background: #29566D; color:white; font: 12pt "Arial"; padding-top -bottom: 4px; padding-left -right: 20px""")
+        self._submit_button.setStyleSheet("""QPushButton {background: rgb(41, 86, 109); color:white; font: 12pt "Arial";
+                                            border-radius: 4px; padding-top: 4px; padding-bottom: 4px; padding-left:
+                                            10px; padding-right: 10px;}
+                                            QPushButton:hover {background: rgb(41, 86, 109, 128)} """)
 
         self._obs_btn_box = QHBoxLayout()
 
