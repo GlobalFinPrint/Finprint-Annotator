@@ -252,10 +252,10 @@ class ObservationTable(QTableView):
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         delete_menu = menu.addMenu('Delete')
-        delete_evt_action = delete_menu.addAction('Event')
+        delete_evt_action = delete_menu.addAction('Image')
         delete_obs_action = delete_menu.addAction('Observation')
         edit_menu = menu.addMenu('Edit')
-        edit_evt_action = edit_menu.addAction('Event')
+        edit_evt_action = edit_menu.addAction('Image')
         edit_obs_action = edit_menu.addAction('Observation')
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
