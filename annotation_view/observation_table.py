@@ -157,7 +157,24 @@ class ObservationTable(QTableView):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         stylesheet = """QTableView { gridline-color #cccccc; border: 1px solid #cccccc;}
-                        QHeaderView::section {  height: 30px; background-color: rgb(131,140,158,51); color: rgb(41,86,109,254); }"""
+                        QHeaderView::section { height: 30px; background-color: rgb(131,140,158,51); color: rgb(41,86,109,254); }
+                        QScrollBar::vertical { border: 1px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
+                        QScrollBar::handle:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
+                            stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); min-height: 0px;}
+                        QScrollBar::add-line:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
+                            stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); height: 0px; subcontrol-position: bottom; subcontrol-origin: margin;}
+                        QScrollBar::sub-line:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0," stop: 0  rgb(131,140,158),
+                            stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); height: 0px;subcontrol-position: top; subcontrol-origin:margin}
+                        QScrollBar::horizontal { border: 1px solid #999999; background:white; height:10px; margin: 0px 0px 0px 0px;}
+                        QScrollBar::handle:horizontal { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
+                            stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); min-width: 0px;}
+                        QScrollBar::add-line:horizontal { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
+                            stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); width: 0px; subcontrol-position: right; subcontrol-origin: margin;}
+                        QScrollBar::sub-line:horizontal { background: qlineargradient(x1:0, y1:0, x2:1, y2:0," stop: 0  rgb(131,140,158),
+                            stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); width: 0px;subcontrol-position: left; subcontrol-origin:margin}
+
+                            """
+
         self.setStyleSheet(stylesheet)
         font = self.horizontalHeader().font()
         font.setPointSize(12)
