@@ -25,32 +25,37 @@ creds = open('./credentials.csv').readlines()[1].split(',')
 AWS_ACCESS_KEY_ID = creds[1].strip()
 AWS_SECRET_ACCESS_KEY = creds[2].strip()
 
-class RepeatingTimer():
-   def __init__(self, interval, callback):
-      self.interval = interval
-      self.callback = callback
-      self.active = False
-      self.elapse_event = Event()
-      self.thread = None
+class RepeatingTimer(QObject):
+    timerElapsed = pyqtSignal()
 
-   def wrapper_function(self):
+    def __init__(self, interval, callback):
+        super(RepeatingTimer, self).__init__()
+        self.interval = interval
+        self.callback = callback
+        self.active = False
+        self.shutdown_event = Event()
+        self.timerElapsed.connect(self.onElapse)
+        self.thread = None
+
+    def wrapper_function(self):
         self.active = True
-        self.elapse_event.clear()
+        self.shutdown_event.clear()
         timeout = self.interval
         while self.active:
-            if self.elapse_event.wait(timeout=timeout):
+            if self.shutdown_event.wait(timeout=self.interval):
                 self.active = False
             else:
-                t = time.perf_counter()
-                self.callback()
-                timeout = self.interval - (time.perf_counter() - t) #adjust for time spent in callback
+                self.timerElapsed.emit()
 
-   def start(self):
-      self.thread = Thread(group=None, target=self.wrapper_function, daemon=True)
-      self.thread.start()
+    def onElapse(self):
+        self.callback()
 
-   def cancel(self):
-      self.elapse_event.set()
+    def start(self):
+        self.thread = Thread(group=None, target=self.wrapper_function, daemon=True)
+        self.thread.start()
+
+    def cancel(self):
+        self.shutdown_event.set()
 
 
 class CvVideoWidget(QWidget):
@@ -72,7 +77,8 @@ class CvVideoWidget(QWidget):
         self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
         self._image.fill(Qt.black)
 
-        self._timer = RepeatingTimer(0.0416, self.on_timer)
+        self._FPS = 0.0416 # 24 fps is GoPro norm
+        self._timer = RepeatingTimer(self._FPS, self.on_timer)
 
         self._last_progress = 0
 
@@ -114,7 +120,9 @@ class CvVideoWidget(QWidget):
         QCoreApplication.instance().installEventFilter(self)
 
         fps = self._capture.get(cv2.CAP_PROP_FPS)
-        getLogger('finprint').debug("FPS {0}".format(fps))
+        self._FPS = fps if fps > 10 and fps < 61 else self._FPS
+
+        getLogger('finprint').debug("FPS {0}".format(self._FPS))
         getLogger('finprint').debug("frame height {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         getLogger('finprint').debug("frame width {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)))
         getLogger('finprint').debug("widget height {0}".format(self.height()))
@@ -128,12 +136,11 @@ class CvVideoWidget(QWidget):
 
         # Base line for measuring frame rate
         self.last_time = time.perf_counter()
-        self._timer.interval = 1/fps #Set the timer to the frame rate of the video
+        self._timer.interval = 1/self._FPS #Set the timer to the frame rate of the video
         self._timer.start()
         return True
 
     def on_timer(self):
-        t = time.perf_counter()
         pos = self.get_position()
         if self._play_state == PlayState.Playing:
             if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
@@ -141,11 +148,11 @@ class CvVideoWidget(QWidget):
                 self.progressUpdate.emit(pos)
             self.load_frame()
         elif self._play_state == PlayState.SeekForward:
-            pos += 360
+            pos += 120
             self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
             self.load_frame()
         elif self._play_state == PlayState.SeekBack:
-            pos -= 360
+            pos -= 120
             self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
             self.load_frame()
 
@@ -188,11 +195,8 @@ class CvVideoWidget(QWidget):
 
         grabbed, frame = self._capture.retrieve() if current else self._capture.read()
         if grabbed:
-            if diff < 0.06:  #skip frames if we start getting behind
-                self._image = self._build_image(frame)
-                self._onPositionChange(self.get_position())
-            else:
-                getLogger('finprint').debug('Skipping frame')
+            self._image = self._build_image(frame)
+            self._onPositionChange(self.get_position())
 
         else:
             # Hit the end
@@ -280,14 +284,13 @@ class CvVideoWidget(QWidget):
         return self._capture.get(cv2.CAP_PROP_POS_MSEC) if self._capture is not None else None
 
     def get_length(self):
-        fps = self._capture.get(cv2.CAP_PROP_FPS)
         num_frames = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
 
-        if fps == 0 or num_frames == 0:
+        if self._FPS == 0 or num_frames == 0:
             getLogger('finprint').exception("Failed to calculate length")
             return 0
         else:
-            return (num_frames / fps) * 1000  # Returns milliseconds as a float
+            return (num_frames / self._FPS) * 1000  # Returns milliseconds as a float
 
     def fast_forward(self):
         if self._play_state == PlayState.SeekForward:
@@ -308,11 +311,13 @@ class CvVideoWidget(QWidget):
             self._context_menu.display()
 
     def step_back(self):
-        self.pause()
+        if not self.paused():
+            self.pause()
         self.set_position(self.get_position() - FRAME_STEP)
 
     def step_forward(self):
-        self.pause()
+        if not self.paused():
+            self.pause()
         self.set_position(self.get_position() + FRAME_STEP)
 
     def clear_extent(self):
