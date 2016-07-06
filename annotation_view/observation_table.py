@@ -107,6 +107,11 @@ class ObservationTableCell(QStyledItemDelegate):
     disabled_color = None
     obs_dupe_color = None
     Columns = ObservationTableModel.Columns
+    observation_columns = [
+        Columns.organism,
+        Columns.observation_comment,
+        Columns.duration
+    ]
 
     def __init__(self, parent):
         super(QStyledItemDelegate, self).__init__(parent)
@@ -118,31 +123,18 @@ class ObservationTableCell(QStyledItemDelegate):
         row, col = model_index.row(), model_index.column()
         event = self.parent().get_event(row)
 
-        #disabled look for organism column for Of Interest
+        # disabled color for of interest
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
             painter.fillRect(style.rect, self.disabled_color)
             painter.restore()
+        # zebra striping table by observation
         else:
             painter.save()
             painter.fillRect(style.rect, event.obs_color)
             painter.restore()
-            super().paint(painter, style, model_index)
-
-        # disabled look for organism column for Of Interest
-        # if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
-        #     painter.save()
-        #     painter.fillRect(style.rect, self.disabled_color)
-        #     painter.restore()
-        #
-        # # don't fill in observation values after the first row
-        # elif col in [self.Columns.organism, self.Columns.observation_comment, self.Columns.duration] \
-        #         and sorted(event.observation.events, key=lambda e: e.event_time, reverse=True)[0].id != event.id:
-        #     painter.save()
-        #     painter.fillRect(style.rect, self.obs_dupe_color)
-        #     painter.restore()
-        # else:
-        #     super().paint(painter, style, model_index)
+            if col not in self.observation_columns or hasattr(event, 'first_flag'):
+                super().paint(painter, style, model_index)
 
 
 class ObservationTable(QTableView):
@@ -230,13 +222,14 @@ class ObservationTable(QTableView):
         self.refresh_model()
 
     def refresh_model(self):
-        rotate_colors = [QColor(126,211,33, 128), QColor(126,211,33, 64)]
+        rotate_colors = [QColor(126, 211, 33, 128), QColor(126, 211, 33, 64)]
         rotate_index = 0
         # TODO note current row
         self.empty()
         obs = sorted(self.current_set.observations, key=lambda o: o.initial_time())
         for o in obs:
             events = sorted(o.events, key=lambda e: e.event_time)
+            events[-1].first_flag = True
             for e in events:
                 e.obs_color = rotate_colors[rotate_index]
                 self.add_row(e)
@@ -276,10 +269,10 @@ class ObservationTable(QTableView):
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         delete_menu = menu.addMenu('Delete')
-        delete_evt_action = delete_menu.addAction('Event')
+        delete_evt_action = delete_menu.addAction('Image')
         delete_obs_action = delete_menu.addAction('Observation')
         edit_menu = menu.addMenu('Edit')
-        edit_evt_action = edit_menu.addAction('Event')
+        edit_evt_action = edit_menu.addAction('Image')
         edit_obs_action = edit_menu.addAction('Observation')
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
