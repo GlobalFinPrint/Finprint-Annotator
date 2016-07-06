@@ -31,7 +31,7 @@ class RepeatingTimer():
       self.callback = callback
       self.active = False
       self.elapse_event = Event()
-      self.thread = Thread(group=None, target=self.wrapper_function, daemon=True)
+      self.thread = None
 
    def wrapper_function(self):
         self.active = True
@@ -46,6 +46,7 @@ class RepeatingTimer():
                 timeout = self.interval - (time.perf_counter() - t) #adjust for time spent in callback
 
    def start(self):
+      self.thread = Thread(group=None, target=self.wrapper_function, daemon=True)
       self.thread.start()
 
    def cancel(self):
