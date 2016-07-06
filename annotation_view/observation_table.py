@@ -148,8 +148,8 @@ class ObservationTable(QTableView):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        stylesheet = """QTableView { gridline-color #cccccc; border: 1px solid #cccccc;}
-                        QHeaderView::section { height: 30px; background-color: rgb(131,140,158,51); color: rgb(41,86,109,254); }
+        stylesheet = """QTableView { gridline-color: #cccccc; border: 1px solid #cccccc;}
+                        QHeaderView::section { height: 35px; background-color: rgb(131,140,158,51); color: rgb(41,86,109); padding-bottom:5px}
                         QScrollBar::vertical { border: 1px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
                         QScrollBar::handle:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
                             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); min-height: 0px;}
