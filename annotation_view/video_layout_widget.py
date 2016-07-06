@@ -54,7 +54,7 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
 
         self._submit_button = QPushButton('Send for Review')
-        self._submit_button.setFixedWidth(150)
+        self._submit_button.setFixedWidth(190)
         self._submit_button.setDisabled(True)
         self._submit_button.setStyleSheet("""QPushButton {  background: rgb(41, 86, 109); color:white; font: 12pt "Arial";
                                                             border-radius: 4px; padding-top: 4px; padding-bottom: 4px; padding-left:
