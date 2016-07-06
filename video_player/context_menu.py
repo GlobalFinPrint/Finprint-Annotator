@@ -151,8 +151,7 @@ class EventDialog(QDialog):
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
             attributes_label = QLabel('Tags:')
-            self.att_dropdown = AttributeSelector(self._set.attributes,
-                                                  selected_ids=self.dialog_values['attribute'])
+            self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
             attributes_label.setBuddy(self.att_dropdown)
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addWidget(attributes_label)
