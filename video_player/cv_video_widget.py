@@ -28,13 +28,11 @@ AWS_SECRET_ACCESS_KEY = creds[2].strip()
 class RepeatingTimer(QObject):
     timerElapsed = pyqtSignal()
 
-    def __init__(self, interval, callback):
+    def __init__(self, interval):
         super(RepeatingTimer, self).__init__()
         self.interval = interval
-        self.callback = callback
         self.active = False
         self.shutdown_event = Event()
-        self.timerElapsed.connect(self.onElapse)
         self.thread = None
 
     def wrapper_function(self):
@@ -46,9 +44,6 @@ class RepeatingTimer(QObject):
                 self.active = False
             else:
                 self.timerElapsed.emit()
-
-    def onElapse(self):
-        self.callback()
 
     def start(self):
         self.thread = Thread(group=None, target=self.wrapper_function, daemon=True)
@@ -72,13 +67,13 @@ class CvVideoWidget(QWidget):
         self._dragging = False
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
-        self.start_time = time.perf_counter()
         self.last_time = time.perf_counter()
         self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
         self._image.fill(Qt.black)
 
         self._FPS = 0.0416 # 24 fps is GoPro norm
-        self._timer = RepeatingTimer(self._FPS, self.on_timer)
+        self._timer = RepeatingTimer(self._FPS)
+        self._timer.timerElapsed.connect(self.on_timer)
 
         self._last_progress = 0
 
@@ -141,19 +136,21 @@ class CvVideoWidget(QWidget):
         return True
 
     def on_timer(self):
-        pos = self.get_position()
         if self._play_state == PlayState.Playing:
+            pos = self.get_position()
             if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
                 self._last_progress = pos
                 self.progressUpdate.emit(pos)
             self.load_frame()
         elif self._play_state == PlayState.SeekForward:
-            pos += 120
-            self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+            f = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
+            f += 10
+            self._capture.set(cv2.CAP_PROP_POS_FRAMES, f)
             self.load_frame()
         elif self._play_state == PlayState.SeekBack:
-            pos -= 120
-            self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+            f = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
+            f -= 10
+            self._capture.set(cv2.CAP_PROP_POS_FRAMES, f)
             self.load_frame()
 
         self.update()
@@ -167,13 +164,13 @@ class CvVideoWidget(QWidget):
         self.update()
 
     def _build_image(self, frame):
-        t = time.perf_counter()
         image = None
         try:
             height, width, channels = frame.shape
             image = QImage(frame, width, height, QImage.Format_RGB888)
             image = image.scaledToWidth(VIDEO_WIDTH)
             image = image.rgbSwapped()
+
         except Exception as ex:
             getLogger('finprint').exception('Exception building image')
 
@@ -202,7 +199,6 @@ class CvVideoWidget(QWidget):
             # Hit the end
             self._play_state = PlayState.EndOfStream
             self.playStateChanged.emit(self._play_state)
-
 
     def get_highlight_extent(self):
         ext = Extent()
@@ -273,6 +269,7 @@ class CvVideoWidget(QWidget):
     def play(self):
         if self._play_state == PlayState.EndOfStream:
             self.set_position(0)
+        self._timer.interval = 1 / self._FPS
         self._play_state = PlayState.Playing
         self._highlighter.clear()
         self.playStateChanged.emit(self._play_state)
@@ -296,6 +293,7 @@ class CvVideoWidget(QWidget):
         if self._play_state == PlayState.SeekForward:
             self.pause()
         else:
+            self._timer.interval = 10 / self._FPS
             self._play_state = PlayState.SeekForward
         self.playStateChanged.emit(self._play_state)
 
@@ -303,6 +301,7 @@ class CvVideoWidget(QWidget):
         if self._play_state == PlayState.SeekBack:
             self.pause()
         else:
+            self._timer.interval = 10 / self._FPS
             self._play_state = PlayState.SeekBack
         self.playStateChanged.emit(self._play_state)
 
