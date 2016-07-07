@@ -1,6 +1,7 @@
 import logging
 from pydispatch import dispatcher
 from global_finprint import GlobalFinPrintServer
+from config import global_config
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
@@ -13,15 +14,16 @@ class LoginWidget(QWidget):
         logo.setGeometry(100, 100, 130, 130)
         logo.setPixmap(QPixmap("./images/logo.png"))
 
-        user = QLabel('User Name')
-        pwd = QLabel('Password')
-
         self.user_edit = QLineEdit()
         self.user_edit.setMaximumWidth(300)
 
         self.pwd_edit = QLineEdit()
         self.pwd_edit.setMaximumWidth(300)
         self.pwd_edit.setEchoMode(QLineEdit.Password)
+
+        self.svr_edit = QLineEdit()
+        self.svr_edit.setMaximumWidth(300)
+        self.svr_edit.setText(global_config.get('GLOBAL_FINPRINT_SERVER', 'address'))
 
         self.error_label = QLabel()
         self.error_label.setStyleSheet("QLabel {color:red;}")
@@ -46,6 +48,7 @@ class LoginWidget(QWidget):
         form.addRow(logo)
         form.addRow('User Name', self.user_edit)
         form.addRow('Password', self.pwd_edit)
+        form.addRow('Server', self.svr_edit)
         form.addWidget(self.error_label)
         form.addRow(button_layout)
 
@@ -61,8 +64,11 @@ class LoginWidget(QWidget):
         self.error_label.setText('')
         try:
             client = GlobalFinPrintServer()
-            (success, data) = client.login(user_name=self.user_edit.text(), pwd=self.pwd_edit.text())
-        except Exception as ex:
+            (success, data) = client.login(user_name=self.user_edit.text(),
+                                           pwd=self.pwd_edit.text(),
+                                           server=self.svr_edit.text())
+            global_config.set_item('GLOBAL_FINPRINT_SERVER', 'address', self.svr_edit.text())
+        except Exception:
             success = False
             data = {'msg': 'Failed to connect to Server'}
 

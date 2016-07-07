@@ -1,5 +1,4 @@
 import requests
-from config import global_config
 
 
 class Singleton:
@@ -25,13 +24,14 @@ class GlobalFinPrintServer(Singleton):
             self.user_role = None
             self.user_name = ''
             self.user_id = None
-            self.address = global_config.get('GLOBAL_FINPRINT_SERVER', 'address')
+            self.address = None
 
     def is_lead(self):
         return self.user_role == 'lead'
 
-    def login(self, user_name, pwd):
+    def login(self, user_name, pwd, server):
         data = {'username': user_name, 'password': pwd}
+        self.address = server
         r = requests.post(self.address + '/api/login', data)
         self.logged_in = False
         if r.status_code == 200:
