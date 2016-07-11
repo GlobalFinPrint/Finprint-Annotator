@@ -17,6 +17,8 @@ class MainWindow(QMainWindow):
         self._set_layout = None
         self._props_layout = None
         self._has_logged_in = False  # if a successful log in has occurred, don't exit app when cancelling login dialog
+        self.set_diag = None
+        self.filter_diag = None
 
         self.setWindowIcon(QIcon('./images/shark-icon.png'))
         self.setWindowTitle('Finprint Annotator {0}'.format(config.__version_string__))
@@ -145,6 +147,9 @@ class MainWindow(QMainWindow):
         self._vid_layout.load_set(self._vid_layout.current_set)
 
     def _launch_set_list(self, sets=False, title='Assigned Sets List'):
+        if self.filter_diag:
+            self.filter_diag.close()
+
         self._set_layout = QVBoxLayout()
         self._set_list = SetListWidget()
 
@@ -162,6 +167,9 @@ class MainWindow(QMainWindow):
         self.set_diag.show()
 
     def _launch_set_filter(self):
+        if self.set_diag:
+            self.set_diag.close()
+
         self._filter_layout = QVBoxLayout()
 
         self._filter_data = GlobalFinPrintServer().trip_list()
