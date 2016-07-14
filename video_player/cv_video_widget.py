@@ -83,9 +83,17 @@ class CvVideoWidget(QWidget):
     def load_set(self, set):
         self._current_set = set
         self._context_menu = ContextMenu(set, parent=self)
+        self._context_menu.itemSelected.connect(self.onMenuSelect)
 
     def context_menu(self):
         return self._context_menu
+
+    def onMenuSelect(self, optDict):
+        if optDict is not None:
+            optDict['event_time'] = int(self.get_position())
+            optDict['extent'] = self.get_highlight_extent().to_wkt()
+            self._context_menu.display_event_dialog(optDict)
+        self.clear_extent()
 
     # listen for any spacebar touches for play/pause
     def eventFilter(self, obj, evt):

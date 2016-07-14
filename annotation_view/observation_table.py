@@ -2,6 +2,7 @@ from global_finprint import Event, Observation, GlobalFinPrintServer
 from enum import IntEnum
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from video_player import DialogActions
 
 
 class ObservationTableModel(QAbstractTableModel):
@@ -303,14 +304,14 @@ class ObservationTable(QTableView):
                 if self.confirm_delete_dialog(obs):
                     self.remove_observation(obs)
             elif action == edit_evt_action:  # edit event
-                self.video_context_menu().display_event_dialog(
-                    action=self.video_context_menu().DialogActions.edit_event,
-                    event=self.get_event(row)
+                self.video_context_menu().display_event_dialog({
+                    "action": DialogActions.edit_event,
+                    "event": self.get_event(row)}
                 )
             elif action == edit_obs_action:  # edit observation
-                self.video_context_menu().display_event_dialog(
-                    action=self.video_context_menu().DialogActions.edit_obs,
-                    obs=self.get_event(row).observation
+                self.video_context_menu().display_event_dialog({
+                    "action": DialogActions.edit_obs,
+                    "obs": self.get_event(row).observation}
                 )
             elif set_duration_action and action == set_duration_action:  # set duration
                 self.durationClicked.emit(self.get_event(row).observation)

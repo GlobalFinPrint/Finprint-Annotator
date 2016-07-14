@@ -4,15 +4,17 @@ from PyQt4.QtGui import *
 from enum import IntEnum
 
 
+class DialogActions(IntEnum):
+    new_obs = 1
+    add_event = 2
+    edit_obs = 3
+    edit_event = 4
+
+
 class ContextMenu(QMenu):
     event_dialog = None
     action = None
-
-    class DialogActions(IntEnum):
-        new_obs = 1
-        add_event = 2
-        edit_obs = 3
-        edit_event = 4
+    itemSelected = pyqtSignal(dict)
 
     def __init__(self, current_set, parent):
         super(ContextMenu, self).__init__(parent)
@@ -62,19 +64,32 @@ class ContextMenu(QMenu):
         self._populate_obs_menu()
         action = self.exec_(QCursor.pos())  # TODO position better
         if action is None or action == self._cancel_act:
-            self.parent().clear_extent()
+            self.itemSelected.emit(None)
         elif action == self._interest_act:
-            self.display_event_dialog(action=self.DialogActions.new_obs,
-                                      type_choice='I')
+            self.itemSelected.emit({"action": DialogActions.new_obs,
+                                    "type_choice": 'I'})
         elif type(action.data()).__name__ == 'Animal':
-            self.display_event_dialog(action=self.DialogActions.new_obs,
-                                      type_choice='A',
-                                      animal=action.data())
+            self.itemSelected.emit({"action": DialogActions.new_obs,
+                                    "type_choice": 'A',
+                                    "animal": action.data()})
         elif type(action.data()).__name__ == 'Observation':
-            self.display_event_dialog(action=self.DialogActions.add_event,
-                                      obs=action.data())
+            self.itemSelected.emit({"action": DialogActions.add_event,
+                                    "obs": action.data()})
 
-    def display_event_dialog(self, **kwargs):
+        # if action is None or action == self._cancel_act:
+        #     self.parent().clear_extent()
+        # elif action == self._interest_act:
+        #     self.display_event_dialog(action=DialogActions.new_obs,
+        #                               type_choice='I')
+        # elif type(action.data()).__name__ == 'Animal':
+        #     self.display_event_dialog(action=DialogActions.new_obs,
+        #                               type_choice='A',
+        #                               animal=action.data())
+        # elif type(action.data()).__name__ == 'Observation':
+        #     self.display_event_dialog(action=DialogActions.add_event,
+        #                               obs=action.data())
+
+    def display_event_dialog(self, kwargs):
         self.event_dialog = QDialog(self, Qt.WindowTitleHint)
         self.event_dialog.setFixedWidth(300)
         self.event_dialog.setModal(True)
@@ -83,13 +98,13 @@ class ContextMenu(QMenu):
 
         self.action = kwargs['action']
 
-        if kwargs['action'] == self.DialogActions.new_obs:
+        if kwargs['action'] == DialogActions.new_obs:
             title = 'New observation'
-        elif kwargs['action'] == self.DialogActions.add_event:
+        elif kwargs['action'] == DialogActions.add_event:
             title = 'Add event'
-        elif kwargs['action'] == self.DialogActions.edit_obs:
+        elif kwargs['action'] == DialogActions.edit_obs:
             title = 'Edit observation'
-        elif kwargs['action'] == self.DialogActions.edit_event:
+        elif kwargs['action'] == DialogActions.edit_event:
             title = 'Edit event'
         else:
             title = ''  # should never happen
@@ -114,15 +129,15 @@ class ContextMenu(QMenu):
             if self.dialog_values['type_choice'] == 'A' and 'animal' in kwargs:
                 self.dialog_values['animal_id'] = kwargs['animal'].id
 
-        if kwargs['action'] in [self.DialogActions.new_obs, self.DialogActions.add_event]:
-            self.dialog_values['event_time'] = int(self.parent().get_position())
-            self.dialog_values['extent'] = self.parent().get_highlight_extent().to_wkt()
+        if kwargs['action'] in [DialogActions.new_obs, DialogActions.add_event]:
+            self.dialog_values['event_time'] = kwargs['event_time']
+            self.dialog_values['extent'] = kwargs['extent']
 
         # set up dialog view
         layout = QVBoxLayout()
 
         # observation info
-        if kwargs['action'] != self.DialogActions.edit_event:
+        if kwargs['action'] != DialogActions.edit_event:
             obs_label = QLabel('Observation: ' + (str(kwargs['obs']) if 'obs' in kwargs else 'New'))
             type_label = QLabel('Observation type: ' + ('Of interest' if kwargs['type_choice'] == 'I' else 'Animal'))
             layout.addWidget(obs_label)
@@ -142,7 +157,7 @@ class ContextMenu(QMenu):
             layout.addWidget(self.animal_dropdown)
 
         # attributes
-        if kwargs['action'] != self.DialogActions.edit_obs:
+        if kwargs['action'] != DialogActions.edit_obs:
             attributes_label = QLabel('Tags:')
             self.att_dropdown = AttributeSelector(self._set.attributes, selected_ids=self.dialog_values['attribute'])
             attributes_label.setBuddy(self.att_dropdown)
@@ -151,7 +166,7 @@ class ContextMenu(QMenu):
             layout.addWidget(self.att_dropdown)
 
         # observation notes
-        if kwargs['action'] in [self.DialogActions.new_obs, self.DialogActions.edit_obs]:
+        if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs]:
             obs_notes_label = QLabel('Observation Note:')
             self.obs_text = QPlainTextEdit()
             if 'obs' in kwargs:
@@ -163,7 +178,7 @@ class ContextMenu(QMenu):
             layout.addWidget(self.obs_text)
 
         # event notes
-        if kwargs['action'] != self.DialogActions.edit_obs:
+        if kwargs['action'] != DialogActions.edit_obs:
             notes_label = QLabel('Image notes:')
             self.text_area = QPlainTextEdit()
             self.text_area.setPlainText(self.dialog_values['note'])
@@ -187,7 +202,7 @@ class ContextMenu(QMenu):
         cancel_but.setFixedHeight(30)
         cancel_but.clicked.connect(self.cleanup)
 
-        if kwargs['action'] in [self.DialogActions.new_obs, self.DialogActions.add_event]:
+        if kwargs['action'] in [DialogActions.new_obs, DialogActions.add_event]:
             buttons.addButton(save_but, QDialogButtonBox.ActionRole)
         else:
             buttons.addButton(update_but, QDialogButtonBox.ActionRole)
@@ -198,7 +213,7 @@ class ContextMenu(QMenu):
         self.event_dialog.show()
 
     def pushed_save(self):
-        if self.action == self.DialogActions.new_obs:  # new obs
+        if self.action == DialogActions.new_obs:  # new obs
             filename = self._set.add_observation(self.dialog_values)
         else:  # add event to obs
             filename = self._set.add_event(self.selected_obs.id, self.dialog_values)
@@ -213,7 +228,7 @@ class ContextMenu(QMenu):
         self.cleanup()
 
     def pushed_update(self):
-        if self.action == self.DialogActions.edit_obs:
+        if self.action == DialogActions.edit_obs:
             self._set.edit_observation(self.selected_obs, self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
@@ -231,7 +246,7 @@ class ContextMenu(QMenu):
         self.selected_event = None
         self.event_dialog.close()
         self.event_dialog = None
-        self.parent().clear_extent()
+        #self.parent().clear_extent()
 
     def attribute_select(self):
         # note that API is expecting singular "attribute" here, no "attributes"
@@ -248,3 +263,8 @@ class ContextMenu(QMenu):
 
     def observation_table(self):
         return self.parent().parent()._observation_table
+
+class EventDialog(QDialog):
+    def __init__(self, parent=None, flags=Qt.WindowTitleHint):
+        super(EventDialog, self).__init__(parent, flags)
+
