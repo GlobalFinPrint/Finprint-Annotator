@@ -137,8 +137,7 @@ class EventDialog(QDialog):
             layout.addWidget(type_label)
 
         # obs animal (if applicable)
-        # TODO only editable on new obs/obs edit
-        if 'animal' in kwargs:
+        if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs]:
             animal_label = QLabel('Organism:')
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
