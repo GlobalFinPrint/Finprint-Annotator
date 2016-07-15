@@ -158,7 +158,6 @@ class VideoLayoutWidget(QWidget):
                 widget.deleteLater()
 
     def get_local_file(self, orig_file_path):
-        orig_file_path = 'finder_test/sharkcut.avi'
         path, filename = os.path.split(orig_file_path)
         local_path = global_config.get('VIDEOS', 'alt_media_dir')
         matching_files = []
