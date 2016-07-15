@@ -93,9 +93,12 @@ class CvVideoWidget(QWidget):
             optDict['event_time'] = int(self.get_position())
             optDict['extent'] = self.get_highlight_extent().to_wkt()
             optDict['set'] = self._current_set
-            #self._context_menu.display_event_dialog(optDict)
             d = EventDialog(parent=self)
             d.finished.connect(self.clear_extent)
+            x = self.rect().right() + d.width() + 15
+            y = self.rect().top() + 75
+            print("Send dialog to {0}, {1}".format(x, y))
+            d.move(x, y)
             d.launch(optDict)
         else:
             self.clear_extent()
