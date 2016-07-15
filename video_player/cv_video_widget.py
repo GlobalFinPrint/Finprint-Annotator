@@ -8,7 +8,7 @@ from logging import getLogger
 from global_finprint import Extent
 from .play_state import PlayState
 from .highlighter import Highlighter
-from .context_menu import ContextMenu
+from .context_menu import ContextMenu, EventDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
@@ -92,8 +92,13 @@ class CvVideoWidget(QWidget):
         if optDict is not None:
             optDict['event_time'] = int(self.get_position())
             optDict['extent'] = self.get_highlight_extent().to_wkt()
-            self._context_menu.display_event_dialog(optDict)
-        self.clear_extent()
+            optDict['set'] = self._current_set
+            #self._context_menu.display_event_dialog(optDict)
+            d = EventDialog(parent=self)
+            d.finished.connect(self.clear_extent)
+            d.launch(optDict)
+        else:
+            self.clear_extent()
 
     # listen for any spacebar touches for play/pause
     def eventFilter(self, obj, evt):

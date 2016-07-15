@@ -42,17 +42,6 @@ class ContextMenu(QMenu):
         self._observations_menu = self.addMenu('Add to existing observation')
         self._cancel_act = self.addAction('Cancel')
 
-        # event params
-        self.dialog_values = {}
-
-        # dialog controls
-        self.att_dropdown = None
-        self.animal_dropdown = None
-        self.text_area = None
-        self.obs_text = None
-        self.selected_obs = None
-        self.selected_event = None
-
     def _populate_obs_menu(self):
         self._observations_menu.clear()
         self._set.observations.sort(key=lambda o: o.initial_time())
@@ -76,26 +65,28 @@ class ContextMenu(QMenu):
             self.itemSelected.emit({"action": DialogActions.add_event,
                                     "obs": action.data()})
 
-        # if action is None or action == self._cancel_act:
-        #     self.parent().clear_extent()
-        # elif action == self._interest_act:
-        #     self.display_event_dialog(action=DialogActions.new_obs,
-        #                               type_choice='I')
-        # elif type(action.data()).__name__ == 'Animal':
-        #     self.display_event_dialog(action=DialogActions.new_obs,
-        #                               type_choice='A',
-        #                               animal=action.data())
-        # elif type(action.data()).__name__ == 'Observation':
-        #     self.display_event_dialog(action=DialogActions.add_event,
-        #                               obs=action.data())
 
-    def display_event_dialog(self, kwargs):
-        self.event_dialog = QDialog(self, Qt.WindowTitleHint)
-        self.event_dialog.setFixedWidth(300)
-        self.event_dialog.setModal(True)
-        self.event_dialog.setStyleSheet('background:#fff;')
-        self.event_dialog.finished.connect(self.cleanup)
+class EventDialog(QDialog):
+    def __init__(self, parent=None, flags=Qt.WindowTitleHint):
+        super(EventDialog, self).__init__(parent=parent, flags=flags)
 
+        self.setFixedWidth(300)
+        self.setModal(True)
+        self.setStyleSheet('background:#fff;')
+        self.finished.connect(self.cleanup)
+
+        # event params
+        self.dialog_values = {}
+
+        # dialog controls
+        self.att_dropdown = None
+        self.animal_dropdown = None
+        self.text_area = None
+        self.obs_text = None
+        self.selected_obs = None
+        self.selected_event = None
+
+    def launch(self, kwargs):
         self.action = kwargs['action']
 
         if kwargs['action'] == DialogActions.new_obs:
@@ -108,10 +99,11 @@ class ContextMenu(QMenu):
             title = 'Edit event'
         else:
             title = ''  # should never happen
-        self.event_dialog.setWindowTitle(title)
+        self.setWindowTitle(title)
 
         self.dialog_values['note'] = ''
         self.dialog_values['attribute'] = None
+        self._set = kwargs['set']
 
         # set dialog data for submit
         if 'obs' in kwargs:
@@ -139,7 +131,8 @@ class ContextMenu(QMenu):
         # observation info
         if kwargs['action'] != DialogActions.edit_event:
             obs_label = QLabel('Observation: ' + (str(kwargs['obs']) if 'obs' in kwargs else 'New'))
-            type_label = QLabel('Observation type: ' + ('Of interest' if kwargs['type_choice'] == 'I' else 'Animal'))
+            type_label = QLabel(
+                'Observation type: ' + ('Of interest' if kwargs['type_choice'] == 'I' else 'Animal'))
             layout.addWidget(obs_label)
             layout.addWidget(type_label)
 
@@ -159,7 +152,8 @@ class ContextMenu(QMenu):
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
             attributes_label = QLabel('Tags:')
-            self.att_dropdown = AttributeSelector(self._set.attributes, selected_ids=self.dialog_values['attribute'])
+            self.att_dropdown = AttributeSelector(self._set.attributes,
+                                                  selected_ids=self.dialog_values['attribute'])
             attributes_label.setBuddy(self.att_dropdown)
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addWidget(attributes_label)
@@ -209,8 +203,8 @@ class ContextMenu(QMenu):
         buttons.addButton(cancel_but, QDialogButtonBox.ActionRole)
         layout.addWidget(buttons)
 
-        self.event_dialog.setLayout(layout)
-        self.event_dialog.show()
+        self.setLayout(layout)
+        self.show()
 
     def pushed_save(self):
         if self.action == DialogActions.new_obs:  # new obs
@@ -244,9 +238,9 @@ class ContextMenu(QMenu):
         self.action = None
         self.selected_obs = None
         self.selected_event = None
-        self.event_dialog.close()
-        self.event_dialog = None
-        #self.parent().clear_extent()
+        self.close()
+        self = None
+        # self.parent().clear_extent()
 
     def attribute_select(self):
         # note that API is expecting singular "attribute" here, no "attributes"
@@ -263,8 +257,3 @@ class ContextMenu(QMenu):
 
     def observation_table(self):
         return self.parent().parent()._observation_table
-
-class EventDialog(QDialog):
-    def __init__(self, parent=None, flags=Qt.WindowTitleHint):
-        super(EventDialog, self).__init__(parent, flags)
-
