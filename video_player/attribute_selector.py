@@ -6,10 +6,16 @@ BUTTONS_PER_ROW = 2
 
 
 class SelectedButton(QPushButton):
+    clicked = pyqtSignal(int)
+
     def __init__(self, text, attr_id):
         super().__init__(text)
         self.setStyleSheet('padding: 5px;')
         self.setProperty('id', attr_id)
+        self.pressed.connect(self.pressed_event)
+
+    def pressed_event(self):
+        self.clicked.emit(self.property('id'))
 
 
 class AttributeSelector(QVBoxLayout):
@@ -65,9 +71,17 @@ class AttributeSelector(QVBoxLayout):
         for attr in self.attributes:
             if attr['selected']:
                 button = SelectedButton(attr['name'] + '  (X)', attr['id'])
+                button.clicked.connect(self._unselect_tag)
                 self.selected_items.addButton(button)
                 self.selected_layout.addWidget(button, *divmod(spot, BUTTONS_PER_ROW))
                 spot += 1
+
+    def _unselect_tag(self, id):
+        for attr in self.attributes:
+            if attr['id'] == id:
+                attr['selected'] = False
+        self.empty_selected()
+        self.display_selected()
 
     def _refresh_list(self):
         for attr in self.attributes:
