@@ -151,6 +151,7 @@ class EventDialog(QDialog):
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
+            self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addLayout(self.att_dropdown)
 
         # observation notes

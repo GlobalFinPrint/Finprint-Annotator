@@ -55,6 +55,7 @@ class AttributeSelector(QVBoxLayout):
         for attr in self.attributes:
             if attr['name'] == text:
                 attr['selected'] = True
+        self.selected_changed.emit()
         self.empty_selected()
         self.display_selected()
         self.input_line.setText('')  # TODO get this to go off after select
@@ -80,6 +81,7 @@ class AttributeSelector(QVBoxLayout):
         for attr in self.attributes:
             if attr['id'] == id:
                 attr['selected'] = False
+        self.selected_changed.emit()
         self.empty_selected()
         self.display_selected()
 
