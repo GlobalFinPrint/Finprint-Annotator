@@ -2,10 +2,14 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 
+BUTTONS_PER_ROW = 2
+
+
 class SelectedButton(QPushButton):
-    def __init__(self, text):
+    def __init__(self, text, attr_id):
         super().__init__(text)
-        # TODO style button
+        self.setStyleSheet('padding: 5px;')
+        self.setProperty('id', attr_id)
 
 
 class AttributeSelector(QVBoxLayout):
@@ -19,10 +23,11 @@ class AttributeSelector(QVBoxLayout):
         self.model = QStandardItemModel(self)
         self.completer = QCompleter(self)
         self.selected_items = QButtonGroup(self)
-        self.selected_layout = QVBoxLayout()
+        self.selected_layout = QGridLayout()
 
         self._refresh_list()
 
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self.completer.setModel(self.model)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.setCompletionColumn(0)
@@ -44,21 +49,25 @@ class AttributeSelector(QVBoxLayout):
         for attr in self.attributes:
             if attr['name'] == text:
                 attr['selected'] = True
+        self.empty_selected()
         self.display_selected()
+        self.input_line.setText('')  # TODO get this to go off after select
 
     def empty_selected(self):
+        for i in reversed(range(self.selected_layout.count())):
+            self.selected_layout.itemAt(i).widget().deleteLater()
+
         for button in self.selected_items.buttons():
             self.selected_items.removeButton(button)
-            self.selected_layout.removeWidget(button)
 
     def display_selected(self):
-        self.empty_selected()
+        spot = 0
         for attr in self.attributes:
             if attr['selected']:
-                button = SelectedButton(attr['name'])
-                button.setProperty('id', attr['id'])
+                button = SelectedButton(attr['name'] + '  (X)', attr['id'])
                 self.selected_items.addButton(button)
-                self.selected_layout.addWidget(button)
+                self.selected_layout.addWidget(button, *divmod(spot, BUTTONS_PER_ROW))
+                spot += 1
 
     def _refresh_list(self):
         for attr in self.attributes:
