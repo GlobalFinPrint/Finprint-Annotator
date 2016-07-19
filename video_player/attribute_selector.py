@@ -37,7 +37,7 @@ class AttributeSelector(QVBoxLayout):
         self.completer.setModel(self.model)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.setCompletionColumn(0)
-        self.completer.activated.connect(self.on_select)
+        self.completer.activated.connect(self.on_select, Qt.QueuedConnection)
 
         self.label.setBuddy(self.input_line)
         self.input_line.setCompleter(self.completer)
@@ -58,7 +58,7 @@ class AttributeSelector(QVBoxLayout):
         self.selected_changed.emit()
         self.empty_selected()
         self.display_selected()
-        self.input_line.setText('')  # TODO get this to go off after select
+        self.input_line.setText('')
 
     def empty_selected(self):
         for i in reversed(range(self.selected_layout.count())):
