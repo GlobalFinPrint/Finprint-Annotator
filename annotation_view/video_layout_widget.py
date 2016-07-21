@@ -184,6 +184,7 @@ class VideoLayoutWidget(QWidget):
 
         self._video_label.setText('{0}'.format(self.current_set.file))
         self._slider.show()
+        self._slider.load_set(self.current_set)
 
         self._rew_button.setDisabled(False)
         if GlobalFinPrintServer().is_lead():

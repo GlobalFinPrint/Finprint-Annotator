@@ -5,6 +5,37 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 
+class Ticks(QWidget):
+    tick_image = QImage('images/timeline-tick.png')
+    active_tick_image = QImage('images/timeline-tick-active-best.png')
+    event_tick_image = QImage('images/timeline-tick-active-other_frame.png')
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self._set = None
+        self._video_length = None
+        self.raise_()
+
+    def load_set(self, set):
+        self._set = set
+        self._video_length = None
+
+    def paintEvent(self, evt):
+        super().paintEvent(evt)
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+
+        try:
+            self._video_length = self.parent()._player.get_length()
+        except AttributeError:
+            return
+
+        if self._set:
+            for obs in self._set.observations:
+                position = VIDEO_WIDTH * obs.initial_time() / self._video_length  # TODO need a better way to calc pos
+                painter.drawImage(position - 5, 6, self.tick_image)
+
+
 class VideoSeekWidget(QSlider):
     item_select = pyqtSignal(Animal)
 
@@ -13,6 +44,9 @@ class VideoSeekWidget(QSlider):
 
         self.dragging = False
         self._player = player
+        self._ticks = Ticks(self)
+        self._set = None
+
         self.setOrientation(Qt.Horizontal)
         self.setStyleSheet(self.style())
         self.allowed_progress = None
@@ -22,6 +56,13 @@ class VideoSeekWidget(QSlider):
         self.sliderReleased.connect(self._released)
 
         self.setMaximumWidth(VIDEO_WIDTH)
+
+    def load_set(self, set):
+        self._set = set
+        self._ticks.load_set(set)
+
+    def resizeEvent(self, _):
+        self._ticks.setGeometry(self.rect())
 
     def _pressed(self):
         self.dragging = True
@@ -44,6 +85,10 @@ class VideoSeekWidget(QSlider):
 
     def style(self):
         return """
+            QSlider {
+                padding-top: 10px;
+            }
+
             QSlider::groove:horizontal {
                 background: rgb(126,211,33, 64);
                 height: 2px;
@@ -51,7 +96,7 @@ class VideoSeekWidget(QSlider):
             }
 
             QSlider::sub-page:horizontal {
-                background: qlineargradient(x1: 0, y1: 0,    x2: 0, y2: 1,
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
                     stop: 0 #33CC33, stop: 1 #99FF33);
                 height: 2px;
             }
