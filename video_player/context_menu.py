@@ -70,7 +70,7 @@ class EventDialog(QDialog):
     def __init__(self, parent=None, flags=Qt.WindowTitleHint):
         super(EventDialog, self).__init__(parent=parent, flags=flags)
 
-        self.setFixedWidth(300)
+        self.setFixedWidth(300)  # TODO bigger for tag selector?
         self.setModal(True)
         self.setStyleSheet('background:#fff;')
         self.finished.connect(self.cleanup)
@@ -150,13 +150,9 @@ class EventDialog(QDialog):
 
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
-            attributes_label = QLabel('Tags:')
-            self.att_dropdown = AttributeSelector(self._set.attributes,
-                                                  selected_ids=self.dialog_values['attribute'])
-            attributes_label.setBuddy(self.att_dropdown)
+            self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
             self.att_dropdown.selected_changed.connect(self.attribute_select)
-            layout.addWidget(attributes_label)
-            layout.addWidget(self.att_dropdown)
+            layout.addLayout(self.att_dropdown)
 
         # observation notes
         if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs]:
@@ -243,7 +239,7 @@ class EventDialog(QDialog):
 
     def attribute_select(self):
         # note that API is expecting singular "attribute" here, no "attributes"
-        self.dialog_values['attribute'] = self.att_dropdown.get_selected()
+        self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
 
     def animal_select(self):
         self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())

@@ -1,83 +1,106 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-import re
 
 
-class AttributeSelector(QComboBox):
+BUTTONS_PER_ROW = 2
+
+
+class SelectedButton(QPushButton):
+    clicked = pyqtSignal(int)
+
+    def __init__(self, text, attr_id):
+        super().__init__(text)
+        self.setStyleSheet('padding: 5px;')
+        self.setProperty('id', attr_id)
+        self.pressed.connect(self.pressed_event)
+
+    def pressed_event(self):
+        self.clicked.emit(self.property('id'))
+
+
+class AttributeSelector(QVBoxLayout):
     selected_changed = pyqtSignal()
 
-    def __init__(self, attrs, selected_ids=None):
+    def __init__(self, attributes, selected_ids):
         super().__init__()
-        self.view().pressed.connect(self.item_pressed)
-        self.setModel(QStandardItemModel(self))
-        self.setEditable(True)
-        self.lineEdit().setReadOnly(True)
-        self.setStyleSheet('QComboBox QAbstractItemView { margin-top: 27px; }')
+        self.label = QLabel('Tags:')
+        self.input_line = QLineEdit()
+        self.attributes = self._make_attr_list(attributes, [] if selected_ids is None else selected_ids)
+        self.model = QStandardItemModel(self)
+        self.completer = QCompleter(self)
+        self.selected_items = QButtonGroup(self)
+        self.selected_layout = QGridLayout()
 
-        self.currentIndexChanged.connect(self.on_current_index_change)
+        self._refresh_list()
 
-        self.done_button = QPushButton(parent=self.view())
-        self.done_button.setText('Done')
-        self.done_button.setVisible(False)
-        combo_width = self.view().sizeHint().width()
-        scrollbar_width = self.view().verticalScrollBar().sizeHint().width()
-        self.done_button.setFixedSize(combo_width + scrollbar_width + 6, 25)
-        self.done_button.pressed.connect(self.done_pressed)
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.completer.setModel(self.model)
+        self.completer.setCaseSensitivity(Qt.CaseInsensitive)
+        self.completer.setCompletionColumn(0)
+        self.completer.activated.connect(self.on_select, Qt.QueuedConnection)
 
-        attrs = self._make_attr_list(attrs)
-        if selected_ids is None:
-            selected_ids = []
+        self.label.setBuddy(self.input_line)
+        self.input_line.setCompleter(self.completer)
 
-        for attr in attrs:
-            label = (attr['level'] * '--') + (' ' if attr['level'] > 0 else '') + attr['name']
-            self.addItem(label, attr['id'])
-            index = self.findData(attr['id'])
-            item = self.model().item(index, 0)
-            item.setCheckState(Qt.Checked if attr['id'] in selected_ids else Qt.Unchecked)
+        self.addWidget(self.label)
+        self.addWidget(self.input_line)
+        self.addLayout(self.selected_layout)
 
-        self.update_button_text()
+        self.display_selected()
 
-    def get_selected(self):
-        return [self.itemData(i) for i in range(self.count()) if self.model().item(i).checkState() == Qt.Checked]
+    def get_selected_ids(self):
+        return [attr['id'] for attr in self.attributes if attr['selected']]
 
-    def get_selected_text(self):
-        clean_text = re.compile(r'(^-+\s)?(.*)$')
-        selected_text = [clean_text.match(self.itemText(i)).groups()[-1] for i in range(self.count())
-                         if self.model().item(i).checkState() == Qt.Checked]
-        return ', '.join(selected_text) if len(selected_text) > 0 else '--- NONE ---'
-
-    def update_button_text(self):
-        self.lineEdit().setText(self.get_selected_text())
-
-    def item_pressed(self, index):
-        item = self.model().itemFromIndex(index)
-        if item.checkState() == Qt.Checked:
-            item.setCheckState(Qt.Unchecked)
-        else:
-            item.setCheckState(Qt.Checked)
+    def on_select(self, text):
+        for attr in self.attributes:
+            if attr['name'] == text:
+                attr['selected'] = True
         self.selected_changed.emit()
+        self.empty_selected()
+        self.display_selected()
+        self.input_line.setText('')
 
-    def done_pressed(self):
-        self.done_button.setVisible(False)
-        super().hidePopup()
+    def empty_selected(self):
+        for i in reversed(range(self.selected_layout.count())):
+            self.selected_layout.itemAt(i).widget().deleteLater()
 
-    def showPopup(self):
-        super().showPopup()
-        self.done_button.setVisible(True)
+        for button in self.selected_items.buttons():
+            self.selected_items.removeButton(button)
 
-    def hidePopup(self):
-        pass  # stay open (press escape to close)
+    def display_selected(self):
+        spot = 0
+        for attr in self.attributes:
+            if attr['selected']:
+                button = SelectedButton(attr['name'] + '  (X)', attr['id'])
+                button.clicked.connect(self._unselect_tag)
+                self.selected_items.addButton(button)
+                self.selected_layout.addWidget(button, *divmod(spot, BUTTONS_PER_ROW))
+                spot += 1
 
-    def on_current_index_change(self, *args, **kwargs):
-        self.update_button_text()
+    def _unselect_tag(self, id):
+        for attr in self.attributes:
+            if attr['id'] == id:
+                attr['selected'] = False
+        self.selected_changed.emit()
+        self.empty_selected()
+        self.display_selected()
 
-    def _all_items(self):
-        return [self.itemText(i) for i in range(self.count())]
+    def _refresh_list(self):
+        for attr in self.attributes:
+            self._add_item(attr['name'], attr['id'], attr['selected'])
 
-    def _make_attr_list(self, attrs):
+    def _add_item(self, *items):
+        self.model.appendRow([QStandardItem(item) for item in items])
+
+    def _make_attr_list(self, attributes, selected_ids):
         attr_list = []
-        for attr in attrs:
-            attr_list.append({'id': attr['id'], 'name': attr['name'], 'level': attr['level']})
+        for attr in attributes:
+            attr_list.append({
+                'id': attr['id'],
+                'name': attr['name'],
+                'level': attr['level'],
+                'selected': attr['id'] in selected_ids
+            })
             if 'children' in attr:
-                attr_list += self._make_attr_list(attr['children'])
+                attr_list += self._make_attr_list(attr['children'], selected_ids)
         return attr_list
