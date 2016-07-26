@@ -5,6 +5,7 @@ from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set
 from .login_widget import LoginWidget
 from .set_list_widget import SetListWidget
+from .assignment_widget import AssignmentWidget
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
@@ -146,6 +147,13 @@ class MainWindow(QMainWindow):
         self.props_diag.close()
         self._vid_layout.load_set(self._vid_layout.current_set)
 
+    def _launch_assign_diag(self, sets):
+        assign_layout = QVBoxLayout()
+        assign_layout.addWidget(AssignmentWidget(sets))
+        self.assign_diag = QDialog(self)
+        self.assign_diag.setLayout(assign_layout)
+        self.assign_diag.show()
+
     def _launch_set_list(self, sets=False, title='Assigned Sets List'):
         if self.filter_diag:
             self.filter_diag.close()
@@ -243,10 +251,7 @@ class MainWindow(QMainWindow):
         self._has_logged_in = True
         self.login_diag.close()
         self._set_menus()
-        if GlobalFinPrintServer().is_lead():
-            self._launch_set_filter()
-        else:
-            self._launch_set_list(sets=value)
+        self._launch_assign_diag(value)
 
     def on_login_cancelled(self, signal, sender, value):
         self.login_diag.close()
