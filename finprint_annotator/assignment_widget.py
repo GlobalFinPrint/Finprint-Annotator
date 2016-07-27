@@ -29,12 +29,13 @@ class AssignmentWidget(QWidget):
                 padding: 3px;
             }
             '''
-            trip_list = GlobalFinPrintServer().trip_list()
+            self.trip_list = GlobalFinPrintServer().trip_list()['trips']
             self._trip_filter = QComboBox()
             self._trip_filter.setStyleSheet(stylesheet)
             self._trip_filter.setMaximumWidth(400)
             self._trip_filter.addItem('--- Filter by Trip ---')
-            self._trip_filter.addItems(list(t['trip'] for t in trip_list['trips']))
+            for t in self.trip_list:
+                self._trip_filter.addItem(t['trip'], t['id'])
             self._trip_filter.currentIndexChanged.connect(self._trip_filter_change)
             filter_layout.addWidget(self._trip_filter)
 
@@ -45,21 +46,23 @@ class AssignmentWidget(QWidget):
             self._set_filter.currentIndexChanged.connect(self._filter_change)
             filter_layout.addWidget(self._set_filter)
 
-            anno_list = GlobalFinPrintServer().annotator_list()
+            anno_list = GlobalFinPrintServer().annotator_list()['annotators']
             self._anno_filter = QComboBox()
             self._anno_filter.setStyleSheet(stylesheet)
             self._anno_filter.setMaximumWidth(400)
             self._anno_filter.addItem('--- Filter by Annotator ---')
-            self._anno_filter.addItems(list(a['annotator'] for a in anno_list['annotators']))
+            for a in anno_list:
+                self._anno_filter.addItem(a['annotator'], a['id'])
             self._anno_filter.currentIndexChanged.connect(self._filter_change)
             filter_layout.addWidget(self._anno_filter)
 
-            status_list = ['Not started', 'In progress', 'Ready for Review']
+            status_list = [(1, 'Not started'), (2, 'In progress'), (3, 'Ready for Review')]
             self._status_filter = QComboBox()
             self._status_filter.setStyleSheet(stylesheet)
             self._status_filter.setMaximumWidth(400)
             self._status_filter.addItem('--- Filter by Status ---')
-            self._status_filter.addItems(status_list)
+            for s in status_list:
+                self._status_filter.addItem(s[1], s[0])
             self._status_filter.currentIndexChanged.connect(self._filter_change)
             filter_layout.addWidget(self._status_filter)
 
@@ -135,7 +138,12 @@ class AssignmentWidget(QWidget):
         dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=set_id)
 
     def _trip_filter_change(self):
-        # TODO update set dropdown
+        self._set_filter.clear()
+        self._set_filter.addItem('--- Filter by Set ---')
+        selected_trip = next((t for t in self.trip_list if t['trip'] == self._trip_filter.currentText()), None)
+        if selected_trip:
+            for set in selected_trip['sets']:
+                self._set_filter.addItem(set['set'], set['id'])
         self._filter_change()
 
     def _filter_change(self):
