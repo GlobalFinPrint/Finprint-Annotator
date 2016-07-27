@@ -54,7 +54,7 @@ class MainWindow(QMainWindow):
                 setFilterAction = QAction('&Filter Review Sets...', self)
                 setFilterAction.setShortcut('Ctrl+F')
                 setFilterAction.setStatusTip('Filter sets for lead review')
-                setFilterAction.triggered.connect(self._launch_set_filter)
+                setFilterAction.triggered.connect(self._launch_assign_diag)
                 fileMenu.addAction(setFilterAction)
         else:
             logInAction = QAction('&Login', self)

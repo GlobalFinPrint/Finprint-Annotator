@@ -18,24 +18,70 @@ class AssignmentWidget(QWidget):
         self.is_lead = GlobalFinPrintServer().is_lead()
         self.layout = QVBoxLayout()
 
-        # TODO add filter dropdowns for lead
+        # add filter dropdowns for lead
+        if self.is_lead:
+            filter_layout = QHBoxLayout()
+            stylesheet = '''
+            QComboBox {
+                padding: 5px 10px;
+            }
+            QComboBox QAbstractItemView {
+                padding: 3px;
+            }
+            '''
+            trip_list = GlobalFinPrintServer().trip_list()
+            self._trip_filter = QComboBox()
+            self._trip_filter.setStyleSheet(stylesheet)
+            self._trip_filter.setMaximumWidth(400)
+            self._trip_filter.addItem('--- Filter by Trip ---')
+            self._trip_filter.addItems(list(t['trip'] for t in trip_list['trips']))
+            self._trip_filter.currentIndexChanged.connect(self._filter_change)
+            filter_layout.addWidget(self._trip_filter)
+
+            anno_list = GlobalFinPrintServer().annotator_list()
+            self._anno_filter = QComboBox()
+            self._anno_filter.setStyleSheet(stylesheet)
+            self._anno_filter.setMaximumWidth(400)
+            self._anno_filter.addItem('--- Filter by Annotator ---')
+            self._anno_filter.addItems(list(a['annotator'] for a in anno_list['annotators']))
+            self._anno_filter.currentIndexChanged.connect(self._filter_change)
+            filter_layout.addWidget(self._anno_filter)
+
+            status_list = ['Not started', 'In progress', 'Ready for Review']
+            self._status_filter = QComboBox()
+            self._status_filter.setStyleSheet(stylesheet)
+            self._status_filter.setMaximumWidth(400)
+            self._status_filter.addItem('--- Filter by Status ---')
+            self._status_filter.addItems(status_list)
+            self._status_filter.currentIndexChanged.connect(self._filter_change)
+            filter_layout.addWidget(self._status_filter)
+
+            filter_layout.addStretch(1)
+            self.layout.addLayout(filter_layout)
 
         # blue table header
         header = QLabel()
-        header.setStyleSheet('background-color: rgb(41, 86, 109);color: rgb(255, 255, 255);font: 75 18pt "Arial";')
-        header.setText('   Assignments' if self.is_lead else '   Assigned set list')
+        header.setStyleSheet('''
+            padding-left: 10px;
+            background-color: rgb(41, 86, 109);
+            color: rgb(255, 255, 255);
+            font: 75 18pt "Arial";
+        ''')
+        header.setText('Assignments' if self.is_lead else 'Assigned set list')
         header.setMinimumHeight(40)
         self.layout.addWidget(header)
 
         # set table
         self.set_table = QTableWidget(self)
         self.setMinimumSize(800, 400)
-        stylesheet = '''
-            QHeaderView::section { height: 35px; background-color: rgb(131,140,158,51); color: rgb(41,86,109); padding-bottom:5px}
-        '''
-        if not self.is_lead:  # TODO do we really want visual divergence on non-lead?
-            self.set_table.setShowGrid(False)
-            stylesheet += 'QTableView::item { border-bottom: 1px solid #cccccc; } '
+        self.set_table.setStyleSheet('''
+            QHeaderView::section {
+                height: 35px;
+                background-color: rgb(131,140,158,51);
+                color: rgb(41,86,109);
+                padding-bottom:5px
+            }
+        ''')
         columns = self.LEAD_COLUMNS if self.is_lead else self.ANNO_COLUMNS
         self.set_table.setColumnCount(len(columns))
         self.set_table.setHorizontalHeaderLabels(columns)
@@ -44,7 +90,6 @@ class AssignmentWidget(QWidget):
             self.set_table.horizontalHeader().setResizeMode(2, QHeaderView.ResizeToContents)
         self.set_table.setColumnHidden(0, True)
         self.set_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.set_table.setStyleSheet(stylesheet)
         self.layout.addWidget(self.set_table)
 
         self.setLayout(self.layout)
@@ -81,3 +126,6 @@ class AssignmentWidget(QWidget):
     def _select_set(self, row, _):
         set_id = int(self.set_table.item(row, 0).text())
         dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=set_id)
+
+    def _filter_change(self):
+        pass
