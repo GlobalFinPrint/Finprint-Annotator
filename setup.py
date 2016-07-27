@@ -228,10 +228,13 @@ class BuildInstaller(py2exe):
         shutil.copy('lib/opencv_ffmpeg310.dll',
                     'dist/opencv_ffmpeg310.dll')
         win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
-                               win32con.FILE_ATTRIBUTE_NORMAL)  # include the ini files in lib_files so they end up in the installer
-        files = ['config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'credentials.csv']
-        files = [os.path.join(self.dist_dir, path) for path in files]
-        #todo create the lib_files,   console_exe_files, windows_exe_files, service_exe_files
+                               win32con.FILE_ATTRIBUTE_NORMAL)
+
+        shutil.copy('requests/cacert.pem',
+                    'dist/cacert.pem')
+        win32api.SetFileAttributes('dist/cacert.pem',
+                               win32con.FILE_ATTRIBUTE_NORMAL)
+
         self.lib_dir = "dist\\lib"
         self.lib_files = [] #self.getdatafiles()
         for path_tuple in (self.distribution.data_files):
@@ -239,10 +242,9 @@ class BuildInstaller(py2exe):
                 self.lib_files.append(path)
 
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'lib/shared.zip', 'credentials.csv']
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'lib/shared.zip', 'credentials.csv', 'cacert.pem']
         self.windows_exe_files = []
         self.service_exe_files = []
-        #self.lib_files.extend(files)
         print('################## end post_run ################')
 
     def post_installer(self):
