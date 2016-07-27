@@ -35,8 +35,15 @@ class AssignmentWidget(QWidget):
             self._trip_filter.setMaximumWidth(400)
             self._trip_filter.addItem('--- Filter by Trip ---')
             self._trip_filter.addItems(list(t['trip'] for t in trip_list['trips']))
-            self._trip_filter.currentIndexChanged.connect(self._filter_change)
+            self._trip_filter.currentIndexChanged.connect(self._trip_filter_change)
             filter_layout.addWidget(self._trip_filter)
+
+            self._set_filter = QComboBox()
+            self._set_filter.setStyleSheet(stylesheet)
+            self._set_filter.setMaximumWidth(400)
+            self._set_filter.addItem('--- Filter by Set ---')
+            self._set_filter.currentIndexChanged.connect(self._filter_change)
+            filter_layout.addWidget(self._set_filter)
 
             anno_list = GlobalFinPrintServer().annotator_list()
             self._anno_filter = QComboBox()
@@ -127,5 +134,10 @@ class AssignmentWidget(QWidget):
         set_id = int(self.set_table.item(row, 0).text())
         dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=set_id)
 
+    def _trip_filter_change(self):
+        # TODO update set dropdown
+        self._filter_change()
+
     def _filter_change(self):
+        # TODO update set list table
         pass

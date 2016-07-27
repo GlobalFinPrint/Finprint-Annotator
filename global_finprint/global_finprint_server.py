@@ -60,12 +60,12 @@ class GlobalFinPrintServer(Singleton):
         return r.json()
 
     def trip_list(self):
-        r = requests.get(self.address + '/api/trip', params={'token': self.user_token})
+        r = requests.get(self.address + '/api/trip', params={'token': self.user_token, 'assigned': True})
         return r.json()
 
     def annotator_list(self):
-        # TODO get anno list
-        return {'annotators': []}
+        r = requests.get(self.address + '/api/annotator', params={'token': self.user_token})
+        return r.json()
 
     def set_detail(self, set_id):
         r = requests.get(self.address + '/api/set/{0}'.format(set_id), params={'token': self.user_token})
