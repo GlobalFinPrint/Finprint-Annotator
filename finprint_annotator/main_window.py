@@ -4,7 +4,6 @@ from pydispatch import dispatcher
 from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set
 from .login_widget import LoginWidget
-from .set_list_widget import SetListWidget
 from .assignment_widget import AssignmentWidget
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -48,7 +47,7 @@ class MainWindow(QMainWindow):
             setListAction = QAction('Assigned Set &List...', self)
             setListAction.setShortcut('Ctrl+L')
             setListAction.setStatusTip('View list of assigned sets')
-            setListAction.triggered.connect(self._launch_set_list)
+            setListAction.triggered.connect(self._launch_assign_diag)
             fileMenu.addAction(setListAction)
 
             if GlobalFinPrintServer().is_lead():
@@ -147,32 +146,16 @@ class MainWindow(QMainWindow):
         self.props_diag.close()
         self._vid_layout.load_set(self._vid_layout.current_set)
 
-    def _launch_assign_diag(self, sets):
+    def _launch_assign_diag(self, sets=False):
+        if sets is False:
+            response = GlobalFinPrintServer().set_list()
+            sets = response['sets']
+
         assign_layout = QVBoxLayout()
         assign_layout.addWidget(AssignmentWidget(sets))
         self.assign_diag = QDialog(self)
         self.assign_diag.setLayout(assign_layout)
         self.assign_diag.show()
-
-    def _launch_set_list(self, sets=False, title='Assigned Sets List'):
-        if self.filter_diag:
-            self.filter_diag.close()
-
-        self._set_layout = QVBoxLayout()
-        self._set_list = SetListWidget()
-
-        if sets is False:
-            response = GlobalFinPrintServer().set_list()
-            sets = response['sets']
-
-        for s in sets:
-            self._set_list.add_item(s)
-
-        self._set_layout.addWidget(self._set_list)
-        self.set_diag = QDialog(self, Qt.WindowTitleHint)
-        self.set_diag.setLayout(self._set_layout)
-        self.set_diag.setWindowTitle(title)
-        self.set_diag.show()
 
     def _launch_set_filter(self):
         if self.set_diag:
@@ -260,6 +243,6 @@ class MainWindow(QMainWindow):
             QCoreApplication.instance().quit()
 
     def set_selected(self, signal, sender, value):
-        self.set_diag.close()
-        s = Set(value['id'])
+        self.assign_diag.close()
+        s = Set(value)
         self._vid_layout.load_set(s)

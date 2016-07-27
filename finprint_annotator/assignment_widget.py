@@ -1,4 +1,6 @@
+from pydispatch import dispatcher
 from global_finprint import GlobalFinPrintServer
+from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 
@@ -13,13 +15,15 @@ class AssignmentWidget(QWidget):
         super().__init__()
 
         self._sets = sets
-        self.is_lead = False # GlobalFinPrintServer().is_lead()
+        self.is_lead = GlobalFinPrintServer().is_lead()
         self.layout = QVBoxLayout()
+
+        # TODO add filter dropdowns for lead
 
         # blue table header
         header = QLabel()
         header.setStyleSheet('background-color: rgb(41, 86, 109);color: rgb(255, 255, 255);font: 75 18pt "Arial";')
-        header.setText('   Assigned set list' if self.is_lead else '   Assignments')
+        header.setText('   Assignments' if self.is_lead else '   Assigned set list')
         header.setMinimumHeight(40)
         self.layout.addWidget(header)
 
@@ -39,6 +43,7 @@ class AssignmentWidget(QWidget):
         if self.is_lead:
             self.set_table.horizontalHeader().setResizeMode(2, QHeaderView.ResizeToContents)
         self.set_table.setColumnHidden(0, True)
+        self.set_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.set_table.setStyleSheet(stylesheet)
         self.layout.addWidget(self.set_table)
 
@@ -49,12 +54,18 @@ class AssignmentWidget(QWidget):
         for row, set in enumerate(self._sets):
             self._add_row(set, row)
 
-        # TODO hook up click events
-        # TODO add filter dropdowns
+        # make all items non editable
+        for row in range(self.set_table.rowCount()):
+            for col in range(self.set_table.columnCount()):
+                item = self.set_table.item(row, col)
+                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+
+        # hook up click events
+        self.set_table.cellDoubleClicked.connect(self._select_set)
 
     def _add_row(self, set, row):
         items = [
-            QTableWidgetItem(set['id']),
+            QTableWidgetItem(str(set['id'])),
             QTableWidgetItem(set['set_code'])
         ]
         if self.is_lead:
@@ -66,3 +77,7 @@ class AssignmentWidget(QWidget):
         ]
         for col, item in enumerate(items):
             self.set_table.setItem(row, col, item)
+
+    def _select_set(self, row, _):
+        set_id = int(self.set_table.item(row, 0).text())
+        dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=set_id)

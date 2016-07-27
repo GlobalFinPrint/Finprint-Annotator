@@ -25,7 +25,7 @@ class Ticks(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
 
-        try:
+        try:  # TODO do this better
             self._video_length = self.parent()._player.get_length()
         except AttributeError:
             return
