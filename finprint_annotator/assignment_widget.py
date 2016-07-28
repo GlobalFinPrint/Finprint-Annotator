@@ -84,7 +84,7 @@ class AssignmentWidget(QWidget):
 
         # set table
         self.set_table = QTableWidget(self)
-        self.setMinimumSize(800, 400)
+        self.setMinimumSize(900, 400)
         self.set_table.setStyleSheet('''
             QHeaderView::section {
                 height: 35px;
@@ -96,14 +96,18 @@ class AssignmentWidget(QWidget):
         columns = self.LEAD_COLUMNS if self.is_lead else self.ANNO_COLUMNS
         self.set_table.setColumnCount(len(columns))
         self.set_table.setHorizontalHeaderLabels(columns)
+        self.set_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+
+        # first column takes up extra space then fit rest of columns
         self.set_table.horizontalHeader().setResizeMode(1, QHeaderView.Stretch)
-        if self.is_lead:
-            self.set_table.horizontalHeader().setResizeMode(2, QHeaderView.ResizeToContents)
+        for col in range(2, self.set_table.columnCount()):
+            self.set_table.horizontalHeader().setResizeMode(col, QHeaderView.ResizeToContents)
+
+        # hide ID and filename columns
         self.set_table.setColumnHidden(0, True)
         self.set_table.setColumnHidden(self.set_table.columnCount() - 1, True)
-        self.set_table.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.layout.addWidget(self.set_table)
 
+        self.layout.addWidget(self.set_table)
         self.setLayout(self.layout)
 
         # populate table with current sets
