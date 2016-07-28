@@ -2,15 +2,15 @@ from pydispatch import dispatcher
 from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from annotation_view import convert_position
+from annotation_view import convert_position, VideoLayoutWidget
 
 
 class AssignmentWidget(QWidget):
     LEAD_COLUMNS = ['ID', 'Set/video name',
                     'Annotator',
-                    'Date assigned', 'Status', 'Last activity']
+                    'Date assigned', 'Status', 'Last activity', 'Filename']
     ANNO_COLUMNS = ['ID', 'Set/video name',
-                    'Date assigned', 'Status', 'Last Activity']
+                    'Date assigned', 'Status', 'Last Activity', 'Filename']
 
     def __init__(self, sets):
         super().__init__()
@@ -121,12 +121,6 @@ class AssignmentWidget(QWidget):
         for row, set in enumerate(self._sets):
             self._add_row(set, row)
 
-        # make all items non editable
-        for row in range(self.set_table.rowCount()):
-            for col in range(self.set_table.columnCount()):
-                item = self.set_table.item(row, col)
-                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-
     def _add_row(self, set, row):
         items = [
             QTableWidgetItem(str(set['id'])),
@@ -137,14 +131,30 @@ class AssignmentWidget(QWidget):
         items += [
             QTableWidgetItem(set['assigned_at']),
             QTableWidgetItem(set['status']['name'] + ' ' + convert_position(set['progress'])),
-            QTableWidgetItem(set['last_activity'])
+            QTableWidgetItem(set['last_activity']),
+            QTableWidgetItem(set['file']),
         ]
         for col, item in enumerate(items):
+            if set['file'] == 'None':
+                item.setTextColor(QColor(204, 204, 204))
+            item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.set_table.setItem(row, col, item)
 
     def _select_set(self, row, _):
+        filename = self.set_table.item(row, self.set_table.columnCount() - 1).text()
         set_id = int(self.set_table.item(row, 0).text())
-        dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=set_id)
+        if filename == 'None':
+            msgbox = QMessageBox()
+            msgbox.setText('No video file has been specified for this set')
+            msgbox.setWindowTitle('Missing video')
+            msgbox.exec_()
+        elif VideoLayoutWidget.get_local_file(filename) is False:
+            msgbox = QMessageBox()
+            msgbox.setText("Could not load file: {0}".format(filename))
+            msgbox.setWindowTitle("Error Loading Video")
+            msgbox.exec_()
+        else:
+            dispatcher.send('SET_SELECTED', dispatcher.Anonymous, value=set_id)
 
     def _trip_filter_change(self):
         self._set_filter.clear()

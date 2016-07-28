@@ -157,7 +157,8 @@ class VideoLayoutWidget(QWidget):
             if widget is not None:
                 widget.deleteLater()
 
-    def get_local_file(self, orig_file_path):
+    @staticmethod
+    def get_local_file(orig_file_path):
         path, filename = os.path.split(orig_file_path)
         local_path = global_config.get('VIDEOS', 'alt_media_dir')
         matching_files = []
@@ -169,11 +170,11 @@ class VideoLayoutWidget(QWidget):
         if len(matching_files) == 1:
             return matching_files[0]
         elif len(matching_files) > 1:
-            return matching_files[0] #TODO: Allow selection if there's more than one
+            return matching_files[0]  # TODO: Allow selection if there's more than one
         else:
             error_message = 'File not found in local media store.  Using original path {0}'.format(orig_file_path)
             getLogger('finprint').info(error_message)
-            return orig_file_path
+            return False
 
     def load_set(self, set):
         getLogger('finprint').info("Loading Set {0}".format(set.code))
