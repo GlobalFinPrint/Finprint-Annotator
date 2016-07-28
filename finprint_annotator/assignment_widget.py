@@ -2,6 +2,7 @@ from pydispatch import dispatcher
 from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from annotation_view import convert_position
 
 
 class AssignmentWidget(QWidget):
@@ -135,7 +136,7 @@ class AssignmentWidget(QWidget):
             items += [QTableWidgetItem(set['assigned_to']['user'])]
         items += [
             QTableWidgetItem(set['assigned_at']),
-            QTableWidgetItem(set['status']['name']),
+            QTableWidgetItem(set['status']['name'] + ' ' + convert_position(set['progress'])),
             QTableWidgetItem(set['last_activity'])
         ]
         for col, item in enumerate(items):
