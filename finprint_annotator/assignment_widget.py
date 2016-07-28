@@ -100,6 +100,7 @@ class AssignmentWidget(QWidget):
         if self.is_lead:
             self.set_table.horizontalHeader().setResizeMode(2, QHeaderView.ResizeToContents)
         self.set_table.setColumnHidden(0, True)
+        self.set_table.setColumnHidden(self.set_table.columnCount() - 1, True)
         self.set_table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.layout.addWidget(self.set_table)
 
