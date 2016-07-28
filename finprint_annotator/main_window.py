@@ -46,7 +46,7 @@ class MainWindow(QMainWindow):
         if GlobalFinPrintServer().logged_in:
             setListAction = QAction('Assigned Set &List...', self)
             setListAction.setShortcut('Ctrl+L')
-            setListAction.setStatusTip('View list of assigned sets')
+            setListAction.setStatusTip('View list of assigned sets')  # TODO for lead default to self-assigned sets?
             setListAction.triggered.connect(self._launch_assign_diag)
             fileMenu.addAction(setListAction)
 
@@ -156,79 +156,6 @@ class MainWindow(QMainWindow):
         self.assign_diag = QDialog(self)
         self.assign_diag.setLayout(assign_layout)
         self.assign_diag.show()
-
-    def _launch_set_filter(self):
-        if self.set_diag:
-            self.set_diag.close()
-
-        self._filter_layout = QVBoxLayout()
-
-        self._filter_data = GlobalFinPrintServer().trip_list()
-
-        self._trip_filter = QComboBox()
-        self._trip_filter.addItem('---')
-        self._trip_filter.addItems(list(t['trip'] for t in self._filter_data['trips']))
-        self._trip_filter.currentIndexChanged.connect(self._filter_diag_change_trip)
-        self._trip_filter_label = QLabel('Trip:')
-        self._trip_filter_label.setBuddy(self._trip_filter)
-
-        self._set_filter = QComboBox()
-        self._set_filter.addItem('---')
-        for t in self._filter_data['trips']:
-            self._set_filter.addItems(list(s['set'] for s in t['sets']))
-        self._set_filter_label = QLabel('Set:')
-        self._set_filter_label.setBuddy(self._set_filter)
-
-        self.cancel_filter = QPushButton('Cancel')
-        self.cancel_filter.clicked.connect(self._cancel_filter_dialog)
-        self.cancel_filter.setMaximumSize(75, 35)
-        self.save_filter = QPushButton('Filter')
-        self.save_filter.setMaximumSize(75, 35)
-        self.save_filter.clicked.connect(self._exec_filter_dialog)
-        self.buttons = QDialogButtonBox(Qt.Horizontal)
-        self.buttons.addButton(self.save_filter, QDialogButtonBox.ActionRole)
-        self.buttons.addButton(self.cancel_filter, QDialogButtonBox.ActionRole)
-
-        self._filter_layout.addWidget(self._trip_filter_label)
-        self._filter_layout.addWidget(self._trip_filter)
-        self._filter_layout.addWidget(self._set_filter_label)
-        self._filter_layout.addWidget(self._set_filter)
-        self._filter_layout.addWidget(self.buttons)
-
-        self.filter_diag = QDialog(self, Qt.WindowTitleHint)
-        self.filter_diag.setFixedWidth(500)
-        self.filter_diag.setLayout(self._filter_layout)
-        self.filter_diag.setWindowTitle('Filter sets for lead review')
-        self.filter_diag.show()
-
-    def _filter_diag_change_trip(self):
-        self._set_filter.clear()
-        current_trip = self._trip_filter.currentText()
-        trips = self._filter_data['trips'] if current_trip == '---' else \
-            list(t for t in self._filter_data['trips'] if t['trip'] == current_trip)
-        for t in trips:
-            self._set_filter.addItem('---')
-            self._set_filter.addItems(list(s['set'] for s in t['sets']))
-
-    def _cancel_filter_dialog(self):
-        self.filter_diag.close()
-
-    def _exec_filter_dialog(self):
-        trip_dict = dict((t['trip'], t['id']) for t in self._filter_data['trips'])
-        current_trip = self._trip_filter.currentText()
-        params = {'for_review': True}
-        if current_trip in trip_dict:
-            params['trip_id'] = trip_dict[current_trip]
-
-        set_dict = dict((s['set'], s['id']) for s in
-                        itertools.chain.from_iterable(t['sets'] for t in self._filter_data['trips']))
-        current_set = self._set_filter.currentText()
-        if current_set in set_dict:
-            params['set_id'] = set_dict[current_set]
-
-        sets = GlobalFinPrintServer().set_list(**params)
-        self.filter_diag.close()
-        self._launch_set_list(sets=sets['sets'], title='Sets for lead review')
 
     def on_login(self, signal, sender, value):
         self._has_logged_in = True

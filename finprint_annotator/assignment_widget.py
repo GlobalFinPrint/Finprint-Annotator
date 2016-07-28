@@ -104,6 +104,17 @@ class AssignmentWidget(QWidget):
 
         self.setLayout(self.layout)
 
+        # populate table with current sets
+        self._populate_table()
+
+        # hook up click events
+        self.set_table.cellDoubleClicked.connect(self._select_set)
+
+    def _populate_table(self):
+        # clear any current rows
+        for row in range(self.set_table.rowCount()):
+            self.set_table.removeRow(row)
+
         # add sets to table
         self.set_table.setRowCount(len(self._sets))
         for row, set in enumerate(self._sets):
@@ -114,9 +125,6 @@ class AssignmentWidget(QWidget):
             for col in range(self.set_table.columnCount()):
                 item = self.set_table.item(row, col)
                 item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-
-        # hook up click events
-        self.set_table.cellDoubleClicked.connect(self._select_set)
 
     def _add_row(self, set, row):
         items = [
@@ -147,5 +155,14 @@ class AssignmentWidget(QWidget):
         self._filter_change()
 
     def _filter_change(self):
-        # TODO update set list table
-        pass
+        params = {'filtered': True}
+        if self._trip_filter.currentIndex() > 0:
+            params['trip_id'] = self._trip_filter.itemData(self._trip_filter.currentIndex())
+        if self._set_filter.currentIndex() > 0:
+            params['set_id'] = self._set_filter.itemData(self._set_filter.currentIndex())
+        if self._anno_filter.currentIndex() > 0:
+            params['annotator_id'] = self._anno_filter.itemData(self._anno_filter.currentIndex())
+        if self._status_filter.currentIndex() > 0:
+            params['status_id'] = self._status_filter.itemData(self._status_filter.currentIndex())
+        self._sets = GlobalFinPrintServer().set_list(**params)['sets']
+        self._populate_table()
