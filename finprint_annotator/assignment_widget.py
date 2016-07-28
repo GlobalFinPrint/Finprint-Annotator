@@ -134,9 +134,9 @@ class AssignmentWidget(QWidget):
         if self.is_lead:
             items += [QTableWidgetItem(set['assigned_to']['user'])]
         items += [
-            QTableWidgetItem('TODO date assigned'),
-            QTableWidgetItem('TODO status'),
-            QTableWidgetItem('TODO last activity')
+            QTableWidgetItem(set['assigned_at']),
+            QTableWidgetItem(set['status']['name']),
+            QTableWidgetItem(set['last_activity'])
         ]
         for col, item in enumerate(items):
             self.set_table.setItem(row, col, item)
