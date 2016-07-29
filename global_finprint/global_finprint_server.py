@@ -78,6 +78,14 @@ class GlobalFinPrintServer(Singleton):
         r = requests.post(self.address + '/api/set/{0}/done'.format(set_id), {'token': self.user_token})
         return r.status_code == 200
 
+    def mark_set_approved(self, set_id):
+        r = requests.post(self.address + '/api/set/{0}/accept'.format(set_id), {'token': self.user_token})
+        return r.status_code == 200
+
+    def mark_set_rejected(self, set_id):
+        r = requests.post(self.address + '/api/set/{0}/reject'.format(set_id), {'token': self.user_token})
+        return r.status_code == 200
+
     def update_progress(self, set_id, progress):
         r = requests.post(self.address + '/api/set/{0}/progress'.format(set_id),
                           {'token': self.user_token, 'progress': int(progress)})

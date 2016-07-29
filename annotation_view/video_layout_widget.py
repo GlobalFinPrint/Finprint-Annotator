@@ -269,6 +269,16 @@ class VideoLayoutWidget(QWidget):
         self.clear()
         self._main_window._launch_assign_diag()
 
+    def on_accept(self):
+        GlobalFinPrintServer().mark_set_approved(self.current_set.id)
+        self.clear()
+        self._main_window._launch_assign_diag()
+
+    def on_reject(self):
+        GlobalFinPrintServer().mark_set_rejected(self.current_set.id)
+        self.clear()
+        self._main_window._launch_assign_diag()
+
     def on_rewind(self):
         self._video_player.rewind()
 
@@ -313,9 +323,3 @@ class VideoLayoutWidget(QWidget):
     def on_position_change(self, pos):
         self._pos_label.setText(convert_position(pos))
         self._slider.setValue(int(pos))
-
-    def on_accept(self):
-        pass
-
-    def on_reject(self):
-        pass
