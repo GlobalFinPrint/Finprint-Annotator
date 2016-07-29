@@ -29,6 +29,9 @@ class GlobalFinPrintServer(Singleton):
     def is_lead(self):
         return self.user_role == 'lead'
 
+    def is_assigned_to_self(self, set):
+        return self.user_id == set.assigned_to['id']
+
     def login(self, user_name, pwd, server):
         data = {'username': user_name, 'password': pwd}
         self.address = server

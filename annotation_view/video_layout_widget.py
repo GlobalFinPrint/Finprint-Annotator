@@ -23,6 +23,18 @@ class VideoLayoutWidget(QWidget):
 
         self._main_window = main_window
 
+        button_style = """QPushButton { background: rgb(41, 86, 109);
+                                        color:white;
+                                        font: 12pt "Arial";
+                                        border-radius: 4px;
+                                        padding-top: 4px;
+                                        padding-bottom: 4px;
+                                        padding-left: 5px;
+                                        padding-right: 5px; }
+                                       QPushButton:hover { background: rgb(41, 86, 109, 128); }
+                                       QPushButton:disabled { background: rgb(131,140,158, 128);
+                                                              color:white; }"""
+
         # UI widgets
         self.vid_box = None
         self._video_label = QLabel('')
@@ -56,25 +68,22 @@ class VideoLayoutWidget(QWidget):
         self._submit_button = QPushButton('Send for Review')
         self._submit_button.setFixedWidth(190)
         self._submit_button.setDisabled(True)
-        self._submit_button.setStyleSheet("""QPushButton {  background: rgb(41, 86, 109); color:white; font: 12pt "Arial";
-                                                            border-radius: 4px; padding-top: 4px; padding-bottom: 4px; padding-left:
-                                                            5px; padding-right: 5px;}
+        self._submit_button.setVisible(False)
+        self._submit_button.setStyleSheet(button_style)
 
-                                            QPushButton:hover {background: rgb(41, 86, 109, 128)}
+        self._approve_button = QPushButton('Accept assignment')
+        self._approve_button.setFixedWidth(190)
+        self._approve_button.setDisabled(True)
+        self._approve_button.setVisible(False)
+        self._approve_button.setStyleSheet(button_style)
 
-                                            QPushButton:disabled {background: rgb(131,140,158, 128);
-                                                                    color:white;}
-
-                                            """)
-
-        self._obs_btn_box = QHBoxLayout()
-
-        self.organism_selector_button = None
-        self.organism_selector_table = None
+        self._reject_button = QPushButton('Reject assignment')
+        self._reject_button.setFixedWidth(190)
+        self._reject_button.setDisabled(True)
+        self._reject_button.setVisible(False)
+        self._reject_button.setStyleSheet(button_style)
 
         self._observation_table = ObservationTable(self)
-
-        self.grouping = {}
 
         # An annotation session is in the context of a set.  Track the current set we're annotating
         self.current_set = None
@@ -85,6 +94,8 @@ class VideoLayoutWidget(QWidget):
     def wire_events(self):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
         self._submit_button.clicked.connect(self.on_submit)
+        self._approve_button.clicked.connect(self.on_accept)
+        self._reject_button.clicked.connect(self.on_reject)
         self._rew_button.clicked.connect(self.on_rewind)
         self._ff_button.clicked.connect(self.on_fast_forward)
         self._step_back_button.clicked.connect(self.on_step_back)
@@ -132,6 +143,8 @@ class VideoLayoutWidget(QWidget):
         button_box.addLayout(video_controls_box)
         button_box.addWidget(self._submit_button)
         button_box.addStretch(1)
+        button_box.addWidget(self._reject_button)
+        button_box.addWidget(self._approve_button)
 
         # add to top box
         top_box.addLayout(button_box)
@@ -150,12 +163,6 @@ class VideoLayoutWidget(QWidget):
         bottom_box.addWidget(self._observation_table)
         container.addLayout(bottom_box)
         self.setLayout(container)
-
-    def clear_buttons(self):
-        for idx in reversed(range(self._obs_btn_box.count())):
-            widget = self._obs_btn_box.takeAt(idx).widget()
-            if widget is not None:
-                widget.deleteLater()
 
     @staticmethod
     def get_local_file(orig_file_path):
@@ -191,6 +198,13 @@ class VideoLayoutWidget(QWidget):
         if GlobalFinPrintServer().is_lead():
             self._ff_button.setDisabled(False)
             self._ff_button.setVisible(True)
+            if set.status_id == 3:
+                self._approve_button.setDisabled(False)
+                self._approve_button.setVisible(True)
+                self._reject_button.setDisabled(False)
+                self._reject_button.setVisible(True)
+        if GlobalFinPrintServer().is_assigned_to_self(set) and set.status_id < 3:
+            self._submit_button.setVisible(True)
         self._toggle_play_button.setDisabled(False)
         self._step_back_button.setDisabled(False)
         self._step_forward_button.setDisabled(False)
@@ -229,8 +243,12 @@ class VideoLayoutWidget(QWidget):
         self._video_label.setText('')
         self._slider.hide()
         self._video_player.clear()
-        self.clear_buttons()
         self._submit_button.setDisabled(True)
+        self._submit_button.setVisible(False)
+        self._approve_button.setDisabled(True)
+        self._approve_button.setVisible(False)
+        self._reject_button.setDisabled(True)
+        self._reject_button.setVisible(False)
         self._rew_button.setDisabled(True)
         self._ff_button.setDisabled(True)
         self._step_forward_button.setDisabled(True)
@@ -295,3 +313,9 @@ class VideoLayoutWidget(QWidget):
     def on_position_change(self, pos):
         self._pos_label.setText(convert_position(pos))
         self._slider.setValue(int(pos))
+
+    def on_accept(self):
+        pass
+
+    def on_reject(self):
+        pass
