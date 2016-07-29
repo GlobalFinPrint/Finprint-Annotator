@@ -249,7 +249,7 @@ class VideoLayoutWidget(QWidget):
     def on_submit(self):
         self.current_set.mark_as_done()
         self.clear()
-        self._main_window._launch_set_list()
+        self._main_window._launch_assign_diag()
 
     def on_rewind(self):
         self._video_player.rewind()
