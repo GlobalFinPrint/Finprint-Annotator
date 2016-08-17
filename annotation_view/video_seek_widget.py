@@ -85,6 +85,7 @@ class VideoSeekWidget(QSlider):
 
     def tick_selected(self, pos):
         self.setValue(pos)
+        self.set_position(pos)
 
     def mousePressEvent(self, ev):
         """ Jump to click position """
@@ -102,11 +103,14 @@ class VideoSeekWidget(QSlider):
 
     def mouseReleaseEvent(self, ev):
         self.dragging = False
+        self.set_position(self.value())
+
+    def set_position(self, v):
         # do not allow fast forward for non-leads bob was here
         if GlobalFinPrintServer().is_lead() or self.allowed_progress is None:
-            self._player.set_position(self.value())
+            self._player.set_position(v)
         else:
-            self._player.set_position(min(self.value(), self.allowed_progress))
+            self._player.set_position(min(v, self.allowed_progress))
 
     def set_allowed_progress(self, progress):
         self.allowed_progress = progress
