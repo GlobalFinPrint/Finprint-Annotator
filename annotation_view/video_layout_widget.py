@@ -29,6 +29,7 @@ class VideoLayoutWidget(QWidget):
         self._video_label.setStyleSheet("""color:rgb(74,74,74); font: 75 12pt "Arial";""")
         self._video_player = CvVideoWidget(parent=self, onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
+        self._duration_label = QLabel()
         self._data_loading = False
 
         self._play_pixmap = QPixmap('images/video_control-play.png')
@@ -111,8 +112,13 @@ class VideoLayoutWidget(QWidget):
         vid_box = QVBoxLayout()
         vid_box.addWidget(self._video_label)
         vid_box.addWidget(self._video_player)
+
         vid_box.addWidget(self._slider)
-        vid_box.addWidget(self._pos_label)  # TODO move this under the cursor
+
+        pos_layout = QHBoxLayout()
+        pos_layout.addWidget(self._pos_label)  # TODO move this under the cursor
+        pos_layout.addWidget(self._duration_label, alignment=Qt.AlignRight)
+        vid_box.addLayout(pos_layout)
         vid_box.addStretch(1)
 
         # add to top box
@@ -183,8 +189,6 @@ class VideoLayoutWidget(QWidget):
         self.current_set = set
 
         self._video_label.setText('{0}'.format(self.current_set.file))
-        self._slider.show()
-        self._slider.load_set(self.current_set)
 
         self._rew_button.setDisabled(False)
         if GlobalFinPrintServer().is_lead():
@@ -205,7 +209,11 @@ class VideoLayoutWidget(QWidget):
         self._video_player.load_set(set)
 
         self._slider.setMaximum(int(self._video_player.get_length()))
+        self._slider.load_set(self.current_set)
         self._slider.set_allowed_progress(set.progress)
+        self._slider.show()
+
+        self._duration_label.setText(convert_position(self._video_player.get_length()))
 
         self._observation_table.load_set(set)
         self._data_loading = False

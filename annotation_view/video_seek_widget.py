@@ -5,76 +5,104 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 
-class Ticks(QWidget):
+class Tick(QWidget):
+    clicked = pyqtSignal(int)
     tick_image = QImage('images/timeline-tick.png')
-    active_tick_image = QImage('images/timeline-tick-active-best.png')
-    event_tick_image = QImage('images/timeline-tick-active-other_frame.png')
 
-    def __init__(self, parent):
+    def __init__(self, parent=None, position=0):
         super().__init__(parent)
-        self._set = None
-        self._video_length = None
+        self.position = position
+        self.setGeometry(QRect(0,0, Tick.tick_image.width(), Tick.tick_image.height()))
+        self.setMouseTracking(True)
         self.raise_()
 
-    def load_set(self, set):
-        self._set = set
-        self._video_length = None
+    def mousePressEvent(self, ev):
+        self.clicked.emit(self.position)
+
+    def mouseMoveEvent(self, ev):
+        QToolTip.showText(QCursor.pos(), convert_position(self.position))
 
     def paintEvent(self, evt):
         super().paintEvent(evt)
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-
-        try:
-            self._video_length = self.parent()._player.get_length()
-        except AttributeError:
-            return
-
-        if self._set:
-            for obs in self._set.observations:
-                position = VIDEO_WIDTH * obs.initial_time() / self._video_length  # TODO need a better way to calc pos
-                painter.drawImage(position - 5, 6, self.tick_image)
+        painter.drawImage(QPoint(0, 0), self.tick_image)
 
 
 class VideoSeekWidget(QSlider):
-    item_select = pyqtSignal(Animal)
 
     def __init__(self, player):
         super(VideoSeekWidget, self).__init__()
 
         self.dragging = False
         self._player = player
-        self._ticks = Ticks(self)
+        self._ticks = []
         self._set = None
+        self._last_width = self.width()
 
         self.setOrientation(Qt.Horizontal)
         self.setStyleSheet(self.style())
         self.allowed_progress = None
-
-        self.sliderPressed.connect(self._pressed)
-        self.sliderMoved.connect(self._moved)
-        self.sliderReleased.connect(self._released)
-
         self.setMaximumWidth(VIDEO_WIDTH)
+
+    def resizeEvent(self, _):
+        if self.width() != self._last_width:
+            self._last_width = self.width()
+            self.generate_ticks()
+
+    def _posFromValue(self, val):
+        return round(val * self.width() / self.maximum())
+
+    def _valueFromPos(self, pos):
+        return pos * self.maximum() / self.width()
 
     def load_set(self, set):
         self._set = set
-        self._ticks.load_set(set)
+        self.setMaximumWidth(self._player.width())
+        self.generate_ticks()
 
-    def resizeEvent(self, _):
-        self._ticks.setGeometry(self.rect())
+    def clear_ticks(self):
+        for t in self._ticks:
+            t.setParent(None)
+            t.deleteLater()
+        self._ticks = []
 
-    def _pressed(self):
+    def generate_ticks(self):
+        self.clear_ticks()
+        if self._set:
+            for obs in self._set.observations:
+                p = obs.initial_time()
+                print("loading width: {0}".format(self.width()))
+                x = self._posFromValue(obs.initial_time())
+                tick = Tick(parent=self, position=obs.initial_time())
+                # There's a weird layout issue so I had to add a fudge factor to get the ticks to
+                # be placed consistently with the slider
+                x = round(x - (0.015 * x))
+
+                tick.move(x, 0)
+                tick.clicked.connect(self.tick_selected)
+                self._ticks.append(tick)
+
+    def tick_selected(self, pos):
+        self.setValue(pos)
+
+    def mousePressEvent(self, ev):
+        """ Jump to click position """
         self.dragging = True
         self.allowed_progress = max(self.value(), self.allowed_progress)
         self._player.pause()
+        self.setValue(QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), ev.x(), self.width()))
 
-    def _moved(self, pos):
+    def mouseMoveEvent(self, ev):
+        """ Jump to pointer position while moving """
+        pos = QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), ev.x(), self.width())
+        x = self._posFromValue(pos)
+        self.setValue(pos)
         QToolTip.showText(QCursor.pos(), convert_position(pos))
 
-    def _released(self):
+    def mouseReleaseEvent(self, ev):
         self.dragging = False
-        # do not allow fast forward for non-leads
+        # do not allow fast forward for non-leads bob was here
         if GlobalFinPrintServer().is_lead() or self.allowed_progress is None:
             self._player.set_position(self.value())
         else:
@@ -140,3 +168,4 @@ class VideoSeekWidget(QSlider):
                 border-radius: 4px;
             }
             """
+
