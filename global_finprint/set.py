@@ -12,6 +12,7 @@ class Set(object):
         self.observations = []
         self.attributes = []
         self.code = ''
+        self.status_id = None
 
         if id is not None:
             data = self._connection.set_detail(id)
@@ -21,6 +22,7 @@ class Set(object):
             self.assigned_to = data['set']['assigned_to']
             self.progress = data['set']['progress']
             self.animals = []
+            self.status_id = data['set']['status']['id']
             for animal in data['set']['animals']:
                 a = Animal()
                 a.load(animal)

@@ -20,7 +20,6 @@ def copy_dylib(self, src):
 py2app.build_app.PythonStandalone.copy_dylib = copy_dylib
 
 
-import glob
 from setuptools import setup
 
 APP = ['finprint_annotator.py']
@@ -33,12 +32,10 @@ DATA_DIRECTORIES = [
 ]
 
 DATA_FILES = ['config.ini', 'qt.conf', 'config.py', 'credentials.csv']
-for dd in DATA_DIRECTORIES:
-    DATA_FILES += glob.glob(dd + '/*.py')
 
 OPTIONS = {
     'iconfile': 'images/shark-icon.icns',
-    'resources': 'images',
+    'resources': ['images', 'requests'] + DATA_DIRECTORIES,
     'includes': 'sip',
     'packages': 'PyQt4',
     'frameworks': '/usr/local/Cellar/hdf5/1.8.16_1/lib/libhdf5.10.dylib',

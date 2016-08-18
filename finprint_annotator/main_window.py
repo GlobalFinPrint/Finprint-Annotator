@@ -4,7 +4,7 @@ from pydispatch import dispatcher
 from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set
 from .login_widget import LoginWidget
-from .set_list_widget import SetListWidget
+from .assignment_widget import AssignmentWidget
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
@@ -46,15 +46,15 @@ class MainWindow(QMainWindow):
         if GlobalFinPrintServer().logged_in:
             setListAction = QAction('Assigned Set &List...', self)
             setListAction.setShortcut('Ctrl+L')
-            setListAction.setStatusTip('View list of assigned sets')
-            setListAction.triggered.connect(self._launch_set_list)
+            setListAction.setStatusTip('View list of assigned sets')  # TODO for lead default to self-assigned sets?
+            setListAction.triggered.connect(self._launch_assign_diag)
             fileMenu.addAction(setListAction)
 
             if GlobalFinPrintServer().is_lead():
                 setFilterAction = QAction('&Filter Review Sets...', self)
                 setFilterAction.setShortcut('Ctrl+F')
                 setFilterAction.setStatusTip('Filter sets for lead review')
-                setFilterAction.triggered.connect(self._launch_set_filter)
+                setFilterAction.triggered.connect(self._launch_assign_diag)
                 fileMenu.addAction(setFilterAction)
         else:
             logInAction = QAction('&Login', self)
@@ -146,107 +146,22 @@ class MainWindow(QMainWindow):
         self.props_diag.close()
         self._vid_layout.load_set(self._vid_layout.current_set)
 
-    def _launch_set_list(self, sets=False, title='Assigned Sets List'):
-        if self.filter_diag:
-            self.filter_diag.close()
-
-        self._set_layout = QVBoxLayout()
-        self._set_list = SetListWidget()
-
+    def _launch_assign_diag(self, sets=False):
         if sets is False:
-            response = GlobalFinPrintServer().set_list()
+            response = GlobalFinPrintServer().set_list(filtered=True)
             sets = response['sets']
 
-        for s in sets:
-            self._set_list.add_item(s)
-
-        self._set_layout.addWidget(self._set_list)
-        self.set_diag = QDialog(self, Qt.WindowTitleHint)
-        self.set_diag.setLayout(self._set_layout)
-        self.set_diag.setWindowTitle(title)
-        self.set_diag.show()
-
-    def _launch_set_filter(self):
-        if self.set_diag:
-            self.set_diag.close()
-
-        self._filter_layout = QVBoxLayout()
-
-        self._filter_data = GlobalFinPrintServer().trip_list()
-
-        self._trip_filter = QComboBox()
-        self._trip_filter.addItem('---')
-        self._trip_filter.addItems(list(t['trip'] for t in self._filter_data['trips']))
-        self._trip_filter.currentIndexChanged.connect(self._filter_diag_change_trip)
-        self._trip_filter_label = QLabel('Trip:')
-        self._trip_filter_label.setBuddy(self._trip_filter)
-
-        self._set_filter = QComboBox()
-        self._set_filter.addItem('---')
-        for t in self._filter_data['trips']:
-            self._set_filter.addItems(list(s['set'] for s in t['sets']))
-        self._set_filter_label = QLabel('Set:')
-        self._set_filter_label.setBuddy(self._set_filter)
-
-        self.cancel_filter = QPushButton('Cancel')
-        self.cancel_filter.clicked.connect(self._cancel_filter_dialog)
-        self.cancel_filter.setMaximumSize(75, 35)
-        self.save_filter = QPushButton('Filter')
-        self.save_filter.setMaximumSize(75, 35)
-        self.save_filter.clicked.connect(self._exec_filter_dialog)
-        self.buttons = QDialogButtonBox(Qt.Horizontal)
-        self.buttons.addButton(self.save_filter, QDialogButtonBox.ActionRole)
-        self.buttons.addButton(self.cancel_filter, QDialogButtonBox.ActionRole)
-
-        self._filter_layout.addWidget(self._trip_filter_label)
-        self._filter_layout.addWidget(self._trip_filter)
-        self._filter_layout.addWidget(self._set_filter_label)
-        self._filter_layout.addWidget(self._set_filter)
-        self._filter_layout.addWidget(self.buttons)
-
-        self.filter_diag = QDialog(self, Qt.WindowTitleHint)
-        self.filter_diag.setFixedWidth(500)
-        self.filter_diag.setLayout(self._filter_layout)
-        self.filter_diag.setWindowTitle('Filter sets for lead review')
-        self.filter_diag.show()
-
-    def _filter_diag_change_trip(self):
-        self._set_filter.clear()
-        current_trip = self._trip_filter.currentText()
-        trips = self._filter_data['trips'] if current_trip == '---' else \
-            list(t for t in self._filter_data['trips'] if t['trip'] == current_trip)
-        for t in trips:
-            self._set_filter.addItem('---')
-            self._set_filter.addItems(list(s['set'] for s in t['sets']))
-
-    def _cancel_filter_dialog(self):
-        self.filter_diag.close()
-
-    def _exec_filter_dialog(self):
-        trip_dict = dict((t['trip'], t['id']) for t in self._filter_data['trips'])
-        current_trip = self._trip_filter.currentText()
-        params = {'for_review': True}
-        if current_trip in trip_dict:
-            params['trip_id'] = trip_dict[current_trip]
-
-        set_dict = dict((s['set'], s['id']) for s in
-                        itertools.chain.from_iterable(t['sets'] for t in self._filter_data['trips']))
-        current_set = self._set_filter.currentText()
-        if current_set in set_dict:
-            params['set_id'] = set_dict[current_set]
-
-        sets = GlobalFinPrintServer().set_list(**params)
-        self.filter_diag.close()
-        self._launch_set_list(sets=sets['sets'], title='Sets for lead review')
+        assign_layout = QVBoxLayout()
+        assign_layout.addWidget(AssignmentWidget(sets))
+        self.assign_diag = QDialog(self)
+        self.assign_diag.setLayout(assign_layout)
+        self.assign_diag.show()
 
     def on_login(self, signal, sender, value):
         self._has_logged_in = True
         self.login_diag.close()
         self._set_menus()
-        if GlobalFinPrintServer().is_lead():
-            self._launch_set_filter()
-        else:
-            self._launch_set_list(sets=value)
+        self._launch_assign_diag(value)
 
     def on_login_cancelled(self, signal, sender, value):
         self.login_diag.close()
@@ -255,6 +170,6 @@ class MainWindow(QMainWindow):
             QCoreApplication.instance().quit()
 
     def set_selected(self, signal, sender, value):
-        self.set_diag.close()
-        s = Set(value['id'])
+        self.assign_diag.close()
+        s = Set(value)
         self._vid_layout.load_set(s)

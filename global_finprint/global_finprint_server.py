@@ -29,6 +29,9 @@ class GlobalFinPrintServer(Singleton):
     def is_lead(self):
         return self.user_role == 'lead'
 
+    def is_assigned_to_self(self, set):
+        return self.user_id == set.assigned_to['id']
+
     def login(self, user_name, pwd, server):
         data = {'username': user_name, 'password': pwd}
         self.address = server
@@ -60,7 +63,11 @@ class GlobalFinPrintServer(Singleton):
         return r.json()
 
     def trip_list(self):
-        r = requests.get(self.address + '/api/trip', params={'token': self.user_token})
+        r = requests.get(self.address + '/api/trip', params={'token': self.user_token, 'assigned': True})
+        return r.json()
+
+    def annotator_list(self):
+        r = requests.get(self.address + '/api/annotator', params={'token': self.user_token})
         return r.json()
 
     def set_detail(self, set_id):
@@ -69,6 +76,14 @@ class GlobalFinPrintServer(Singleton):
 
     def mark_set_done(self, set_id):
         r = requests.post(self.address + '/api/set/{0}/done'.format(set_id), {'token': self.user_token})
+        return r.status_code == 200
+
+    def mark_set_approved(self, set_id):
+        r = requests.post(self.address + '/api/set/{0}/accept'.format(set_id), {'token': self.user_token})
+        return r.status_code == 200
+
+    def mark_set_rejected(self, set_id):
+        r = requests.post(self.address + '/api/set/{0}/reject'.format(set_id), {'token': self.user_token})
         return r.status_code == 200
 
     def update_progress(self, set_id, progress):
