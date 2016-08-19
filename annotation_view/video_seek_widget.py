@@ -71,15 +71,13 @@ class VideoSeekWidget(QSlider):
         self.clear_ticks()
         if self._set:
             for obs in self._set.observations:
-                p = obs.initial_time()
-                print("loading width: {0}".format(self.width()))
                 x = self._posFromValue(obs.initial_time())
                 tick = Tick(parent=self, position=obs.initial_time())
                 # There's a weird layout issue so I had to add a fudge factor to get the ticks to
                 # be placed consistently with the slider
                 x = round(x - (0.015 * x))
-
                 tick.move(x, 0)
+
                 tick.clicked.connect(self.tick_selected)
                 self._ticks.append(tick)
 
