@@ -5,7 +5,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 
-class Tick(QWidget):
+class Tick(QLabel):
     clicked = pyqtSignal(int)
     tick_image = QImage('images/timeline-tick.png')
 
@@ -14,20 +14,13 @@ class Tick(QWidget):
         self.position = position
         self.setGeometry(QRect(0,0, Tick.tick_image.width(), Tick.tick_image.height()))
         self.setMouseTracking(True)
-        self.raise_()
+        self.setPixmap(QPixmap.fromImage(Tick.tick_image))
 
     def mousePressEvent(self, ev):
         self.clicked.emit(self.position)
 
     def mouseMoveEvent(self, ev):
         QToolTip.showText(QCursor.pos(), convert_position(self.position))
-
-    def paintEvent(self, evt):
-        super().paintEvent(evt)
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.drawImage(QPoint(0, 0), self.tick_image)
-
 
 class VideoSeekWidget(QSlider):
 
@@ -77,9 +70,10 @@ class VideoSeekWidget(QSlider):
                 # be placed consistently with the slider
                 x = round(x - (0.015 * x))
                 tick.move(x, 0)
-
                 tick.clicked.connect(self.tick_selected)
                 self._ticks.append(tick)
+                tick.show()
+        self.update()
 
     def tick_selected(self, pos):
         self.setValue(pos)

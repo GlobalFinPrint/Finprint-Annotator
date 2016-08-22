@@ -146,6 +146,7 @@ class ObservationTable(QTableView):
     # signals
     durationClicked = pyqtSignal(Observation)
     goToEvent = pyqtSignal(Event)
+    tableRefresh = pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -236,6 +237,7 @@ class ObservationTable(QTableView):
                 self.add_row(e)
             rotate_index ^= 1
         self.resizeRowsToContents()
+        self.tableRefresh.emit()
         # TODO return to noted row
 
     def edit_event(self, evt):

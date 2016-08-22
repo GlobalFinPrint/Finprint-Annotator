@@ -110,6 +110,7 @@ class VideoLayoutWidget(QWidget):
 
         self._observation_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self._observation_table.customContextMenuRequested.connect(self._observation_table.customContextMenu)
+        self._observation_table.tableRefresh.connect(self.onTableRefresh)
 
     def setup_layout(self):
         # Main container going top to bottom
@@ -137,6 +138,7 @@ class VideoLayoutWidget(QWidget):
 
         # Video controls
         video_controls_box = QHBoxLayout()
+
         video_controls_box.addWidget(self._rew_button)
         video_controls_box.addWidget(self._step_back_button)
         video_controls_box.addWidget(self._toggle_play_button)
@@ -331,3 +333,6 @@ class VideoLayoutWidget(QWidget):
     def on_position_change(self, pos):
         self._pos_label.setText(convert_position(pos))
         self._slider.setValue(int(pos))
+
+    def onTableRefresh(self):
+        self._slider.load_set(self.current_set)
