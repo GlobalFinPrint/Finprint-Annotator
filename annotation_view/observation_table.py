@@ -120,6 +120,15 @@ class ObservationTableCell(QStyledItemDelegate):
         self.disabled_color.setAlphaF(0.5)
         self.obs_dupe_color = QColor(Qt.white)
 
+    def drawBorder(self, painter, rect, no_top):
+        #pen = QPen(QColor('#cccccc'), 1, Qt.SolidLine)
+        pen = QPen(QColor('white'), 1, Qt.SolidLine)
+        painter.setPen(pen)
+        if not no_top:
+            painter.drawLine(rect.topLeft(), rect.topRight())
+        #painter.drawLine(rect.bottomLeft(), rect.bottomRight())
+        painter.drawLine(rect.topLeft(), rect.bottomLeft())
+
     def paint(self, painter, style, model_index):
         row, col = model_index.row(), model_index.column()
         event = self.parent().get_event(row)
@@ -128,11 +137,14 @@ class ObservationTableCell(QStyledItemDelegate):
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
             painter.fillRect(style.rect, self.disabled_color)
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'))
             painter.restore()
+
         # zebra striping table by observation
         else:
             painter.save()
             painter.fillRect(style.rect, event.obs_color)
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'))
             painter.restore()
             if col not in self.observation_columns or hasattr(event, 'first_flag'):
                 super().paint(painter, style, model_index)
@@ -170,6 +182,7 @@ class ObservationTable(QTableView):
                             """
 
         self.setStyleSheet(stylesheet)
+        self.setShowGrid(False)
         font = self.horizontalHeader().font()
         font.setPointSize(12)
         self.horizontalHeader().setFont(font)
