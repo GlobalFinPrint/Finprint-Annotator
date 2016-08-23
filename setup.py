@@ -251,7 +251,8 @@ class BuildInstaller(py2exe):
         print('#################### post_installer ##################')
         print('Clearing out Distribution dir')
         output = 'Distribution'
-        root = os.path.join(output, config.__version_string__ + '-dev')
+        #root = os.path.join(output, config.__version_string__ + '-dev')
+        root = os.path.join(output, 'dev')
         binary = os.path.join(root, 'Binary')
 
         if os.path.exists(root):
