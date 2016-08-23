@@ -105,6 +105,8 @@ class VideoLayoutWidget(QWidget):
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
         self._video_player.progressUpdate.connect(self.on_progress_update)
 
+        self._slider.tickSelected.connect(self.on_slider_tick)
+
         self._observation_table.durationClicked.connect(self.set_duration)
         self._observation_table.goToEvent.connect(self.event_selected)
 
@@ -266,6 +268,10 @@ class VideoLayoutWidget(QWidget):
         self._toggle_play_button.setDisabled(True)
         self._observation_table.empty()
         self.current_set = None
+
+    def on_slider_tick(self, position, obs):
+        events = sorted(obs.events, key=lambda e: e.event_time)
+        self.event_selected(events[0])
 
     def event_selected(self, evt):
         self._video_player.pause()

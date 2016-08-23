@@ -13,6 +13,7 @@ class Set(object):
         self.attributes = []
         self.code = ''
         self.status_id = None
+        self.progress = 0
 
         if id is not None:
             data = self._connection.set_detail(id)
@@ -20,7 +21,7 @@ class Set(object):
             self.file = data['set']['file']
             self.code = data['set']['set_code']
             self.assigned_to = data['set']['assigned_to']
-            self.progress = data['set']['progress']
+            self.progress = int(data['set']['progress'])
             self.animals = []
             self.status_id = data['set']['status']['id']
             for animal in data['set']['animals']:

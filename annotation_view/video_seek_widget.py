@@ -1,4 +1,4 @@
-from global_finprint import Animal, GlobalFinPrintServer
+from global_finprint import GlobalFinPrintServer, Observation
 from video_player.cv_video_widget import VIDEO_WIDTH
 from .util import convert_position
 from PyQt4.QtCore import *
@@ -6,23 +6,25 @@ from PyQt4.QtGui import *
 
 
 class Tick(QLabel):
-    clicked = pyqtSignal(int)
+    clicked = pyqtSignal(int, Observation)
     tick_image = QImage('images/timeline-tick.png')
 
-    def __init__(self, parent=None, position=0):
+    def __init__(self, parent=None, position=0, obs=None):
         super().__init__(parent)
         self.position = position
+        self.observation = obs
         self.setGeometry(QRect(0,0, Tick.tick_image.width(), Tick.tick_image.height()))
         self.setMouseTracking(True)
         self.setPixmap(QPixmap.fromImage(Tick.tick_image))
 
     def mousePressEvent(self, ev):
-        self.clicked.emit(self.position)
+        self.clicked.emit(self.position, self.observation)
 
     def mouseMoveEvent(self, ev):
         QToolTip.showText(QCursor.pos(), convert_position(self.position))
 
 class VideoSeekWidget(QSlider):
+    tickSelected = pyqtSignal(int, Observation)
 
     def __init__(self, player):
         super(VideoSeekWidget, self).__init__()
@@ -35,7 +37,7 @@ class VideoSeekWidget(QSlider):
 
         self.setOrientation(Qt.Horizontal)
         self.setStyleSheet(self.style())
-        self.allowed_progress = None
+        self.allowed_progress = 0
         self.setMaximumWidth(VIDEO_WIDTH)
 
     def resizeEvent(self, _):
@@ -65,7 +67,7 @@ class VideoSeekWidget(QSlider):
         if self._set:
             for obs in self._set.observations:
                 x = self._posFromValue(obs.initial_time())
-                tick = Tick(parent=self, position=obs.initial_time())
+                tick = Tick(parent=self, position=obs.initial_time(), obs=obs)
                 # There's a weird layout issue so I had to add a fudge factor to get the ticks to
                 # be placed consistently with the slider
                 x = round(x - (0.015 * x))
@@ -75,9 +77,11 @@ class VideoSeekWidget(QSlider):
                 tick.show()
         self.update()
 
-    def tick_selected(self, pos):
+    def tick_selected(self, pos, obs):
         self.setValue(pos)
-        self.set_position(pos)
+        self.tickSelected.emit(pos, obs)
+        #self.set_position(pos)
+        #self._player.clear_extent()
 
     def mousePressEvent(self, ev):
         """ Jump to click position """
@@ -99,7 +103,7 @@ class VideoSeekWidget(QSlider):
 
     def set_position(self, v):
         # do not allow fast forward for non-leads bob was here
-        if GlobalFinPrintServer().is_lead() or self.allowed_progress is None:
+        if GlobalFinPrintServer().is_lead():
             self._player.set_position(v)
         else:
             self._player.set_position(min(v, self.allowed_progress))
