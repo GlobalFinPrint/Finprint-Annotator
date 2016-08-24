@@ -78,15 +78,16 @@ class VideoSeekWidget(QSlider):
         self.update()
 
     def tick_selected(self, pos, obs):
+        if not GlobalFinPrintServer().is_lead():
+            if pos > self._set.progress:
+                return
         self.setValue(pos)
         self.tickSelected.emit(pos, obs)
-        #self.set_position(pos)
-        #self._player.clear_extent()
 
     def mousePressEvent(self, ev):
         """ Jump to click position """
         self.dragging = True
-        self.allowed_progress = max(self.value(), self.allowed_progress)
+        #self.allowed_progress = max(self.value(), self.allowed_progress)
         self._player.pause()
         self.setValue(QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), ev.x(), self.width()))
 
@@ -106,7 +107,7 @@ class VideoSeekWidget(QSlider):
         if GlobalFinPrintServer().is_lead():
             self._player.set_position(v)
         else:
-            self._player.set_position(min(v, self.allowed_progress))
+            self._player.set_position(min(v, self._set.progress))
 
     def set_allowed_progress(self, progress):
         self.allowed_progress = progress
