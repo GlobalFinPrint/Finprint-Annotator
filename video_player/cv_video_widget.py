@@ -124,7 +124,7 @@ class CvVideoWidget(QWidget):
     def load(self, file_name):
         self._file_name = file_name
 
-        self._highlighter.clear()
+        self.clear_extent()
 
         try:
             self._capture = cv2.VideoCapture(self._file_name)
@@ -320,7 +320,7 @@ class CvVideoWidget(QWidget):
             self.set_position(0)
         self._timer.interval = 1 / self._FPS
         self._play_state = PlayState.Playing
-        self._highlighter.clear()
+        self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
     def paused(self):
@@ -344,6 +344,7 @@ class CvVideoWidget(QWidget):
         else:
             self._timer.interval = SEEK_CLOCK_FACTOR / self._FPS
             self._play_state = PlayState.SeekForward
+            self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
     def rewind(self):
@@ -352,6 +353,7 @@ class CvVideoWidget(QWidget):
         else:
             self._timer.interval = SEEK_CLOCK_FACTOR / self._FPS
             self._play_state = PlayState.SeekBack
+            self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
     def context_menu(self):
