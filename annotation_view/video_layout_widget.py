@@ -4,20 +4,17 @@ from video_player import CvVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
 from config import global_config
 from .video_seek_widget import VideoSeekWidget
+from .fullscreen import FullScreen
+from .components import ClickLabel, SpeedButton
 from .observation_table import ObservationTable
 from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 
-class ClickLabel(QLabel):
-    clicked = pyqtSignal()
-
-    def mouseReleaseEvent(self, ev):
-        self.emit(SIGNAL('clicked()'))
-
-
 class VideoLayoutWidget(QWidget):
+    fullscreen = None
+
     def __init__(self, main_window):
         super(VideoLayoutWidget, self).__init__()
 
@@ -72,6 +69,11 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button = ClickLabel()
         self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
 
+        self._fullscreen_button = ClickLabel()
+        self._fullscreen_button.setPixmap(QPixmap('images/fullscreen.png'))
+
+        self._speed_buttons = list(SpeedButton(speed) for speed in [0.5, 1.5, 3])
+
         self._submit_button = QPushButton('Send for Review')
         self._submit_button.setFixedWidth(190)
         self._submit_button.setDisabled(True)
@@ -110,6 +112,8 @@ class VideoLayoutWidget(QWidget):
         self._back15.clicked.connect(self.on_back15)
         self._back30.clicked.connect(self.on_back30)
 
+        self._fullscreen_button.clicked.connect(self.on_fullscreen)
+
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
         self._video_player.progressUpdate.connect(self.on_progress_update)
 
@@ -121,6 +125,9 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.setContextMenuPolicy(Qt.CustomContextMenu)
         self._observation_table.customContextMenuRequested.connect(self._observation_table.customContextMenu)
         self._observation_table.tableRefresh.connect(self.onTableRefresh)
+
+        for button in self._speed_buttons:
+            pass  # TODO hook up buttons
 
     def setup_layout(self):
         # Main container going top to bottom
@@ -157,9 +164,16 @@ class VideoLayoutWidget(QWidget):
         video_controls_box.addWidget(self._step_forward_button)
         video_controls_box.addWidget(self._ff_button)
 
+        # Secondary controls
+        secondary_controls_box = QHBoxLayout()
+        secondary_controls_box.addWidget(self._fullscreen_button)
+        for button in self._speed_buttons:
+            secondary_controls_box.addWidget(button)
+
         # Buttons
         button_box = QVBoxLayout()
         button_box.setDirection(QBoxLayout.BottomToTop)
+        button_box.addLayout(secondary_controls_box)
         button_box.addLayout(video_controls_box)
         button_box.addWidget(self._submit_button)
         button_box.addStretch(1)
@@ -362,3 +376,13 @@ class VideoLayoutWidget(QWidget):
 
     def onTableRefresh(self):
         self._slider.load_set(self.current_set)
+
+    def on_fullscreen(self):
+        self._video_player.pause()
+        args = [self.current_set,
+                self.get_local_file(self.current_set.file),
+                self._video_player]
+        if self.fullscreen:
+            self.fullscreen.revive(*args)
+        else:
+            self.fullscreen = FullScreen(*args)

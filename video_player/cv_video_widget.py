@@ -1,5 +1,6 @@
 import cv2
 import time
+import numpy as np
 from io import BytesIO
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
@@ -22,7 +23,7 @@ AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 FRAME_STEP = 50
 
-SEEK_CLOCK_FACTOR = 15
+SEEK_CLOCK_FACTOR = 30
 SEEK_FRAME_JUMP = 60
 
 creds = open('./credentials.csv').readlines()[1].split(',')
@@ -161,12 +162,13 @@ class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
 
-    def __init__(self, parent=None, onPositionChange=None):
+    def __init__(self, parent=None, onPositionChange=None, fullscreen=False):
         QWidget.__init__(self, parent)
         self._capture = None
         self._paused = True
         self._play_state = PlayState.NotReady
         self._file_name = None
+        self._fullscreen = fullscreen
 
         self._frame_manager = None
 
@@ -189,6 +191,8 @@ class CvVideoWidget(QWidget):
 
         self._context_menu = None
         self._current_set = None
+
+        self.setStyleSheet('QMenu { background-color: white; }')
 
     def load_set(self, set):
         self._current_set = set
@@ -290,7 +294,7 @@ class CvVideoWidget(QWidget):
         self._timer.cancel()
         if self._capture is not None:
             self._capture.release()
-        self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
+        self._image = QImage(self._target_width, self._target_height, QImage.Format_RGB888)
         self._image.fill(Qt.black)
         self.update()
 

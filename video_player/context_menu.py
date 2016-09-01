@@ -208,7 +208,10 @@ class EventDialog(QDialog):
             filename = self._set.add_event(self.selected_obs.id, self.dialog_values)
 
         # update observation_table
-        self.observation_table().refresh_model()
+        if self.observation_table():
+            self.observation_table().refresh_model()
+        else:
+            self.parent().parent().refresh_seek_bar()
 
         # save frame
         self.parent().save_image(filename)
@@ -251,4 +254,7 @@ class EventDialog(QDialog):
         self.dialog_values['comment'] = self.obs_text.toPlainText()
 
     def observation_table(self):
-        return self.parent().parent()._observation_table
+        try:
+            return self.parent().parent()._observation_table
+        except AttributeError:
+            return None
