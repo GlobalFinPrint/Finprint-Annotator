@@ -1,5 +1,4 @@
 from global_finprint import GlobalFinPrintServer, Observation
-from video_player.cv_video_widget import VIDEO_WIDTH
 from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -13,7 +12,7 @@ class Tick(QLabel):
         super().__init__(parent)
         self.position = position
         self.observation = obs
-        self.setGeometry(QRect(0,0, Tick.tick_image.width(), Tick.tick_image.height()))
+        self.setGeometry(QRect(0, 0, Tick.tick_image.width(), Tick.tick_image.height()))
         self.setMouseTracking(True)
         self.setPixmap(QPixmap.fromImage(Tick.tick_image))
 
@@ -22,6 +21,7 @@ class Tick(QLabel):
 
     def mouseMoveEvent(self, ev):
         QToolTip.showText(QCursor.pos(), convert_position(self.position))
+
 
 class VideoSeekWidget(QSlider):
     tickSelected = pyqtSignal(int, Observation)
@@ -38,7 +38,7 @@ class VideoSeekWidget(QSlider):
         self.setOrientation(Qt.Horizontal)
         self.setStyleSheet(self.style())
         self.allowed_progress = 0
-        self.setMaximumWidth(VIDEO_WIDTH)
+        self.setMaximumWidth(self._player.width())
 
     def resizeEvent(self, _):
         if self.width() != self._last_width:

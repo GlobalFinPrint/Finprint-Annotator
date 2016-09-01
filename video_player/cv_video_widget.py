@@ -60,12 +60,13 @@ class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
 
-    def __init__(self, parent=None, onPositionChange=None):
+    def __init__(self, parent=None, onPositionChange=None, fullscreen=False):
         QWidget.__init__(self, parent)
         self._capture = None
         self._paused = True
         self._play_state = PlayState.NotReady
         self._file_name = None
+        self._fullscreen = fullscreen
 
         self._dragging = False
         self._highlighter = Highlighter()
@@ -74,7 +75,7 @@ class CvVideoWidget(QWidget):
         self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
         self._image.fill(Qt.black)
 
-        self._FPS = 0.0416 # 24 fps is GoPro norm
+        self._FPS = 0.0416  # 24 fps is GoPro norm
         self._frame_height = 0.0
         self._frame_width = 0.0
         self._aspect_ratio = 0.0
@@ -89,6 +90,8 @@ class CvVideoWidget(QWidget):
 
         self._context_menu = None
         self._current_set = None
+
+        self.setStyleSheet('QMenu { background-color: white; }')
 
     def load_set(self, set):
         self._current_set = set
@@ -134,11 +137,10 @@ class CvVideoWidget(QWidget):
             getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
             return False
 
-        self.setFixedSize(VIDEO_WIDTH, VIDEO_HEIGHT)  # make this adjustable
         self._play_state = PlayState.Paused
 
         fps = self._capture.get(cv2.CAP_PROP_FPS)
-        self._FPS = fps if fps > 10 and fps < 61 else self._FPS
+        self._FPS = fps if 10 < fps < 61 else self._FPS
 
         getLogger('finprint').debug("FPS {0}".format(self._FPS))
         getLogger('finprint').debug("frame height {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -148,8 +150,10 @@ class CvVideoWidget(QWidget):
         self._frame_height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
         self._aspect_ratio = self._frame_width / self._frame_height
-        self._target_width = VIDEO_WIDTH
-        self._target_height = self._frame_height / self._aspect_ratio #((self._frame_width - VIDEO_WIDTH) / 100) * self._frame_height
+        self._target_width = self.parent().frameGeometry().width() if self._fullscreen else VIDEO_WIDTH
+        self._target_height = self._target_width / self._aspect_ratio
+
+        self.setFixedSize(self._target_width, self._target_height)
 
         getLogger('finprint').debug("widget height {0}".format(self.height()))
         getLogger('finprint').debug("widget width {0}".format(self.width()))
@@ -177,7 +181,7 @@ class CvVideoWidget(QWidget):
 
         # Base line for measuring frame rate
         self.last_time = time.perf_counter()
-        self._timer.interval = 1/self._FPS #Set the timer to the frame rate of the video
+        self._timer.interval = 1/self._FPS  # Set the timer to the frame rate of the video
         self._timer.start()
         return True
 
@@ -208,7 +212,7 @@ class CvVideoWidget(QWidget):
         self._timer.cancel()
         if self._capture is not None:
             self._capture.release()
-        self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
+        self._image = QImage(self._target_width, self._target_height, QImage.Format_RGB888)
         self._image.fill(Qt.black)
         self.update()
 
@@ -238,7 +242,6 @@ class CvVideoWidget(QWidget):
         diff = t - self.last_time
         self.last_time = t
         getLogger('finprint').debug("frame load diff {0:.4f}".format(diff))
-
 
         grabbed, frame = self._capture.retrieve() if current else self._capture.read()
         if grabbed:
