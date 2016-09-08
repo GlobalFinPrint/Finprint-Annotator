@@ -1,6 +1,5 @@
 import cv2
 import time
-import numpy as np
 from io import BytesIO
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
@@ -11,8 +10,9 @@ from .highlighter import Highlighter
 from .context_menu import ContextMenu, EventDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from queue import *
 
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
@@ -21,7 +21,7 @@ AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 FRAME_STEP = 50
 
-SEEK_CLOCK_FACTOR = 30
+SEEK_CLOCK_FACTOR = 15
 SEEK_FRAME_JUMP = 60
 
 creds = open('./credentials.csv').readlines()[1].split(',')
@@ -56,6 +56,112 @@ class RepeatingTimer(QObject):
         self.shutdown_event.set()
 
 
+class FrameManager(object):
+    BUFFER_SIZE = 60
+
+    def __init__(self, file_name):
+        super(FrameManager, self).__init__()
+        self._capture = cv2.VideoCapture(file_name)
+        self._play_state = PlayState.Paused
+        if not self._capture.isOpened():
+            raise Exception("Could not open file")
+        self._capture_lock = Lock()
+
+        self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
+        self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
+        self.width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
+        self.count = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
+        self._capture.set(cv2.CAP_PROP_FPS, 60)
+
+        getLogger('finprint').debug("FPS {0}".format(self.FPS))
+        getLogger('finprint').debug("frame height {0}".format(self.height))
+        getLogger('finprint').debug("frame width {0}".format(self.width))
+
+        self._buffer = Queue()
+        self._quit = False
+        self.thread = Thread(group=None, target=self._start_buffer, daemon=True)
+        self.thread.start()
+        self._last_frame_no = 0 # Relative to file reader
+        self.current_pos = 0 # Relative to client
+        self.current_frame_no = 0 # Relative to client
+
+    def _start_buffer(self):
+        time.sleep(1)
+        buffer_time = time.perf_counter()
+        while not self._quit:
+            #print("qsize: {0}".format(self._frame_buffer.qsize()))
+            if self._buffer.qsize() < FrameManager.BUFFER_SIZE:
+
+                with self._capture_lock:
+                    # if self._play_state == PlayState.SeekForward:
+                    #     f = self._last_frame_no + SEEK_FRAME_JUMP
+                    #     self._capture.set(cv2.CAP_PROP_POS_FRAMES, f)
+                    # elif self._play_state == PlayState.SeekBack:
+                    #     f = self._last_frame_no - SEEK_FRAME_JUMP
+                    #     self._capture.set(cv2.CAP_PROP_POS_FRAMES, f)
+                    self._load_frame()
+
+                t = time.perf_counter()
+                diff = t - buffer_time
+                buffer_time = t
+                print("buffer grab diff {0:.4f}".format(diff))
+
+            else:
+                time.sleep(0.01)
+
+    def _load_frame(self):
+        grabbed, frame = self._capture.read()
+        ms_pos = self._capture.get(cv2.CAP_PROP_POS_MSEC)
+        frame_pos = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
+
+        if grabbed:
+            print("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
+            self._buffer.put((ms_pos, frame_pos, frame))
+            self._last_frame_no = frame_pos
+
+    def get_next_frame(self):
+        try:
+            frame_time = time.perf_counter()
+            # if self._buffer.qsize() < FrameManager.BUFFER_SIZE:
+            #     time.sleep(2)
+            ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
+            str = "getting frame "
+            if self._play_state == PlayState.SeekForward:
+                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
+                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
+                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
+                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
+                str += " in ffwd "
+
+            print("{0} {1:.1f} ms {2} frame in {3:.4f} ms".format(str, ms_pos, frame_pos, time.perf_counter() - frame_time))
+        except Empty as e:
+            print("empty buffer")
+            return False, None
+
+        self.current_pos = ms_pos
+        self.current_frame_no = frame_pos
+        return True, frame
+
+    def set_play_state(self, state):
+        # if state in [PlayState.SeekBack, PlayState.SeekForward] and self._play_state not in [PlayState.SeekBack, PlayState.SeekForward]:
+        #     self._buffer = Queue()
+        #     print("playstate change, emptying buffer: {0}".format(state))
+        # elif state == PlayState.Playing and self._play_state in [PlayState.SeekBack, PlayState.SeekForward]:
+        #     self._buffer = Queue()
+
+        self._play_state = state
+
+    def get_position(self):
+        return self.current_pos
+
+    def set_position(self, pos):
+        print("setting position: {0}".format(pos))
+        with self._capture_lock:
+            self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+            self._buffer = Queue()
+            self._load_frame()
+
+
 class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
@@ -67,6 +173,8 @@ class CvVideoWidget(QWidget):
         self._play_state = PlayState.NotReady
         self._file_name = None
 
+        self._frame_manager = None
+
         self._dragging = False
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
@@ -74,15 +182,12 @@ class CvVideoWidget(QWidget):
         self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
         self._image.fill(Qt.black)
 
-        self._FPS = 0.0416 # 24 fps is GoPro norm
-        self._frame_height = 0.0
-        self._frame_width = 0.0
         self._aspect_ratio = 0.0
         self._target_width = 0.0
         self._target_height = 0.0
 
         self._timer_flag = False
-        self._timer = RepeatingTimer(self._FPS)
+        self._timer = RepeatingTimer(0.0416) # 24 fps is GoPro norm
         self._timer.timerElapsed.connect(self.on_timer)
 
         self._last_progress = 0
@@ -94,9 +199,6 @@ class CvVideoWidget(QWidget):
         self._current_set = set
         self._context_menu = ContextMenu(set, parent=self)
         self._context_menu.itemSelected.connect(self.onMenuSelect)
-
-    def context_menu(self):
-        return self._context_menu
 
     def onMenuSelect(self, optDict):
         if optDict is not None:
@@ -126,37 +228,28 @@ class CvVideoWidget(QWidget):
 
         self.clear_extent()
 
+
         try:
-            self._capture = cv2.VideoCapture(self._file_name)
-            if not self._capture.isOpened():
-                raise Exception("Could not open file")
+            self._frame_manager = FrameManager(self._file_name)
         except Exception as ex:
             getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
             return False
 
+        self.playStateChanged.connect(self._frame_manager.set_play_state)
+
         self.setFixedSize(VIDEO_WIDTH, VIDEO_HEIGHT)  # make this adjustable
         self._play_state = PlayState.Paused
 
-        fps = self._capture.get(cv2.CAP_PROP_FPS)
-        self._FPS = fps if fps > 10 and fps < 61 else self._FPS
-
-        getLogger('finprint').debug("FPS {0}".format(self._FPS))
-        getLogger('finprint').debug("frame height {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        getLogger('finprint').debug("frame width {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)))
-
-        self._frame_width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
-        self._frame_height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
-
-        self._aspect_ratio = self._frame_width / self._frame_height
+        self._aspect_ratio = self._frame_manager.width / self._frame_manager.height
         self._target_width = VIDEO_WIDTH
-        self._target_height = self._frame_height / self._aspect_ratio #((self._frame_width - VIDEO_WIDTH) / 100) * self._frame_height
+        self._target_height = self._frame_manager.height / self._aspect_ratio
 
         getLogger('finprint').debug("widget height {0}".format(self.height()))
         getLogger('finprint').debug("widget width {0}".format(self.width()))
 
-        print("FPS {0}".format(self._FPS))
-        print("frame height {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        print("frame width {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)))
+        print("FPS {0}".format(self._frame_manager.FPS))
+        print("frame height {0}".format(self._frame_manager.height))
+        print("frame width {0}".format(self._frame_manager.width))
         print("aspect ratio {0}".format(self._aspect_ratio))
         print("target height {0}".format(self._target_height))
         print("target width {0}".format(self._target_width))
@@ -167,8 +260,6 @@ class CvVideoWidget(QWidget):
         print("image height {0}".format(self._image.height()))
         print("image width {0}".format(self._image.width()))
 
-        # Take one frame to query height
-        self.set_position(0)
         getLogger('finprint').debug("image height {0}".format(self._image.height()))
         getLogger('finprint').debug("image width {0}".format(self._image.width()))
 
@@ -177,8 +268,10 @@ class CvVideoWidget(QWidget):
 
         # Base line for measuring frame rate
         self.last_time = time.perf_counter()
-        self._timer.interval = 1/self._FPS #Set the timer to the frame rate of the video
+        self._timer.interval = 1 / self._frame_manager.FPS #Set the timer to the frame rate of the video
         self._timer.start()
+
+        self.set_position(0)
         return True
 
     def on_timer(self):
@@ -191,14 +284,8 @@ class CvVideoWidget(QWidget):
                     self.progressUpdate.emit(pos)
                 self.load_frame()
             elif self._play_state == PlayState.SeekForward:
-                f = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
-                f += SEEK_FRAME_JUMP
-                self._capture.set(cv2.CAP_PROP_POS_FRAMES, f)
                 self.load_frame()
             elif self._play_state == PlayState.SeekBack:
-                f = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
-                f -= SEEK_FRAME_JUMP
-                self._capture.set(cv2.CAP_PROP_POS_FRAMES, f)
                 self.load_frame()
 
             self.update()
@@ -237,10 +324,9 @@ class CvVideoWidget(QWidget):
         t = time.perf_counter()
         diff = t - self.last_time
         self.last_time = t
-        getLogger('finprint').debug("frame load diff {0:.4f}".format(diff))
+        #getLogger('finprint').debug("frame load diff {0:.4f}".format(diff))
 
-
-        grabbed, frame = self._capture.retrieve() if current else self._capture.read()
+        grabbed, frame = self._frame_manager.get_next_frame()
         if grabbed:
             self._image = self._build_image(frame)
             self._onPositionChange(self.get_position())
@@ -266,7 +352,7 @@ class CvVideoWidget(QWidget):
         self.repaint()
 
     def set_position(self, pos):
-        self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
+        self._frame_manager.set_position(pos)
         self.load_frame(current=True)
         self._onPositionChange(self.get_position())
 
@@ -318,7 +404,7 @@ class CvVideoWidget(QWidget):
     def play(self):
         if self._play_state == PlayState.EndOfStream:
             self.set_position(0)
-        self._timer.interval = 1 / self._FPS
+        self._timer.interval = 1 / self._frame_manager.FPS
         self._play_state = PlayState.Playing
         self.clear_extent()
         self.playStateChanged.emit(self._play_state)
@@ -327,22 +413,20 @@ class CvVideoWidget(QWidget):
         return self._play_state == PlayState.Paused
 
     def get_position(self):
-        return self._capture.get(cv2.CAP_PROP_POS_MSEC) if self._capture is not None else None
+        return self._frame_manager.get_position()
 
     def get_length(self):
-        num_frames = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
-
-        if self._FPS == 0 or num_frames == 0:
+        if self._frame_manager.FPS == 0 or self._frame_manager.count == 0:
             getLogger('finprint').exception("Failed to calculate length")
             return 0
         else:
-            return (num_frames / self._FPS) * 1000  # Returns milliseconds as a float
+            return (self._frame_manager.count / self._frame_manager.FPS) * 1000  # Returns milliseconds as a float
 
     def fast_forward(self):
         if self._play_state == PlayState.SeekForward:
             self.pause()
         else:
-            self._timer.interval = SEEK_CLOCK_FACTOR / self._FPS
+            #self._timer.interval = SEEK_CLOCK_FACTOR / self._frame_manager.FPS
             self._play_state = PlayState.SeekForward
             self.clear_extent()
         self.playStateChanged.emit(self._play_state)
@@ -351,7 +435,7 @@ class CvVideoWidget(QWidget):
         if self._play_state == PlayState.SeekBack:
             self.pause()
         else:
-            self._timer.interval = SEEK_CLOCK_FACTOR / self._FPS
+            self._timer.interval = SEEK_CLOCK_FACTOR / self._frame_manager.FPS
             self._play_state = PlayState.SeekBack
             self.clear_extent()
         self.playStateChanged.emit(self._play_state)
