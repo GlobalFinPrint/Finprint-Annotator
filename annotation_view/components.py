@@ -20,7 +20,7 @@ class SpeedButton(QPushButton):
             border-radius: 4px;
             padding-top: 10px;
             padding-bottom: 10px;
-            padding-left: 20px;
-            padding-right: 20px;
+            padding-left: 15px;
+            padding-right: 15px;
             font-size: 14px;
         ''')
