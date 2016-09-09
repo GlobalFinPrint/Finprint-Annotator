@@ -75,6 +75,13 @@ class MainWindow(QMainWindow):
         quitAction.triggered.connect(self._vid_layout.on_quit)
         fileMenu.addAction(quitAction)
 
+        viewMenu = menubar.addMenu('&View')
+        fullscreenAction = QAction('Video &fullscreen', self)
+        fullscreenAction.setShortcut('CTRL+F')
+        fullscreenAction.setStatusTip('View video in fullscreen mode')
+        fullscreenAction.triggered.connect(self._attempt_fullscreen)
+        viewMenu.addAction(fullscreenAction)
+
         self.setMenuBar(menubar)
 
     # TODO: The login widget should just be the dialog
@@ -173,3 +180,10 @@ class MainWindow(QMainWindow):
         self.assign_diag.close()
         s = Set(value)
         self._vid_layout.load_set(s)
+
+    def _attempt_fullscreen(self, *args):
+        if self._vid_layout._video_player:
+            if self._vid_layout.is_fullscreen is False:
+                self._vid_layout.on_fullscreen()
+            else:
+                self._vid_layout.fullscreen.on_fullscreen_toggle()
