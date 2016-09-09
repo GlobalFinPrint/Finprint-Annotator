@@ -24,6 +24,7 @@ class VideoLayoutWidget(QWidget):
                                         color:white;
                                         font: 12pt "Arial";
                                         border-radius: 4px;
+                                        margin-left: 25px;
                                         padding-top: 4px;
                                         padding-bottom: 4px;
                                         padding-left: 5px;
@@ -133,7 +134,6 @@ class VideoLayoutWidget(QWidget):
         vid_box = QVBoxLayout()
         vid_box.addWidget(self._video_label)
         vid_box.addWidget(self._video_player)
-
         vid_box.addWidget(self._slider)
 
         pos_layout = QHBoxLayout()
@@ -147,20 +147,25 @@ class VideoLayoutWidget(QWidget):
 
         # Video controls
         video_controls_box = QHBoxLayout()
+        video_controls_box.addSpacing(25)
         video_controls_box.addWidget(self._rew_button)
         video_controls_box.addWidget(self._step_back_button)
         video_controls_box.addWidget(self._toggle_play_button)
         video_controls_box.addWidget(self._step_forward_button)
         video_controls_box.addWidget(self._ff_button)
+        video_controls_box.addStretch(1)
 
         # Secondary controls
         secondary_controls_box = QHBoxLayout()
+        secondary_controls_box.addSpacing(25)
         secondary_controls_box.addWidget(self._fullscreen_button)
         for button in self._speed_buttons:
             secondary_controls_box.addWidget(button)
+        secondary_controls_box.addStretch(1)
 
         # Buttons
         button_box = QVBoxLayout()
+        button_box.addSpacing(50)
         button_box.setDirection(QBoxLayout.BottomToTop)
         button_box.addLayout(secondary_controls_box)
         button_box.addLayout(video_controls_box)
