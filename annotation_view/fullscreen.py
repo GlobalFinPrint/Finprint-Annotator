@@ -89,10 +89,14 @@ class FullScreen(QWidget):
 
         self.seek_bar = VideoSeekWidget(self.video_player)
 
+        self.video_length_label = QLabel()
+        self.video_length_label.setStyleSheet('color: #838C9E; font-size: 13px; padding-top: 10px;')
+
         seek_bar_holder = QWidget()
         seek_bar_holder.setStyleSheet('background-color: white;')
-        seek_bar_holder_layout = QVBoxLayout()
+        seek_bar_holder_layout = QHBoxLayout()
         seek_bar_holder_layout.addWidget(self.seek_bar)
+        seek_bar_holder_layout.addWidget(self.video_length_label)
         seek_bar_holder.setLayout(seek_bar_holder_layout)
 
         controls_holder = QWidget()
@@ -171,6 +175,7 @@ class FullScreen(QWidget):
         self.seek_bar.load_set(self.current_set)
         self.seek_bar.setMaximum(int(self.video_player.get_length()))
         self.seek_bar.set_allowed_progress(self.current_set.progress)
+        self.video_length_label.setText(convert_position(int(self.video_player.get_length())))
         self.wire_events()
         self.video_player.set_position(self.small_player.get_position())
 
