@@ -19,7 +19,7 @@ class FullScreenLayout(QLayout):
         self.items.append(item)
 
     def setGeometry(self, rect):
-        super(QLayout, self).setGeometry(rect)
+        super().setGeometry(rect)
 
         screen = self.items[0]
         seek_bar = self.items[1]
@@ -62,10 +62,7 @@ class FullScreenLayout(QLayout):
         return len(self.items)
 
     def itemAt(self, idx):
-        try:
-            return self.items[idx]
-        except IndexError:
-            return None
+        return self.items[idx] if 0 <= idx < len(self.items) else None
 
     def takeAt(self, idx):
         item = self.items[idx]
