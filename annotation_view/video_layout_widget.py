@@ -14,6 +14,7 @@ from PyQt4.QtGui import *
 
 class VideoLayoutWidget(QWidget):
     fullscreen = None
+    is_fullscreen = False
 
     def __init__(self, main_window):
         super(VideoLayoutWidget, self).__init__()
@@ -370,3 +371,4 @@ class VideoLayoutWidget(QWidget):
             self.fullscreen.revive(*args)
         else:
             self.fullscreen = FullScreen(*args)
+        self.is_fullscreen = True
