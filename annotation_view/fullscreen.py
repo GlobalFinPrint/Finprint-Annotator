@@ -10,10 +10,15 @@ from PyQt4.QtCore import *
 class FullScreenLayout(QLayout):
     items = []
     hidden_controls = False
+    hidden_offset = 0
 
-    SEEK_HEIGHT = 60
+    SEEK_HEIGHT = 45
     SPACING = 5
-    CONTROL_HEIGHT = 65
+    CONTROL_HEIGHT = 50
+
+    OFFSET_STEP = 10
+    HIDDEN_OFFSET_MIN = 0
+    HIDDEN_OFFSET_MAX = SEEK_HEIGHT + SPACING + CONTROL_HEIGHT
 
     def addItem(self, item):
         self.items.append(item)
@@ -32,28 +37,19 @@ class FullScreenLayout(QLayout):
             screen.geometry().height()
         ))
 
-        if self.hidden_controls:
-            seek_bar.widget().hide()
-            controls.widget().hide()
-        else:
-            # TODO fix this
-            # if not seek_bar.widget().isVisible():
-            #     seek_bar.widget().show()
-            # if not controls.widget().isVisible():
-            #     controls.widget().show()
+        seek_bar.setGeometry(QRect(
+            rect.x(),
+            rect.height() - self.SEEK_HEIGHT - self.CONTROL_HEIGHT - self.SPACING + self.offset(),
+            rect.width(),
+            self.SEEK_HEIGHT
+        ))
 
-            seek_bar.setGeometry(QRect(
-                rect.x(),
-                rect.height() - self.SEEK_HEIGHT - self.CONTROL_HEIGHT - self.SPACING,
-                rect.width(),
-                self.SEEK_HEIGHT
-            ))
-            controls.setGeometry(QRect(
-                rect.x(),
-                rect.height() - self.CONTROL_HEIGHT,
-                rect.width(),
-                self.CONTROL_HEIGHT
-            ))
+        controls.setGeometry(QRect(
+            rect.x(),
+            rect.height() - self.CONTROL_HEIGHT + self.offset(),
+            rect.width(),
+            self.CONTROL_HEIGHT
+        ))
 
     def sizeHint(self):
         return self.parent().frameGeometry()
@@ -68,6 +64,13 @@ class FullScreenLayout(QLayout):
         item = self.items[idx]
         del self.items[idx]
         return item
+
+    def offset(self):
+        if self.hidden_controls:
+            self.hidden_offset = min(self.hidden_offset + self.OFFSET_STEP, self.HIDDEN_OFFSET_MAX)
+        else:
+            self.hidden_offset = max(self.hidden_offset - self.OFFSET_STEP, self.HIDDEN_OFFSET_MIN)
+        return self.hidden_offset
 
 
 class FullScreen(QWidget):
@@ -237,5 +240,8 @@ class FullScreen(QWidget):
     def eventFilter(self, obj, evt):
         if evt.type() == QEvent.KeyPress and evt.key() == Qt.Key_Escape:
             self.on_fullscreen_toggle()
+            return True
+        elif evt.type() == QEvent.KeyPress and evt.key() == Qt.Key_T:
+            self.layout.hidden_controls = not self.layout.hidden_controls
             return True
         return False
