@@ -70,6 +70,10 @@ class FullScreenLayout(QLayout):
             self.hidden_offset = min(self.hidden_offset + self.OFFSET_STEP, self.HIDDEN_OFFSET_MAX)
         else:
             self.hidden_offset = max(self.hidden_offset - self.OFFSET_STEP, self.HIDDEN_OFFSET_MIN)
+
+        if self.hidden_offset not in (self.HIDDEN_OFFSET_MIN, self.HIDDEN_OFFSET_MAX):
+            self.update()
+
         return self.hidden_offset
 
 
@@ -158,8 +162,6 @@ class FullScreen(QWidget):
         self.layout.addWidget(controls_holder)
         self.setLayout(self.layout)
 
-        # TODO slide controls up on mouse move
-
         self.prepare(video_file)
 
     def revive(self, set, video_file, small_player):
@@ -199,10 +201,10 @@ class FullScreen(QWidget):
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
             self.on_progress_update(self.video_player.get_position())  # update position on pause
             self.play_pause_button.setPixmap(self._play_pixmap)
-            # self.layout.hidden_controls = True
+            self.layout.hidden_controls = False
         else:
             self.play_pause_button.setPixmap(self._pause_pixmap)
-            # self.layout.hidden_controls = False
+            self.layout.hidden_controls = True
 
     def on_progress_update(self, progress):
         if self.current_set is not None:
@@ -243,5 +245,6 @@ class FullScreen(QWidget):
             return True
         elif evt.type() == QEvent.KeyPress and evt.key() == Qt.Key_T:
             self.layout.hidden_controls = not self.layout.hidden_controls
+            self.layout.update()
             return True
         return False
