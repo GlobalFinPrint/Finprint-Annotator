@@ -155,21 +155,20 @@ class VideoLayoutWidget(QWidget):
         video_controls_box.addWidget(self._step_forward_button)
         video_controls_box.addWidget(self._ff_button)
         video_controls_box.addStretch(1)
+        for button in self._speed_buttons:
+            video_controls_box.addWidget(button)
 
         # Secondary controls
         secondary_controls_box = QHBoxLayout()
         secondary_controls_box.addSpacing(25)
         secondary_controls_box.addWidget(self._fullscreen_button)
-        for button in self._speed_buttons:
-            secondary_controls_box.addWidget(button)
         secondary_controls_box.addStretch(1)
 
         # Buttons
         button_box = QVBoxLayout()
-        button_box.addSpacing(50)
         button_box.setDirection(QBoxLayout.BottomToTop)
-        button_box.addLayout(secondary_controls_box)
         button_box.addLayout(video_controls_box)
+        button_box.addLayout(secondary_controls_box)
         button_box.addWidget(self._submit_button)
         button_box.addStretch(1)
         button_box.addWidget(self._reject_button)
