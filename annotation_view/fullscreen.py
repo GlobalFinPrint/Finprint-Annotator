@@ -12,13 +12,11 @@ class FullScreenLayout(QLayout):
     hidden_controls = False
     hidden_offset = 0
 
-    SEEK_HEIGHT = 45
-    SPACING = 5
-    CONTROL_HEIGHT = 50
+    CONTROLS_HEIGHT = 125
 
     OFFSET_STEP = 10
     HIDDEN_OFFSET_MIN = 0
-    HIDDEN_OFFSET_MAX = SEEK_HEIGHT + SPACING + CONTROL_HEIGHT
+    HIDDEN_OFFSET_MAX = CONTROLS_HEIGHT
 
     def addItem(self, item):
         self.items.append(item)
@@ -27,8 +25,7 @@ class FullScreenLayout(QLayout):
         super().setGeometry(rect)
 
         screen = self.items[0]
-        seek_bar = self.items[1]
-        controls = self.items[2]
+        controls = self.items[1]
 
         screen.setGeometry(QRect(
             rect.x(),
@@ -37,18 +34,11 @@ class FullScreenLayout(QLayout):
             screen.geometry().height()
         ))
 
-        seek_bar.setGeometry(QRect(
-            rect.x(),
-            rect.height() - self.SEEK_HEIGHT - self.CONTROL_HEIGHT - self.SPACING + self.offset(),
-            rect.width(),
-            self.SEEK_HEIGHT
-        ))
-
         controls.setGeometry(QRect(
             rect.x(),
-            rect.height() - self.CONTROL_HEIGHT + self.offset(),
+            rect.height() - self.CONTROLS_HEIGHT + self.offset(),
             rect.width(),
-            self.CONTROL_HEIGHT
+            self.CONTROLS_HEIGHT
         ))
 
     def sizeHint(self):
@@ -86,7 +76,7 @@ class FullScreen(QWidget):
         self.current_set = set
         self.small_player = small_player
 
-        self.layout = FullScreenLayout()
+        # components
         self.video_player = CvVideoWidget(parent=self,
                                           onPositionChange=self.on_position_change,
                                           fullscreen=True)
@@ -96,17 +86,8 @@ class FullScreen(QWidget):
         self.video_length_label = QLabel()
         self.video_length_label.setStyleSheet('color: #838C9E; font-size: 13px; padding-top: 10px;')
 
-        seek_bar_holder = QWidget()
-        seek_bar_holder.setStyleSheet('background-color: white;')
-        seek_bar_holder_layout = QHBoxLayout()
-        seek_bar_holder_layout.addWidget(self.seek_bar)
-        seek_bar_holder_layout.addWidget(self.video_length_label)
-        seek_bar_holder.setLayout(seek_bar_holder_layout)
-
-        controls_holder = QWidget()
-        controls_holder.setStyleSheet('background-color: white;')
-        controls_holder_layout = QHBoxLayout()
-        controls_holder_layout.setAlignment(Qt.AlignLeft)
+        self.fullscreen_button = ClickLabel()
+        self.fullscreen_button.setPixmap(QPixmap('images/fullscreen-minimize.png'))
 
         self.set_label = QLabel(set.code)
         self.set_label.setStyleSheet('''
@@ -137,31 +118,44 @@ class FullScreen(QWidget):
         self.fast_forward_button.setPixmap(QPixmap('images/video_control-fast_forward.png'))
         if not GlobalFinPrintServer().is_lead():
             self.fast_forward_button.setVisible(False)
-
         self.speed_buttons = list(SpeedButton(speed) for speed in [0.5, 1.5, 3])
 
-        self.fullscreen_button = ClickLabel()
-        self.fullscreen_button.setPixmap(QPixmap('images/fullscreen-minimize.png'))
+        # layout
+        controls_layout = QVBoxLayout()
+        first_row = QHBoxLayout()
+        first_row.addStretch(1)
+        first_row.addWidget(self.fullscreen_button)
+        controls_layout.addLayout(first_row)
 
-        controls_holder_layout.addWidget(self.set_label)
-        controls_holder_layout.addWidget(self.video_time_label)
-        controls_holder_layout.addSpacerItem(QSpacerItem(1, 1, QSizePolicy.Expanding))
-        controls_holder_layout.addWidget(self.rewind_button)
-        controls_holder_layout.addWidget(self.step_back_button)
-        controls_holder_layout.addWidget(self.play_pause_button)
-        controls_holder_layout.addWidget(self.step_forward_button)
-        controls_holder_layout.addWidget(self.fast_forward_button)
+        second_row = QHBoxLayout()
+        second_row.addWidget(self.seek_bar)
+        second_row.addWidget(self.video_length_label)
+        controls_layout.addLayout(second_row)
+
+        third_row = QHBoxLayout()
+        third_row.addWidget(self.set_label)
+        third_row.addWidget(self.video_time_label)
+        third_row.addSpacerItem(QSpacerItem(1, 1, QSizePolicy.Expanding))
+        third_row.addWidget(self.rewind_button)
+        third_row.addWidget(self.step_back_button)
+        third_row.addWidget(self.play_pause_button)
+        third_row.addWidget(self.step_forward_button)
+        third_row.addWidget(self.fast_forward_button)
+        third_row.addSpacerItem(QSpacerItem(1, 1, QSizePolicy.Expanding))
         for button in self.speed_buttons:
-            controls_holder_layout.addWidget(button)
-        controls_holder_layout.addWidget(self.fullscreen_button)
+            third_row.addWidget(button)
+        controls_layout.addLayout(third_row)
 
-        controls_holder.setLayout(controls_holder_layout)
+        controls = QWidget()
+        controls.setStyleSheet('background-color: white;')
+        controls.setLayout(controls_layout)
 
+        self.layout = FullScreenLayout()
         self.layout.addWidget(self.video_player)
-        self.layout.addWidget(seek_bar_holder)
-        self.layout.addWidget(controls_holder)
+        self.layout.addWidget(controls)
         self.setLayout(self.layout)
 
+        # prepare video for display
         self.prepare(video_file)
 
     def revive(self, set, video_file, small_player):
