@@ -52,6 +52,12 @@ class VideoLayoutWidget(QWidget):
         self._rew_button = ClickLabel()
         self._rew_button.setPixmap(QPixmap('images/video_control-rewind.png'))
 
+        self._back15 = ClickLabel()
+        self._back15.setText("-15")
+
+        self._back30 = ClickLabel()
+        self._back30.setText("-30")
+
         self._ff_button = ClickLabel()
         self._ff_button.setPixmap(QPixmap('images/video_control-fast_forward.png'))
         self._ff_button.setVisible(False)
@@ -105,6 +111,8 @@ class VideoLayoutWidget(QWidget):
         self._ff_button.clicked.connect(self.on_fast_forward)
         self._step_back_button.clicked.connect(self.on_step_back)
         self._step_forward_button.clicked.connect(self.on_step_forward)
+        self._back15.clicked.connect(self.on_back15)
+        self._back30.clicked.connect(self.on_back30)
 
         self._fullscreen_button.clicked.connect(self.on_fullscreen)
 
@@ -135,6 +143,7 @@ class VideoLayoutWidget(QWidget):
         vid_box = QVBoxLayout()
         vid_box.addWidget(self._video_label)
         vid_box.addWidget(self._video_player)
+
         vid_box.addWidget(self._slider)
 
         pos_layout = QHBoxLayout()
@@ -149,7 +158,10 @@ class VideoLayoutWidget(QWidget):
         # Video controls
         video_controls_box = QHBoxLayout()
         video_controls_box.addSpacing(25)
-        video_controls_box.addWidget(self._rew_button)
+
+        #video_controls_box.addWidget(self._rew_button)
+        video_controls_box.addWidget(self._back30)
+        video_controls_box.addWidget(self._back15)
         video_controls_box.addWidget(self._step_back_button)
         video_controls_box.addWidget(self._toggle_play_button)
         video_controls_box.addWidget(self._step_forward_button)
@@ -221,6 +233,8 @@ class VideoLayoutWidget(QWidget):
         self._video_label.setText('{0}'.format(self.current_set.file))
 
         self._rew_button.setDisabled(False)
+        self._back15.setDisabled(False)
+        self._back30.setDisabled(False)
         if GlobalFinPrintServer().is_lead():
             self._ff_button.setDisabled(False)
             self._ff_button.setVisible(True)
@@ -280,6 +294,8 @@ class VideoLayoutWidget(QWidget):
         self._reject_button.setDisabled(True)
         self._reject_button.setVisible(False)
         self._rew_button.setDisabled(True)
+        self._back15.setDisabled(True)
+        self._back30.setDisabled(True)
         self._ff_button.setDisabled(True)
         self._step_forward_button.setDisabled(True)
         self._step_back_button.setDisabled(True)
@@ -315,6 +331,12 @@ class VideoLayoutWidget(QWidget):
 
     def on_rewind(self):
         self._video_player.rewind()
+
+    def on_back15(self):
+        self._video_player.jump_back(15)
+
+    def on_back30(self):
+        self._video_player.jump_back(30)
 
     def on_fast_forward(self):
         self._video_player.fast_forward()
