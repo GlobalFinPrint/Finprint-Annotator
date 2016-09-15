@@ -11,6 +11,7 @@ from .context_menu import ContextMenu, EventDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from queue import *
+from config import global_config
 
 from threading import Thread, Event, Lock
 
@@ -55,9 +56,9 @@ class RepeatingTimer(QObject):
     def cancel(self):
         self.shutdown_event.set()
 
+DEFAULT_BUFFER_SIZE = 60
 
 class FrameManager(object):
-    BUFFER_SIZE = 60
 
     def __init__(self, file_name):
         super(FrameManager, self).__init__()
@@ -66,6 +67,12 @@ class FrameManager(object):
         if not self._capture.isOpened():
             raise Exception("Could not open file")
         self._capture_lock = Lock()
+
+        b = global_config.get('VIDEOS', 'buffer_size')
+        if b is None:
+            self._buffer_size = DEFAULT_BUFFER_SIZE
+        else:
+            self._buffer_size = int(b)
 
         self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
         self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -76,6 +83,7 @@ class FrameManager(object):
         getLogger('finprint').debug("FPS {0}".format(self.FPS))
         getLogger('finprint').debug("frame height {0}".format(self.height))
         getLogger('finprint').debug("frame width {0}".format(self.width))
+        getLogger('finprint').debug("buffer size {0}".format(self._buffer_size))
 
         self._buffer = Queue()
         self._quit = False
@@ -90,21 +98,15 @@ class FrameManager(object):
         buffer_time = time.perf_counter()
         while not self._quit:
             #print("qsize: {0}".format(self._frame_buffer.qsize()))
-            if self._buffer.qsize() < FrameManager.BUFFER_SIZE:
+            if self._buffer.qsize() < self._buffer_size:
 
                 with self._capture_lock:
-                    # if self._play_state == PlayState.SeekForward:
-                    #     f = self._last_frame_no + SEEK_FRAME_JUMP
-                    #     self._capture.set(cv2.CAP_PROP_POS_FRAMES, f)
-                    # elif self._play_state == PlayState.SeekBack:
-                    #     f = self._last_frame_no - SEEK_FRAME_JUMP
-                    #     self._capture.set(cv2.CAP_PROP_POS_FRAMES, f)
                     self._load_frame()
 
                 t = time.perf_counter()
                 diff = t - buffer_time
                 buffer_time = t
-                print("buffer grab diff {0:.4f}".format(diff))
+                #print("buffer grab diff {0:.4f}".format(diff))
 
             else:
                 time.sleep(0.01)
@@ -130,10 +132,9 @@ class FrameManager(object):
                 ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
                 ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
                 ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
-                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
                 str += " in ffwd "
 
-            print("{0} {1:.1f} ms {2} frame in {3:.4f} ms".format(str, ms_pos, frame_pos, time.perf_counter() - frame_time))
+            #print("{0} {1:.1f} ms {2} frame in {3:.4f} ms".format(str, ms_pos, frame_pos, time.perf_counter() - frame_time))
         except Empty as e:
             print("empty buffer")
             return False, None
@@ -143,12 +144,6 @@ class FrameManager(object):
         return True, frame
 
     def set_play_state(self, state):
-        # if state in [PlayState.SeekBack, PlayState.SeekForward] and self._play_state not in [PlayState.SeekBack, PlayState.SeekForward]:
-        #     self._buffer = Queue()
-        #     print("playstate change, emptying buffer: {0}".format(state))
-        # elif state == PlayState.Playing and self._play_state in [PlayState.SeekBack, PlayState.SeekForward]:
-        #     self._buffer = Queue()
-
         self._play_state = state
 
     def get_position(self):
@@ -351,6 +346,12 @@ class CvVideoWidget(QWidget):
         self.set_position(pos)
         self.repaint()
 
+    def jump_back(self, seconds):
+        pos = self.get_position() - seconds * 1000
+        if pos < 0:
+            pos = 0
+        self.set_position(pos)
+
     def set_position(self, pos):
         self._frame_manager.set_position(pos)
         self.load_frame(current=True)
@@ -426,11 +427,11 @@ class CvVideoWidget(QWidget):
         if self._play_state == PlayState.SeekForward:
             self.pause()
         else:
-            #self._timer.interval = SEEK_CLOCK_FACTOR / self._frame_manager.FPS
             self._play_state = PlayState.SeekForward
             self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
+    ## No worky.
     def rewind(self):
         if self._play_state == PlayState.SeekBack:
             self.pause()
@@ -447,7 +448,7 @@ class CvVideoWidget(QWidget):
     def step_back(self):
         if not self.paused():
             self.pause()
-        self.set_position(self.get_position() - FRAME_STEP)
+        self.set_position(self.get_position() - FRAME_STEP * 3)
 
     def step_forward(self):
         if not self.paused():

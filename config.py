@@ -25,7 +25,10 @@ class Config():
             except:
                 pass
         if section:
-            return self._configdict[section][key]
+            if key in self._configdict[section]:
+                return self._configdict[section][key]
+            else:
+                return None
         return self._configdict
 
     def __getitem__(self, key):
