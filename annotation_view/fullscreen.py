@@ -27,11 +27,15 @@ class FullScreenLayout(QLayout):
         screen = self.items[0]
         controls = self.items[1]
 
+        availableHeight = rect.height()
+        if self.hidden_offset < self.HIDDEN_OFFSET_MAX:
+            availableHeight -= self.CONTROLS_HEIGHT
+
         screen.setGeometry(QRect(
-            rect.x(),
-            rect.y(),
+            rect.x() + ((rect.width() - screen.widget()._target_width()) / 2),
+            rect.y() + ((availableHeight - screen.widget()._target_height()) / 2),
             rect.width(),
-            screen.geometry().height()
+            availableHeight
         ))
 
         controls.setGeometry(QRect(
@@ -171,6 +175,7 @@ class FullScreen(QWidget):
         self.seek_bar.load_set(self.current_set)
         self.seek_bar.setMaximum(int(self.video_player.get_length()))
         self.seek_bar.set_allowed_progress(self.current_set.progress)
+        self.seek_bar.setMaximumWidth(self.frameGeometry().width())
         self.video_length_label.setText(convert_position(int(self.video_player.get_length())))
         self.wire_events()
         self.video_player.set_position(self.small_player.get_position())
@@ -196,10 +201,8 @@ class FullScreen(QWidget):
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
             self.on_progress_update(self.video_player.get_position())  # update position on pause
             self.play_pause_button.setPixmap(self._play_pixmap)
-            self.layout.hidden_controls = False
         else:
             self.play_pause_button.setPixmap(self._pause_pixmap)
-            self.layout.hidden_controls = True
 
     def on_toggle_play(self):
         self.video_player.toggle_play()

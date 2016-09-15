@@ -53,7 +53,7 @@ class ContextMenu(QMenu):
         self._populate_obs_menu()
         action = self.exec_(QCursor.pos())  # TODO position better
         if action is None or action == self._cancel_act:
-            self.itemSelected.emit(None)
+            return None
         elif action == self._interest_act:
             self.itemSelected.emit({"action": DialogActions.new_obs,
                                     "type_choice": 'I'})
