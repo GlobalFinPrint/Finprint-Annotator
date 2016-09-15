@@ -178,8 +178,8 @@ class CvVideoWidget(QWidget):
         self._image.fill(Qt.black)
 
         self._aspect_ratio = 0.0
-        self._target_width = 0.0
-        self._target_height = 0.0
+        #self._target_width = 0.0
+        #self._target_height = 0.0
 
         self._timer_flag = False
         self._timer = RepeatingTimer(0.0416) # 24 fps is GoPro norm
@@ -237,8 +237,8 @@ class CvVideoWidget(QWidget):
         self._play_state = PlayState.Paused
 
         self._aspect_ratio = self._frame_manager.width / self._frame_manager.height
-        self._target_width = self.parent().frameGeometry().width() if self._fullscreen else VIDEO_WIDTH
-        self._target_height = self._target_width / self._aspect_ratio
+        #self._target_width = self.parent().frameGeometry().width() if self._fullscreen else VIDEO_WIDTH
+        #self._target_height = self._target_width / self._aspect_ratio
 
         if not self._fullscreen:
             self.setFixedSize(self._target_width(), self._target_height())
