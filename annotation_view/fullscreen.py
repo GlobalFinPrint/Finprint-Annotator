@@ -176,6 +176,7 @@ class FullScreen(QWidget):
         self.video_player.set_position(self.small_player.get_position())
 
     def wire_events(self):
+        self.play_pause_button.clicked.connect(self.on_toggle_play)
         self.video_player.playStateChanged.connect(self.on_playstate_changed)
         self.rewind_button.clicked.connect(self.on_rewind)
         self.fast_forward_button.clicked.connect(self.on_fast_forward)
@@ -199,6 +200,9 @@ class FullScreen(QWidget):
         else:
             self.play_pause_button.setPixmap(self._pause_pixmap)
             self.layout.hidden_controls = True
+
+    def on_toggle_play(self):
+        self.video_player.toggle_play()
 
     def on_progress_update(self, progress):
         if self.current_set is not None:

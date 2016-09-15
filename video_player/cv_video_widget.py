@@ -60,7 +60,6 @@ class RepeatingTimer(QObject):
 DEFAULT_BUFFER_SIZE = 60
 
 class FrameManager(object):
-
     def __init__(self, file_name):
         super(FrameManager, self).__init__()
         self._capture = cv2.VideoCapture(file_name)
@@ -79,7 +78,6 @@ class FrameManager(object):
         self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.count = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
-        self._capture.set(cv2.CAP_PROP_FPS, 60)
 
         getLogger('finprint').debug("FPS {0}".format(self.FPS))
         getLogger('finprint').debug("frame height {0}".format(self.height))
@@ -236,12 +234,13 @@ class CvVideoWidget(QWidget):
 
         self.playStateChanged.connect(self._frame_manager.set_play_state)
 
-        self.setFixedSize(VIDEO_WIDTH, VIDEO_HEIGHT)  # make this adjustable
         self._play_state = PlayState.Paused
 
         self._aspect_ratio = self._frame_manager.width / self._frame_manager.height
-        self._target_width = VIDEO_WIDTH
-        self._target_height = self._frame_manager.height / self._aspect_ratio
+        self._target_width = self.parent().frameGeometry().width() if self._fullscreen else VIDEO_WIDTH
+        self._target_height = self._target_width / self._aspect_ratio
+
+        self.setFixedSize(self._target_width, self._target_height)
 
         getLogger('finprint').debug("widget height {0}".format(self.height()))
         getLogger('finprint').debug("widget width {0}".format(self.width()))

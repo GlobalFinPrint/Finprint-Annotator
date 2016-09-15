@@ -158,7 +158,6 @@ class VideoLayoutWidget(QWidget):
         # Video controls
         video_controls_box = QHBoxLayout()
         video_controls_box.addSpacing(25)
-        video_controls_box.addWidget(self._rew_button)
 
         #video_controls_box.addWidget(self._rew_button)
         video_controls_box.addWidget(self._back30)
