@@ -76,11 +76,9 @@ class CvVideoWidget(QWidget):
         self._image.fill(Qt.black)
 
         self._FPS = 0.0416  # 24 fps is GoPro norm
-        self._frame_height = 0.0
-        self._frame_width = 0.0
-        self._aspect_ratio = 0.0
-        self._target_width = 0.0
-        self._target_height = 0.0
+        self._frame_height = 1.0
+        self._frame_width = 1.0
+        self._aspect_ratio = 1.0
 
         self._timer_flag = False
         self._timer = RepeatingTimer(self._FPS)
@@ -150,10 +148,9 @@ class CvVideoWidget(QWidget):
         self._frame_height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
 
         self._aspect_ratio = self._frame_width / self._frame_height
-        self._target_width = self.parent().frameGeometry().width() if self._fullscreen else VIDEO_WIDTH
-        self._target_height = self._target_width / self._aspect_ratio
 
-        self.setFixedSize(self._target_width, self._target_height)
+        if not self._fullscreen:
+            self.setFixedSize(self._target_width(), self._target_height())
 
         getLogger('finprint').debug("widget height {0}".format(self.height()))
         getLogger('finprint').debug("widget width {0}".format(self.width()))
@@ -162,8 +159,8 @@ class CvVideoWidget(QWidget):
         print("frame height {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
         print("frame width {0}".format(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)))
         print("aspect ratio {0}".format(self._aspect_ratio))
-        print("target height {0}".format(self._target_height))
-        print("target width {0}".format(self._target_width))
+        print("target height {0}".format(self._target_height()))
+        print("target width {0}".format(self._target_width()))
         print("target aspect ratio {0}".format(self._aspect_ratio))
 
         print("widget height {0}".format(self.height()))
@@ -184,6 +181,28 @@ class CvVideoWidget(QWidget):
         self._timer.interval = 1/self._FPS  # Set the timer to the frame rate of the video
         self._timer.start()
         return True
+
+    def _target_width(self):
+        try:
+            if not self._fullscreen:
+                return VIDEO_WIDTH
+            elif self.geometry().width() / self.geometry().height() > self._aspect_ratio:
+                return self._target_height() * self._aspect_ratio
+            else:
+                return self.geometry().width()
+        except ZeroDivisionError:
+            return 0
+
+    def _target_height(self):
+        try:
+            if not self._fullscreen:
+                return self._target_width() / self._aspect_ratio
+            elif self.geometry().width() / self.geometry().height() < self._aspect_ratio:
+                return self._target_width() / self._aspect_ratio
+            else:
+                return self.geometry().height()
+        except ZeroDivisionError:
+            return 0
 
     def on_timer(self):
         if not self._timer_flag:
@@ -212,7 +231,7 @@ class CvVideoWidget(QWidget):
         self._timer.cancel()
         if self._capture is not None:
             self._capture.release()
-        self._image = QImage(self._target_width, self._target_height, QImage.Format_RGB888)
+        self._image = QImage(self._target_width(), self._target_height(), QImage.Format_RGB888)
         self._image.fill(Qt.black)
         self.update()
 
@@ -221,7 +240,7 @@ class CvVideoWidget(QWidget):
         try:
             height, width, channels = frame.shape
             image = QImage(frame, width, height, QImage.Format_RGB888)
-            image = image.scaled(self._target_width, self._target_height, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            image = image.scaled(self._target_width(), self._target_height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
             image = image.rgbSwapped()
 
         except Exception as ex:
@@ -281,7 +300,9 @@ class CvVideoWidget(QWidget):
     def mouseMoveEvent(self, event):
         if self.paused():
             self._dragging = True
-            self._highlighter.set_rect(event.pos())
+            x, y = event.pos().x(), event.pos().y()
+            clamped_pos = QPoint(min(x, self._target_width()), min(y, self._target_height()))
+            self._highlighter.set_rect(clamped_pos)
             self.update()
 
     def mouseReleaseEvent(self, event):
