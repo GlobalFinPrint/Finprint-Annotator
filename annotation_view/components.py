@@ -8,6 +8,19 @@ class ClickLabel(QLabel):
     def mouseReleaseEvent(self, ev):
         self.emit(SIGNAL('clicked()'))
 
+class GenericButton(QPushButton):
+    def __init__(self):
+        super().__init__()
+        self.setStyleSheet('''
+            background-color: #29566D;
+            color: white;
+            border-radius: 4px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-left: 15px;
+            padding-right: 15px;
+            font-size: 12px;
+        ''')
 
 class SpeedButton(QPushButton):
     def __init__(self, speed):

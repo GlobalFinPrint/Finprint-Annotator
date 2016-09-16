@@ -5,7 +5,7 @@ from global_finprint import GlobalFinPrintServer
 from config import global_config
 from .video_seek_widget import VideoSeekWidget
 from .fullscreen import FullScreen
-from .components import ClickLabel, SpeedButton
+from .components import ClickLabel, SpeedButton, GenericButton
 from .observation_table import ObservationTable
 from .util import convert_position
 from PyQt4.QtCore import *
@@ -52,10 +52,10 @@ class VideoLayoutWidget(QWidget):
         self._rew_button = ClickLabel()
         self._rew_button.setPixmap(QPixmap('images/video_control-rewind.png'))
 
-        self._back15 = ClickLabel()
+        self._back15 = GenericButton()
         self._back15.setText("-15")
 
-        self._back30 = ClickLabel()
+        self._back30 = GenericButton()
         self._back30.setText("-30")
 
         self._ff_button = ClickLabel()

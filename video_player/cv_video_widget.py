@@ -237,8 +237,6 @@ class CvVideoWidget(QWidget):
         self._play_state = PlayState.Paused
 
         self._aspect_ratio = self._frame_manager.width / self._frame_manager.height
-        #self._target_width = self.parent().frameGeometry().width() if self._fullscreen else VIDEO_WIDTH
-        #self._target_height = self._target_width / self._aspect_ratio
 
         if not self._fullscreen:
             self.setFixedSize(self._target_width(), self._target_height())
@@ -373,6 +371,7 @@ class CvVideoWidget(QWidget):
         self.repaint()
 
     def jump_back(self, seconds):
+        self.clear_extent()
         pos = self.get_position() - seconds * 1000
         if pos < 0:
             pos = 0
