@@ -434,13 +434,7 @@ class CvVideoWidget(QWidget):
             return (self._frame_manager.count / self._frame_manager.FPS) * 1000  # Returns milliseconds as a float
 
     def fast_forward(self):
-        if self._play_state == PlayState.SeekForward:
-            self.pause()
-        else:
-            self._play_state = PlayState.SeekForward
-            self.clear_extent()
-            self.set_speed(2.0)
-        self.playStateChanged.emit(self._play_state)
+        self.set_speed(2.0)
 
     ## No worky.
     def rewind(self):
@@ -470,7 +464,12 @@ class CvVideoWidget(QWidget):
         self._highlighter.clear()
 
     def set_speed(self, speed):
-        getLogger('finprint').info('set playback speed to {}x'.format(speed))
+        self.clear_extent()
         self._frame_manager.playback_FPS = speed * self._frame_manager.FPS
-        getLogger('finprint').info('new FPS: {}'.format(self._frame_manager.playback_FPS))
         self._timer.interval = 1 / self._frame_manager.playback_FPS
+        getLogger('finprint').info('set playback speed to {}x'.format(speed))
+        getLogger('finprint').info('new FPS: {}'.format(self._frame_manager.playback_FPS))
+
+        if self._play_state != PlayState.SeekForward:
+            self.playStateChanged.emit(self._play_state)
+            self._play_state = PlayState.SeekForward
