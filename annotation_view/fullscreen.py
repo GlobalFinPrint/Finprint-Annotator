@@ -1,5 +1,5 @@
 from .util import convert_position
-from .components import ClickLabel, SpeedButton
+from .components import ClickLabel, SpeedButton, GenericButton
 from .video_seek_widget import VideoSeekWidget
 from video_player import CvVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
@@ -105,8 +105,14 @@ class FullScreen(QWidget):
         self.video_time_label = QLabel()
         self.video_time_label.setStyleSheet('color: #838C9E; font-size: 13px;')
 
-        self.rewind_button = ClickLabel()
-        self.rewind_button.setPixmap(QPixmap('images/video_control-rewind.png'))
+        self.playback_speed_label = QLabel()
+        self.playback_speed_label.setStyleSheet('color: #838C9E; font-size: 13px;')
+
+        self.back15 = GenericButton()
+        self.back15.setText('-15')
+
+        self.back30 = GenericButton()
+        self.back30.setText('-30')
 
         self.step_back_button = ClickLabel()
         self.step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
@@ -140,8 +146,10 @@ class FullScreen(QWidget):
         third_row = QHBoxLayout()
         third_row.addWidget(self.set_label)
         third_row.addWidget(self.video_time_label)
+        third_row.addWidget(self.playback_speed_label)
         third_row.addSpacerItem(QSpacerItem(1, 1, QSizePolicy.Expanding))
-        third_row.addWidget(self.rewind_button)
+        third_row.addWidget(self.back30)
+        third_row.addWidget(self.back15)
         third_row.addWidget(self.step_back_button)
         third_row.addWidget(self.play_pause_button)
         third_row.addWidget(self.step_forward_button)
@@ -178,13 +186,16 @@ class FullScreen(QWidget):
         self.seek_bar.set_allowed_progress(self.current_set.progress)
         self.seek_bar.setMaximumWidth(self.frameGeometry().width())
         self.video_length_label.setText(convert_position(int(self.video_player.get_length())))
+        self.playback_speed_label.setText('(0x)')
         self.wire_events()
         self.video_player.set_position(self.small_player.get_position())
 
     def wire_events(self):
         self.play_pause_button.clicked.connect(self.on_toggle_play)
         self.video_player.playStateChanged.connect(self.on_playstate_changed)
-        self.rewind_button.clicked.connect(self.on_rewind)
+        self.video_player.playbackSpeedChanged.connect(self.on_playback_speed_changed)
+        self.back15.clicked.connect(self.on_back15)
+        self.back30.clicked.connect(self.on_back30)
         self.fast_forward_button.clicked.connect(self.on_fast_forward)
         self.step_back_button.clicked.connect(self.on_step_back)
         self.step_forward_button.clicked.connect(self.on_step_forward)
@@ -226,6 +237,15 @@ class FullScreen(QWidget):
 
     def on_speed(self, speed):
         self.video_player.set_speed(speed)
+
+    def on_playback_speed_changed(self, speed):
+        self.playback_speed_label.setText('({}x)'.format(int(speed) if int(speed) == speed else speed))
+
+    def on_back15(self):
+        self.video_player.jump_back(15)
+
+    def on_back30(self):
+        self.video_player.jump_back(30)
 
     def on_fullscreen_toggle(self):
         self.video_player.pause()

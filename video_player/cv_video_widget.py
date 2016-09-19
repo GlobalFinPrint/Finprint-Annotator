@@ -475,8 +475,8 @@ class CvVideoWidget(QWidget):
         self._frame_manager.playback_FPS = speed * self._frame_manager.FPS
         self._timer.interval = 1 / self._frame_manager.playback_FPS
 
-        getLogger('finprint').info('set playback speed to {}x'.format(speed))
-        getLogger('finprint').info('new FPS: {}'.format(self._frame_manager.playback_FPS))
+        getLogger('finprint').debug('set playback speed to {}x'.format(speed))
+        getLogger('finprint').debug('new FPS: {}'.format(self._frame_manager.playback_FPS))
 
         self.playbackSpeedChanged.emit(speed)
 

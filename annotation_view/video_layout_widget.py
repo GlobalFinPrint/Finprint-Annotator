@@ -150,9 +150,10 @@ class VideoLayoutWidget(QWidget):
 
         pos_layout = QHBoxLayout()
         pos_layout.addWidget(self._pos_label)  # TODO move this under the cursor
+        pos_layout.addWidget(self._playback_speed_label)
         pos_layout.addStretch(1)
         pos_layout.addWidget(self._duration_label)
-        pos_layout.addWidget(self._playback_speed_label)
+
         vid_box.addLayout(pos_layout)
         vid_box.addStretch(1)
 
