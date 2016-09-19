@@ -41,6 +41,7 @@ class VideoLayoutWidget(QWidget):
         self._video_player = CvVideoWidget(parent=self, onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
         self._duration_label = QLabel()
+        self._playback_speed_label = QLabel()
         self._data_loading = False
 
         self._play_pixmap = QPixmap('images/video_control-play.png')
@@ -118,6 +119,7 @@ class VideoLayoutWidget(QWidget):
 
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
         self._video_player.progressUpdate.connect(self.on_progress_update)
+        self._video_player.playbackSpeedChanged.connect(self.on_playback_speed_changed)
 
         self._slider.tickSelected.connect(self.on_slider_tick)
 
@@ -148,7 +150,9 @@ class VideoLayoutWidget(QWidget):
 
         pos_layout = QHBoxLayout()
         pos_layout.addWidget(self._pos_label)  # TODO move this under the cursor
-        pos_layout.addWidget(self._duration_label, alignment=Qt.AlignRight)
+        pos_layout.addStretch(1)
+        pos_layout.addWidget(self._duration_label)
+        pos_layout.addWidget(self._playback_speed_label)
         vid_box.addLayout(pos_layout)
         vid_box.addStretch(1)
 
@@ -265,6 +269,7 @@ class VideoLayoutWidget(QWidget):
         self._slider.show()
 
         self._duration_label.setText(convert_position(self._video_player.get_length()))
+        self._playback_speed_label.setText('(0x)')
 
         self._observation_table.load_set(set)
         self._data_loading = False
@@ -278,6 +283,9 @@ class VideoLayoutWidget(QWidget):
 
         if play_state == PlayState.EndOfStream and self.current_set.assigned_to_current():
             self._submit_button.setDisabled(False)
+
+    def on_playback_speed_changed(self, speed):
+        self._playback_speed_label.setText('({}x)'.format(int(speed) if int(speed) == speed else speed))
 
     def on_progress_update(self, progress):
         if self.current_set is not None:

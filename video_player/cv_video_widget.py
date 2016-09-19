@@ -152,6 +152,7 @@ class FrameManager(object):
 class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
+    playbackSpeedChanged = pyqtSignal(float)
 
     def __init__(self, parent=None, onPositionChange=None, fullscreen=False):
         QWidget.__init__(self, parent)
@@ -393,6 +394,7 @@ class CvVideoWidget(QWidget):
     def pause(self):
         self._play_state = PlayState.Paused
         self.playStateChanged.emit(self._play_state)
+        self.playbackSpeedChanged.emit(0.0)
 
     def save_image(self, filename):
         data = QByteArray()
@@ -416,11 +418,16 @@ class CvVideoWidget(QWidget):
         if self._play_state == PlayState.EndOfStream:
             self.set_position(0)
         self._timer.interval = 1 / self._frame_manager.FPS
+
+        self._frame_manager.playback_FPS = self._frame_manager.FPS
+        self.playbackSpeedChanged.emit(1.0)
+
         self._play_state = PlayState.Playing
         self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
     def paused(self):
+        self.playbackSpeedChanged.emit(0.0)
         return self._play_state == PlayState.Paused
 
     def get_position(self):
@@ -467,8 +474,11 @@ class CvVideoWidget(QWidget):
         self.clear_extent()
         self._frame_manager.playback_FPS = speed * self._frame_manager.FPS
         self._timer.interval = 1 / self._frame_manager.playback_FPS
+
         getLogger('finprint').info('set playback speed to {}x'.format(speed))
         getLogger('finprint').info('new FPS: {}'.format(self._frame_manager.playback_FPS))
+
+        self.playbackSpeedChanged.emit(speed)
 
         if self._play_state != PlayState.SeekForward:
             self.playStateChanged.emit(self._play_state)
