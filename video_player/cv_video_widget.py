@@ -59,6 +59,7 @@ class RepeatingTimer(QObject):
 
 DEFAULT_BUFFER_SIZE = 60
 
+
 class FrameManager(object):
     def __init__(self, file_name):
         super(FrameManager, self).__init__()
@@ -116,7 +117,7 @@ class FrameManager(object):
         frame_pos = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
 
         if grabbed:
-            print("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
+            getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
             self._buffer.put((ms_pos, frame_pos, frame))
             self._last_frame_no = frame_pos
 
@@ -149,7 +150,7 @@ class FrameManager(object):
         return self.current_pos
 
     def set_position(self, pos):
-        print("setting position: {0}".format(pos))
+        getLogger('finprint').debug("setting position: {0}".format(pos))
         with self._capture_lock:
             self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
             self._buffer = Queue()
@@ -178,8 +179,6 @@ class CvVideoWidget(QWidget):
         self._image.fill(Qt.black)
 
         self._aspect_ratio = 0.0
-        #self._target_width = 0.0
-        #self._target_height = 0.0
 
         self._timer_flag = False
         self._timer = RepeatingTimer(0.0416) # 24 fps is GoPro norm
@@ -241,22 +240,16 @@ class CvVideoWidget(QWidget):
         if not self._fullscreen:
             self.setFixedSize(self._target_width(), self._target_height())
 
+        getLogger('finprint').debug("FPS {0}".format(self._frame_manager.FPS))
+        getLogger('finprint').debug("frame height {0}".format(self._frame_manager.height))
+        getLogger('finprint').debug("frame width {0}".format(self._frame_manager.width))
+        getLogger('finprint').debug("aspect ratio {0}".format(self._aspect_ratio))
+        getLogger('finprint').debug("target height {0}".format(self._target_height()))
+        getLogger('finprint').debug("target width {0}".format(self._target_width()))
+        getLogger('finprint').debug("target aspect ratio {0}".format(self._aspect_ratio))
+
         getLogger('finprint').debug("widget height {0}".format(self.height()))
         getLogger('finprint').debug("widget width {0}".format(self.width()))
-
-        print("FPS {0}".format(self._frame_manager.FPS))
-        print("frame height {0}".format(self._frame_manager.height))
-        print("frame width {0}".format(self._frame_manager.width))
-        print("aspect ratio {0}".format(self._aspect_ratio))
-        print("target height {0}".format(self._target_height()))
-        print("target width {0}".format(self._target_width()))
-        print("target aspect ratio {0}".format(self._aspect_ratio))
-
-        print("widget height {0}".format(self.height()))
-        print("widget width {0}".format(self.width()))
-        print("image height {0}".format(self._image.height()))
-        print("image width {0}".format(self._image.width()))
-
         getLogger('finprint').debug("image height {0}".format(self._image.height()))
         getLogger('finprint').debug("image width {0}".format(self._image.width()))
 
