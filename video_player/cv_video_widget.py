@@ -481,5 +481,5 @@ class CvVideoWidget(QWidget):
         self.playbackSpeedChanged.emit(speed)
 
         if self._play_state != PlayState.SeekForward:
-            self.playStateChanged.emit(self._play_state)
             self._play_state = PlayState.SeekForward
+            self.playStateChanged.emit(self._play_state)
