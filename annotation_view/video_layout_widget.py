@@ -129,7 +129,7 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.tableRefresh.connect(self.onTableRefresh)
 
         for button in self._speed_buttons:
-            pass  # TODO hook up buttons
+            button.speedClick.connect(self.on_speed)
 
     def setup_layout(self):
         # Main container going top to bottom
@@ -346,6 +346,9 @@ class VideoLayoutWidget(QWidget):
 
     def on_step_forward(self):
         self._video_player.step_forward()
+
+    def on_speed(self, speed):
+        self._video_player.set_speed(speed)
 
     def on_quit(self):
         self.on_progress_update(self._video_player.get_position())  # update position on quit

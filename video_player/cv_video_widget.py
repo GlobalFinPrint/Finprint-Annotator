@@ -64,7 +64,6 @@ class FrameManager(object):
     def __init__(self, file_name):
         super(FrameManager, self).__init__()
         self._capture = cv2.VideoCapture(file_name)
-        self._play_state = PlayState.Paused
         if not self._capture.isOpened():
             raise Exception("Could not open file")
         self._capture_lock = Lock()
@@ -76,6 +75,7 @@ class FrameManager(object):
             self._buffer_size = int(b)
 
         self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
+        self.playback_FPS = self.FPS
         self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.count = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
@@ -128,11 +128,6 @@ class FrameManager(object):
             #     time.sleep(2)
             ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
             str = "getting frame "
-            if self._play_state == PlayState.SeekForward:
-                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
-                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
-                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
-                str += " in ffwd "
 
             #print("{0} {1:.1f} ms {2} frame in {3:.4f} ms".format(str, ms_pos, frame_pos, time.perf_counter() - frame_time))
         except Empty as e:
@@ -142,9 +137,6 @@ class FrameManager(object):
         self.current_pos = ms_pos
         self.current_frame_no = frame_pos
         return True, frame
-
-    def set_play_state(self, state):
-        self._play_state = state
 
     def get_position(self):
         return self.current_pos
@@ -230,8 +222,6 @@ class CvVideoWidget(QWidget):
         except Exception as ex:
             getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
             return False
-
-        self.playStateChanged.connect(self._frame_manager.set_play_state)
 
         self._play_state = PlayState.Paused
 
@@ -449,6 +439,7 @@ class CvVideoWidget(QWidget):
         else:
             self._play_state = PlayState.SeekForward
             self.clear_extent()
+            self.set_speed(2.0)
         self.playStateChanged.emit(self._play_state)
 
     ## No worky.
@@ -478,4 +469,8 @@ class CvVideoWidget(QWidget):
     def clear_extent(self):
         self._highlighter.clear()
 
-
+    def set_speed(self, speed):
+        getLogger('finprint').info('set playback speed to {}x'.format(speed))
+        self._frame_manager.playback_FPS = speed * self._frame_manager.FPS
+        getLogger('finprint').info('new FPS: {}'.format(self._frame_manager.playback_FPS))
+        self._timer.interval = 1 / self._frame_manager.playback_FPS

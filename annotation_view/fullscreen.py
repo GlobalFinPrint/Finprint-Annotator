@@ -5,6 +5,7 @@ from video_player import CvVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
+from logging import getLogger
 
 
 class FullScreenLayout(QLayout):
@@ -190,7 +191,7 @@ class FullScreen(QWidget):
         self.fullscreen_button.clicked.connect(self.on_fullscreen_toggle)
         self.seek_bar.tickSelected.connect(self.on_slider_tick)
         for button in self.speed_buttons:
-            pass  # TODO hook up buttons
+            button.speedClick.connect(self.on_speed)
         QCoreApplication.instance().installEventFilter(self)
 
     def on_position_change(self, pos):
@@ -222,6 +223,9 @@ class FullScreen(QWidget):
 
     def on_step_forward(self):
         self.video_player.step_forward()
+
+    def on_speed(self, speed):
+        self.video_player.set_speed(speed)
 
     def on_fullscreen_toggle(self):
         self.video_player.pause()

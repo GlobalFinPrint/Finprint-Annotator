@@ -25,7 +25,12 @@ class GenericButton(QPushButton):
 
 
 class SpeedButton(GenericButton):
+    speedClick = pyqtSignal(float)
+
     def __init__(self, speed):
         super().__init__()
         self.speed = speed
         self.setText('{}x'.format(speed))
+
+    def mouseReleaseEvent(self, _):
+        self.speedClick.emit(self.speed)
