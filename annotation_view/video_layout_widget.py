@@ -120,6 +120,7 @@ class VideoLayoutWidget(QWidget):
         self._back15.clicked.connect(self.on_back15)
         self._back30.clicked.connect(self.on_back30)
 
+        self._filter_widget.change.connect(self.on_filter_change)
         self._video_filter_button.clicked.connect(self.on_video_filter_button)
         self._fullscreen_button.clicked.connect(self.on_fullscreen)
 
@@ -418,3 +419,7 @@ class VideoLayoutWidget(QWidget):
     def on_video_filter_button(self):
         img = self._filter_widget.toggle(self._video_filter_button)
         self._video_filter_button.setPixmap(QPixmap(img))
+
+    def on_filter_change(self, contrast, brightness):
+        self._video_player.contrast = contrast
+        self._video_player.brightness = brightness

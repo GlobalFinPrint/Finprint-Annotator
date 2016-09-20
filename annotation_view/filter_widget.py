@@ -13,12 +13,13 @@ class FilterSlider(QWidget):
 
         self._slider = QSlider(Qt.Horizontal)
         self._slider.setRange(range_min, range_max)
-        self._slider.setSingleStep(1)
-        self._slider.setTickInterval(1)
+        self._slider.setSingleStep(range_max // 5)
+        self._slider.setTickInterval(range_max // 5)
         self._slider.setTickPosition(QSlider.TicksBelow)
+        self._slider.setValue(range_min)
+        self._slider.valueChanged.connect(self._on_value_change)
 
         range_labels = QWidget()
-        range_labels.setContentsMargins(0, 0, 0, 0)
         range_layout = QHBoxLayout()
         range_layout.addWidget(QLabel(str(range_min)))
         range_layout.addStretch(1)
@@ -32,8 +33,6 @@ class FilterSlider(QWidget):
         layout.addWidget(range_labels)
         self.setLayout(layout)
 
-        self._slider.valueChanged.connect(self._on_value_change)
-
     def _on_value_change(self):
         self.change.emit()
 
@@ -46,8 +45,8 @@ class FilterWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.contrast_slider = FilterSlider('Contrast', -5, 5)
-        self.brightness_slider = FilterSlider('Brightness', 0, 10)
+        self.contrast_slider = FilterSlider('Contrast', 0, 20)
+        self.brightness_slider = FilterSlider('Brightness', 0, 100)
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.contrast_slider)
@@ -58,6 +57,7 @@ class FilterWidget(QWidget):
         self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint)
 
         self.contrast_slider.change.connect(self.on_change)
+        self.brightness_slider.change.connect(self.on_change)
 
     def toggle(self, filter_button):
         if self.isVisible():

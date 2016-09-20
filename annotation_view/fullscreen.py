@@ -200,6 +200,7 @@ class FullScreen(QWidget):
         self.play_pause_button.clicked.connect(self.on_toggle_play)
         self.video_player.playStateChanged.connect(self.on_playstate_changed)
         self.video_player.playbackSpeedChanged.connect(self.on_playback_speed_changed)
+        self.filter_widget.change.connect(self.on_filter_change)
         self.back15.clicked.connect(self.on_back15)
         self.back30.clicked.connect(self.on_back30)
         self.fast_forward_button.clicked.connect(self.on_fast_forward)
@@ -286,3 +287,7 @@ class FullScreen(QWidget):
     def on_video_filter_button(self):
         img = self.filter_widget.toggle(self.video_filter_button)
         self.video_filter_button.setPixmap(QPixmap(img))
+
+    def on_filter_change(self, contrast, brightness):
+        self.video_player.contrast = contrast
+        self.video_player.brightness = brightness
