@@ -91,6 +91,9 @@ class FullScreen(QWidget):
         self.video_length_label = QLabel()
         self.video_length_label.setStyleSheet('color: #838C9E; font-size: 13px; padding-top: 10px;')
 
+        self.video_filter_button = ClickLabel()
+        self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
+
         self.fullscreen_button = ClickLabel()
         self.fullscreen_button.setPixmap(QPixmap('images/fullscreen-minimize.png'))
 
@@ -135,6 +138,7 @@ class FullScreen(QWidget):
         controls_layout = QVBoxLayout()
         first_row = QHBoxLayout()
         first_row.addStretch(1)
+        first_row.addWidget(self.video_filter_button)
         first_row.addWidget(self.fullscreen_button)
         controls_layout.addLayout(first_row)
 
@@ -199,6 +203,7 @@ class FullScreen(QWidget):
         self.fast_forward_button.clicked.connect(self.on_fast_forward)
         self.step_back_button.clicked.connect(self.on_step_back)
         self.step_forward_button.clicked.connect(self.on_step_forward)
+        self.video_filter_button.clicked.connect(self.on_video_filter_button)
         self.fullscreen_button.clicked.connect(self.on_fullscreen_toggle)
         self.seek_bar.tickSelected.connect(self.on_slider_tick)
         for button in self.speed_buttons:
@@ -273,3 +278,6 @@ class FullScreen(QWidget):
             self.layout.update()
             return True
         return False
+
+    def on_video_filter_button(self):
+        pass  # TODO implement

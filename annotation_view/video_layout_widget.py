@@ -72,6 +72,9 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button = ClickLabel()
         self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
 
+        self._video_filter_button = ClickLabel()
+        self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
+
         self._fullscreen_button = ClickLabel()
         self._fullscreen_button.setPixmap(QPixmap('images/fullscreen.png'))
 
@@ -115,6 +118,7 @@ class VideoLayoutWidget(QWidget):
         self._back15.clicked.connect(self.on_back15)
         self._back30.clicked.connect(self.on_back30)
 
+        self._video_filter_button.clicked.connect(self.on_video_filter_button)
         self._fullscreen_button.clicked.connect(self.on_fullscreen)
 
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
@@ -178,6 +182,7 @@ class VideoLayoutWidget(QWidget):
         # Secondary controls
         secondary_controls_box = QHBoxLayout()
         secondary_controls_box.addSpacing(25)
+        secondary_controls_box.addWidget(self._video_filter_button)
         secondary_controls_box.addWidget(self._fullscreen_button)
         secondary_controls_box.addStretch(1)
 
@@ -405,3 +410,6 @@ class VideoLayoutWidget(QWidget):
         else:
             self.fullscreen = FullScreen(*args)
         self.is_fullscreen = True
+
+    def on_video_filter_button(self):
+        pass  # TODO implement
