@@ -405,6 +405,7 @@ class VideoLayoutWidget(QWidget):
     def on_fullscreen(self):
         self._video_player.pause()
         self._filter_widget.hide()
+        self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
         args = [self.current_set,
                 self.get_local_file(self.current_set.file),
                 self._video_player]
@@ -415,4 +416,5 @@ class VideoLayoutWidget(QWidget):
         self.is_fullscreen = True
 
     def on_video_filter_button(self):
-        self._filter_widget.toggle(self._video_filter_button)
+        img = self._filter_widget.toggle(self._video_filter_button)
+        self._video_filter_button.setPixmap(QPixmap(img))
