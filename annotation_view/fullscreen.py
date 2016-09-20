@@ -1,5 +1,6 @@
 from .util import convert_position
 from .components import ClickLabel, SpeedButton, GenericButton
+from .filter_widget import FilterWidget
 from .video_seek_widget import VideoSeekWidget
 from video_player import CvVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
@@ -91,6 +92,7 @@ class FullScreen(QWidget):
         self.video_length_label = QLabel()
         self.video_length_label.setStyleSheet('color: #838C9E; font-size: 13px; padding-top: 10px;')
 
+        self.filter_widget = FilterWidget()
         self.video_filter_button = ClickLabel()
         self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
 
@@ -254,6 +256,7 @@ class FullScreen(QWidget):
 
     def on_fullscreen_toggle(self):
         self.video_player.pause()
+        self.filter_widget.hide()
         self.small_player.set_position(self.video_player.get_position())
         self.small_player.parent()._observation_table.refresh_model()
         QCoreApplication.instance().removeEventFilter(self)
@@ -280,4 +283,4 @@ class FullScreen(QWidget):
         return False
 
     def on_video_filter_button(self):
-        pass  # TODO implement
+        self.filter_widget.toggle(self.video_filter_button)

@@ -4,6 +4,7 @@ from video_player import CvVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
 from config import global_config
 from .video_seek_widget import VideoSeekWidget
+from .filter_widget import FilterWidget
 from .fullscreen import FullScreen
 from .components import ClickLabel, SpeedButton, GenericButton
 from .observation_table import ObservationTable
@@ -72,6 +73,7 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button = ClickLabel()
         self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
 
+        self._filter_widget = FilterWidget()
         self._video_filter_button = ClickLabel()
         self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
 
@@ -402,6 +404,7 @@ class VideoLayoutWidget(QWidget):
 
     def on_fullscreen(self):
         self._video_player.pause()
+        self._filter_widget.hide()
         args = [self.current_set,
                 self.get_local_file(self.current_set.file),
                 self._video_player]
@@ -412,4 +415,4 @@ class VideoLayoutWidget(QWidget):
         self.is_fullscreen = True
 
     def on_video_filter_button(self):
-        pass  # TODO implement
+        self._filter_widget.toggle(self._video_filter_button)
