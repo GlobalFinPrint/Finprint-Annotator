@@ -45,7 +45,7 @@ class FilterWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.contrast_slider = FilterSlider('Contrast', 0, 20)
+        self.contrast_slider = FilterSlider('Contrast', 0, 100)
         self.brightness_slider = FilterSlider('Brightness', 0, 100)
 
         self.layout = QVBoxLayout()

@@ -311,7 +311,11 @@ class CvVideoWidget(QWidget):
             if self.contrast > 0 or self.brightness > 0:
                 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
                 h, s, v = cv2.split(hsv)
-                final_hsv = cv2.merge((h, s + self.contrast, v + self.brightness))
+                final_hsv = cv2.merge((
+                    h,
+                    np.where(255 - s < self.contrast, 255, s + self.contrast),
+                    np.where(255 - v < self.brightness, 255, v + self.brightness)
+                ))
                 frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
 
             height, width, channels = frame.shape
