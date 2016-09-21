@@ -57,8 +57,7 @@ class MainWindow(QMainWindow):
                 setFilterAction.triggered.connect(self._launch_assign_diag)
                 fileMenu.addAction(setFilterAction)
         else:
-            logInAction = QAction('&Login', self)
-            logInAction.setShortcut('Ctrl+L')
+            logInAction = QAction('Login', self)
             logInAction.setStatusTip('Login to GlobalFinprint')
             logInAction.triggered.connect(self._launch_login_dialog)
             fileMenu.addAction(logInAction)
@@ -76,8 +75,8 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(quitAction)
 
         viewMenu = menubar.addMenu('&View')
-        fullscreenAction = QAction('Video &fullscreen', self)
-        fullscreenAction.setShortcut('CTRL+F')
+        fullscreenAction = QAction('Video f&ullscreen', self)
+        fullscreenAction.setShortcut('Ctrl+U')
         fullscreenAction.setStatusTip('View video in fullscreen mode')
         fullscreenAction.triggered.connect(self._attempt_fullscreen)
         viewMenu.addAction(fullscreenAction)
