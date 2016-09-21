@@ -275,13 +275,14 @@ class FullScreen(QWidget):
         self.seek_bar.load_set(self.current_set)
 
     def eventFilter(self, obj, evt):
-        if evt.type() == QEvent.KeyPress and evt.key() == Qt.Key_Escape:
-            self.on_fullscreen_toggle()
-            return True
-        elif evt.type() == QEvent.KeyPress and evt.key() == Qt.Key_T:
-            self.layout.hidden_controls = not self.layout.hidden_controls
-            self.layout.update()
-            return True
+        if obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None and evt.type() == QEvent.KeyPress:
+            if evt.key() == Qt.Key_Escape:
+                self.on_fullscreen_toggle()
+                return True
+            elif evt.key() == Qt.Key_T:
+                self.layout.hidden_controls = not self.layout.hidden_controls
+                self.layout.update()
+                return True
         return False
 
     def on_video_filter_button(self):
