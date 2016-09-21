@@ -54,11 +54,11 @@ class VideoLayoutWidget(QWidget):
         self._rew_button = ClickLabel()
         self._rew_button.setPixmap(QPixmap('images/video_control-rewind.png'))
 
-        self._back15 = GenericButton()
-        self._back15.setText("-15")
+        self._back15 = ClickLabel()
+        self._back15.setPixmap(QPixmap('images/jump_back-15s.png'))
 
-        self._back30 = GenericButton()
-        self._back30.setText("-30")
+        self._back30 = ClickLabel()
+        self._back30.setPixmap(QPixmap('images/jump_back-30s.png'))
 
         self._ff_button = ClickLabel()
         self._ff_button.setPixmap(QPixmap('images/video_control-fast_forward.png'))

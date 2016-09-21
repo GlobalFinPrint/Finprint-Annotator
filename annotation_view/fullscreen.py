@@ -113,11 +113,11 @@ class FullScreen(QWidget):
         self.playback_speed_label = QLabel()
         self.playback_speed_label.setStyleSheet('color: #838C9E; font-size: 13px;')
 
-        self.back15 = GenericButton()
-        self.back15.setText('-15')
+        self.back15 = ClickLabel()
+        self.back15.setPixmap(QPixmap('images/jump_back-15s.png'))
 
-        self.back30 = GenericButton()
-        self.back30.setText('-30')
+        self.back30 = ClickLabel()
+        self.back30.setPixmap(QPixmap('images/jump_back-30s.png'))
 
         self.step_back_button = ClickLabel()
         self.step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
