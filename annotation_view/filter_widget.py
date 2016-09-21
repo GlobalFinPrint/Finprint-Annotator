@@ -45,18 +45,18 @@ class FilterWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.contrast_slider = FilterSlider('Contrast', 0, 100)
+        self.saturation_slider = FilterSlider('Saturation', 0, 100)
         self.brightness_slider = FilterSlider('Brightness', 0, 100)
 
         self.layout = QVBoxLayout()
-        self.layout.addWidget(self.contrast_slider)
+        self.layout.addWidget(self.saturation_slider)
         self.layout.addWidget(self.brightness_slider)
         self.setLayout(self.layout)
 
         self.setStyleSheet('background-color: white;')
         self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint)
 
-        self.contrast_slider.change.connect(self.on_change)
+        self.saturation_slider.change.connect(self.on_change)
         self.brightness_slider.change.connect(self.on_change)
 
     def toggle(self, filter_button):
@@ -75,4 +75,5 @@ class FilterWidget(QWidget):
         self.show()
 
     def on_change(self):
-        self.change.emit(self.contrast_slider.value(), self.brightness_slider.value())
+        self.change.emit(self.saturation_slider.value(),
+                         self.brightness_slider.value())

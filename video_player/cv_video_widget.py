@@ -153,7 +153,7 @@ class CvVideoWidget(QWidget):
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
     playbackSpeedChanged = pyqtSignal(float)
-    contrast = 0
+    saturation = 0
     brightness = 0
 
     def __init__(self, parent=None, onPositionChange=None, fullscreen=False):
@@ -307,13 +307,13 @@ class CvVideoWidget(QWidget):
     def _build_image(self, frame):
         image = None
         try:
-            # adjust brightness and contrast
-            if self.contrast > 0 or self.brightness > 0:
+            # adjust brightness and saturation
+            if self.saturation > 0 or self.brightness > 0:
                 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
                 h, s, v = cv2.split(hsv)
                 final_hsv = cv2.merge((
                     h,
-                    np.where(255 - s < self.contrast, 255, s + self.contrast),
+                    np.where(255 - s < self.saturation, 255, s + self.saturation),
                     np.where(255 - v < self.brightness, 255, v + self.brightness)
                 ))
                 frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)

@@ -420,6 +420,6 @@ class VideoLayoutWidget(QWidget):
         img = self._filter_widget.toggle(self._video_filter_button)
         self._video_filter_button.setPixmap(QPixmap(img))
 
-    def on_filter_change(self, contrast, brightness):
-        self._video_player.contrast = contrast
+    def on_filter_change(self, saturation, brightness):
+        self._video_player.saturation = saturation
         self._video_player.brightness = brightness
