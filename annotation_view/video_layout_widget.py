@@ -178,9 +178,10 @@ class VideoLayoutWidget(QWidget):
         video_controls_box.addWidget(self._toggle_play_button)
         video_controls_box.addWidget(self._step_forward_button)
         video_controls_box.addWidget(self._ff_button)
-        video_controls_box.addStretch(1)
+        video_controls_box.addSpacing(40)
         for button in self._speed_buttons:
             video_controls_box.addWidget(button)
+        video_controls_box.addStretch(1)
 
         # Secondary controls
         secondary_controls_box = QHBoxLayout()
