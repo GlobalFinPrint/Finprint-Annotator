@@ -424,3 +424,5 @@ class VideoLayoutWidget(QWidget):
     def on_filter_change(self, saturation, brightness):
         self._video_player.saturation = saturation
         self._video_player.brightness = brightness
+        if self._video_player.paused():
+            self._video_player.refresh_frame()

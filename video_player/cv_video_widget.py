@@ -111,8 +111,11 @@ class FrameManager(object):
             else:
                 time.sleep(0.01)
 
-    def _load_frame(self):
-        grabbed, frame = self._capture.read()
+    def _load_frame(self, current=False):
+        if current:
+            grabbed, frame = self._capture.retrieve()
+        else:
+            grabbed, frame = self._capture.read()
         ms_pos = self._capture.get(cv2.CAP_PROP_POS_MSEC)
         frame_pos = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
 
@@ -120,6 +123,9 @@ class FrameManager(object):
             getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
             self._buffer.put((ms_pos, frame_pos, frame))
             self._last_frame_no = frame_pos
+
+    def get_current_frame(self):
+        return self._capture.retrieve()
 
     def get_next_frame(self):
         try:
@@ -146,7 +152,7 @@ class FrameManager(object):
         with self._capture_lock:
             self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
             self._buffer = Queue()
-            self._load_frame()
+            self._load_frame(current=True)
 
 
 class CvVideoWidget(QWidget):
@@ -308,7 +314,7 @@ class CvVideoWidget(QWidget):
         image = None
         try:
             # adjust brightness and saturation
-            if self.saturation > 0 or self.brightness > 0:
+            if self.saturation > 0 or self.brightness > 0 and self._play_state == PlayState.Paused:
                 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
                 h, s, v = cv2.split(hsv)
                 final_hsv = cv2.merge((
@@ -336,12 +342,8 @@ class CvVideoWidget(QWidget):
             painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
             painter.drawRect(self._highlighter.get_rect())
 
-    def load_frame(self, current=False):
-        t = time.perf_counter()
-        diff = t - self.last_time
-        self.last_time = t
-        #getLogger('finprint').debug("frame load diff {0:.4f}".format(diff))
-
+    def load_frame(self):
+        self.last_time = time.perf_counter()
         grabbed, frame = self._frame_manager.get_next_frame()
         if grabbed:
             self._image = self._build_image(frame)
@@ -376,7 +378,7 @@ class CvVideoWidget(QWidget):
 
     def set_position(self, pos):
         self._frame_manager.set_position(pos)
-        self.load_frame(current=True)
+        self.load_frame()
         self._onPositionChange(self.get_position())
 
     def mousePressEvent(self, event):
@@ -408,6 +410,8 @@ class CvVideoWidget(QWidget):
         self._play_state = PlayState.Paused
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
+        if self.saturation > 0 or self.brightness > 0:
+            self.refresh_frame()
 
     def save_image(self, filename):
         data = QByteArray()
@@ -440,7 +444,6 @@ class CvVideoWidget(QWidget):
         self.playStateChanged.emit(self._play_state)
 
     def paused(self):
-        self.playbackSpeedChanged.emit(0.0)
         return self._play_state == PlayState.Paused
 
     def get_position(self):
@@ -496,3 +499,7 @@ class CvVideoWidget(QWidget):
         if self._play_state != PlayState.SeekForward:
             self._play_state = PlayState.SeekForward
             self.playStateChanged.emit(self._play_state)
+
+    def refresh_frame(self):
+        self._frame_manager.set_position(self._frame_manager.get_position())
+        self.load_frame()

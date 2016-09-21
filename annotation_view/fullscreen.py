@@ -292,3 +292,5 @@ class FullScreen(QWidget):
     def on_filter_change(self, saturation, brightness):
         self.video_player.saturation = saturation
         self.video_player.brightness = brightness
+        if self.video_player.paused():
+            self.video_player.refresh_frame()
