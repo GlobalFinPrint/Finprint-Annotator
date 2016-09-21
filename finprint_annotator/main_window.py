@@ -74,12 +74,13 @@ class MainWindow(QMainWindow):
         quitAction.triggered.connect(self._vid_layout.on_quit)
         fileMenu.addAction(quitAction)
 
-        viewMenu = menubar.addMenu('&View')
-        fullscreenAction = QAction('Video f&ullscreen', self)
-        fullscreenAction.setShortcut('Ctrl+U')
-        fullscreenAction.setStatusTip('View video in fullscreen mode')
-        fullscreenAction.triggered.connect(self._attempt_fullscreen)
-        viewMenu.addAction(fullscreenAction)
+        if GlobalFinPrintServer().logged_in:
+            viewMenu = menubar.addMenu('&View')
+            fullscreenAction = QAction('Video f&ullscreen', self)
+            fullscreenAction.setShortcut('Ctrl+U')
+            fullscreenAction.setStatusTip('View video in fullscreen mode')
+            fullscreenAction.triggered.connect(self._attempt_fullscreen)
+            viewMenu.addAction(fullscreenAction)
 
         self.setMenuBar(menubar)
 
