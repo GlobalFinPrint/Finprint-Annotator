@@ -289,8 +289,9 @@ class FullScreen(QWidget):
         img = self.filter_widget.toggle(self.video_filter_button)
         self.video_filter_button.setPixmap(QPixmap(img))
 
-    def on_filter_change(self, saturation, brightness):
+    def on_filter_change(self, saturation, brightness, contrast):
         self.video_player.saturation = saturation
         self.video_player.brightness = brightness
+        self.video_player.contrast = contrast
         if self.video_player.paused():
             self.video_player.refresh_frame()

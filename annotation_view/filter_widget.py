@@ -40,17 +40,42 @@ class FilterSlider(QWidget):
         return self._slider.value()
 
 
+class ContrastToggle(QWidget):
+    change = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+
+        contrast_label = QLabel('Contrast equalization')
+        self.contrast_checkbox = QCheckBox()
+        contrast_label.setBuddy(self.contrast_checkbox)
+        self.contrast_checkbox.stateChanged.connect(self.on_state_changed)
+
+        contrast_layout = QHBoxLayout()
+        contrast_layout.addWidget(contrast_label)
+        contrast_layout.addWidget(self.contrast_checkbox)
+        self.setLayout(contrast_layout)
+
+    def on_state_changed(self):
+        self.change.emit()
+
+    def checked(self):
+        return self.contrast_checkbox.isChecked()
+
+
 class FilterWidget(QWidget):
-    change = pyqtSignal(int, int)
+    change = pyqtSignal(int, int, bool)
 
     def __init__(self):
         super().__init__()
         self.saturation_slider = FilterSlider('Saturation', 0, 100)
         self.brightness_slider = FilterSlider('Brightness', 0, 100)
+        self.contrast_toggle = ContrastToggle()
 
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.saturation_slider)
         self.layout.addWidget(self.brightness_slider)
+        self.layout.addWidget(self.contrast_toggle)
         self.setLayout(self.layout)
 
         self.setStyleSheet('background-color: white;')
@@ -58,6 +83,7 @@ class FilterWidget(QWidget):
 
         self.saturation_slider.change.connect(self.on_change)
         self.brightness_slider.change.connect(self.on_change)
+        self.contrast_toggle.change.connect(self.on_change)
 
     def toggle(self, filter_button):
         if self.isVisible():
@@ -76,4 +102,5 @@ class FilterWidget(QWidget):
 
     def on_change(self):
         self.change.emit(self.saturation_slider.value(),
-                         self.brightness_slider.value())
+                         self.brightness_slider.value(),
+                         self.contrast_toggle.checked())

@@ -161,6 +161,7 @@ class CvVideoWidget(QWidget):
     playbackSpeedChanged = pyqtSignal(float)
     saturation = 0
     brightness = 0
+    contrast = False
 
     def __init__(self, parent=None, onPositionChange=None, fullscreen=False):
         QWidget.__init__(self, parent)
@@ -324,6 +325,14 @@ class CvVideoWidget(QWidget):
                 ))
                 frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
 
+            # equalize contrast
+            if self.contrast is True and self._play_state == PlayState.Paused:
+                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
+                l_chan = cv2.extractChannel(lab, 0)
+                l_chan = cv2.createCLAHE(clipLimit=4).apply(l_chan)
+                cv2.insertChannel(l_chan, lab, 0)
+                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+
             height, width, channels = frame.shape
             image = QImage(frame, width, height, QImage.Format_RGB888)
             image = image.scaled(self._target_width(), self._target_height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
@@ -410,7 +419,7 @@ class CvVideoWidget(QWidget):
         self._play_state = PlayState.Paused
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
-        if self.saturation > 0 or self.brightness > 0:
+        if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
             self.refresh_frame()
 
     def save_image(self, filename):
