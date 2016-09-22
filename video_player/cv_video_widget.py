@@ -503,3 +503,7 @@ class CvVideoWidget(QWidget):
     def refresh_frame(self):
         self._frame_manager.set_position(self._frame_manager.get_position())
         self.load_frame()
+
+    def resizeEvent(self, ev):
+        if self._frame_manager is not None:
+            self.refresh_frame()
