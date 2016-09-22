@@ -329,7 +329,7 @@ class CvVideoWidget(QWidget):
             if self.contrast is True and self._play_state == PlayState.Paused:
                 lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
                 l_chan = cv2.extractChannel(lab, 0)
-                l_chan = cv2.createCLAHE(clipLimit=4).apply(l_chan)
+                l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
                 cv2.insertChannel(l_chan, lab, 0)
                 frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
 
