@@ -314,7 +314,7 @@ class CvVideoWidget(QWidget):
         image = None
         try:
             # adjust brightness and saturation
-            if self.saturation > 0 or self.brightness > 0 and self._play_state == PlayState.Paused:
+            if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
                 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
                 h, s, v = cv2.split(hsv)
                 final_hsv = cv2.merge((
