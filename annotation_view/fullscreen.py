@@ -264,6 +264,7 @@ class FullScreen(QWidget):
         QCoreApplication.instance().removeEventFilter(self)
         QCoreApplication.instance().installEventFilter(self.small_player)
         self.hide()
+        self.video_player.clear()
         self.small_player.parent().is_fullscreen = False
 
     def on_slider_tick(self, _, obs):
