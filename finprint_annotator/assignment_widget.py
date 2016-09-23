@@ -100,7 +100,7 @@ class AssignmentWidget(QWidget):
 
         # first column takes up extra space then fit rest of columns
         self.set_table.horizontalHeader().setResizeMode(1, QHeaderView.Stretch)
-        for col in range(2, self.set_table.columnCount()):
+        for col in range(2, self.set_table.columnCount() - 2):
             self.set_table.horizontalHeader().setResizeMode(col, QHeaderView.ResizeToContents)
 
         # hide ID and filename columns
