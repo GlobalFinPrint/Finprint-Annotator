@@ -369,7 +369,7 @@ class VideoLayoutWidget(QWidget):
         self._video_player.set_speed(speed)
 
     def on_quit(self):
-        if self._video_player:
+        if self._video_player is not None and self._video_player._frame_manager is not None:
             self.on_progress_update(self._video_player.get_position())  # update position on quit
         QCoreApplication.instance().quit()
 
