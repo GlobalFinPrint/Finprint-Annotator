@@ -46,8 +46,8 @@ class MainWindow(QMainWindow):
         if GlobalFinPrintServer().logged_in:
             setListAction = QAction('Assigned Set &List...', self)
             setListAction.setShortcut('Ctrl+L')
-            setListAction.setStatusTip('View list of assigned sets')  # TODO for lead default to self-assigned sets?
-            setListAction.triggered.connect(self._launch_assign_diag)
+            setListAction.setStatusTip('View list of assigned sets')
+            setListAction.triggered.connect(self._launch_assigned_set_list_diag)
             fileMenu.addAction(setListAction)
 
             if GlobalFinPrintServer().is_lead():
@@ -152,6 +152,14 @@ class MainWindow(QMainWindow):
         config.global_config.set_item('VIDEOS', 'alt_media_dir', self.video_source.text())
         self.props_diag.close()
         self._vid_layout.load_set(self._vid_layout.current_set)
+
+    def _launch_assigned_set_list_diag(self):
+        sets = GlobalFinPrintServer().set_list()['sets']
+        assign_layout = QVBoxLayout()
+        assign_layout.addWidget(AssignmentWidget(sets, assigned=True))
+        self.assign_diag = QDialog(self)
+        self.assign_diag.setLayout(assign_layout)
+        self.assign_diag.show()
 
     def _launch_assign_diag(self, sets=False):
         if sets is False:

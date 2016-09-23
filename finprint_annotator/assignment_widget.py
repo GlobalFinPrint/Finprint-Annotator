@@ -12,7 +12,7 @@ class AssignmentWidget(QWidget):
     ANNO_COLUMNS = ['ID', 'Set/video name',
                     'Date assigned', 'Status', 'Last Activity', 'Filename']
 
-    def __init__(self, sets):
+    def __init__(self, sets, assigned=False):
         super().__init__()
 
         self._sets = sets
@@ -20,7 +20,7 @@ class AssignmentWidget(QWidget):
         self.layout = QVBoxLayout()
 
         # add filter dropdowns for lead
-        if self.is_lead:
+        if self.is_lead and not assigned:
             filter_layout = QHBoxLayout()
             stylesheet = '''
             QComboBox {
