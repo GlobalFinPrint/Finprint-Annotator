@@ -369,7 +369,8 @@ class VideoLayoutWidget(QWidget):
         self._video_player.set_speed(speed)
 
     def on_quit(self):
-        self.on_progress_update(self._video_player.get_position())  # update position on quit
+        if self._video_player:
+            self.on_progress_update(self._video_player.get_position())  # update position on quit
         QCoreApplication.instance().quit()
 
     def set_duration(self, obs):
