@@ -263,6 +263,10 @@ class VideoLayoutWidget(QWidget):
         self._step_back_button.setDisabled(False)
         self._step_forward_button.setDisabled(False)
 
+        for button in self._speed_buttons:
+            if not GlobalFinPrintServer().is_lead() and button.speed > 1.5:
+                button.setVisible(False)
+
         self._observation_table.set_data()
 
         file_name = self.get_local_file(set.file)
