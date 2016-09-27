@@ -1,4 +1,5 @@
 from .attribute_selector import AttributeSelector
+from annotation_view import AutocompleteMenu
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
@@ -33,11 +34,9 @@ class ContextMenu(QMenu):
 
         # actions
         self._animal_group_menu = self.addMenu('Organism')
-        for group in self._grouping.keys():
+        for group in sorted(self._grouping.keys()):
             group_menu = self._animal_group_menu.addMenu(group)
-            for animal in self._grouping[group]:
-                act = group_menu.addAction(str(animal))
-                act.setData(animal)
+            group_menu.addAction(AutocompleteMenu(group, self._grouping[group], self))
         self._interest_act = self.addAction('Of interest')
         self._observations_menu = self.addMenu('Add to existing observation')
         self._cancel_act = self.addAction('Cancel')
