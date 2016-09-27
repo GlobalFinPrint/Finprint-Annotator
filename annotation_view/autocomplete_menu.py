@@ -24,6 +24,7 @@ class AutocompleteMenu(QWidgetAction):
         font = self.line_edit.font()
         font.setPointSize(self.FONT_SIZE)
         self.line_edit.setFont(font)
+        self.line_edit.textChanged.connect(self._text_changed)
 
         self.toggle_view = ClickLabel()
         self.toggle_view.setPixmap(QPixmap('images/fullscreen.png'))
@@ -34,7 +35,9 @@ class AutocompleteMenu(QWidgetAction):
 
         self.choice_list = QListWidget()
         for choice in choices:
-            self.choice_list.addItem(str(choice))
+            choice_item = QListWidgetItem(str(choice))
+            choice_item.setData(Qt.UserRole, choice.id)
+            self.choice_list.addItem(choice_item)
         self.choice_list.setStyleSheet('''
         :focus { border: none; }
         QScrollBar::vertical { border: 1px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
@@ -64,3 +67,12 @@ class AutocompleteMenu(QWidgetAction):
         layout.addWidget(self.choice_list)
         default_widget.setLayout(layout)
         self.setDefaultWidget(default_widget)
+
+    def _text_changed(self, new_text):
+        if new_text == '':
+            for row in range(0, self.choice_list.count()):
+                self.choice_list.item(row).setHidden(False)
+        else:
+            for row in range(0, self.choice_list.count()):
+                item = self.choice_list.item(row)
+                item.setHidden(new_text not in item.text())
