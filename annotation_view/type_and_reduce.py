@@ -3,7 +3,14 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
 
-class AutocompleteMenu(QWidgetAction):
+class TypeAndReduceChoice(QListWidgetItem):
+    def __init__(self, choice):
+        super().__init__()
+        self.setText(str(choice))
+        self.choice = choice
+
+
+class TypeAndReduce(QWidgetAction):
     FONT_SIZE = 14
 
     def __init__(self, title, choices, parent):
@@ -35,9 +42,7 @@ class AutocompleteMenu(QWidgetAction):
 
         self.choice_list = QListWidget()
         for choice in choices:
-            choice_item = QListWidgetItem(str(choice))
-            choice_item.setData(Qt.UserRole, choice.id)
-            self.choice_list.addItem(choice_item)
+            self.choice_list.addItem(TypeAndReduceChoice(choice))
         self.choice_list.setStyleSheet('''
         :focus { border: none; }
         QScrollBar::vertical { border: 1px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
@@ -62,6 +67,8 @@ class AutocompleteMenu(QWidgetAction):
         font = self.choice_list.font()
         font.setPointSize(self.FONT_SIZE)
         self.choice_list.setFont(font)
+        self.choice_list.sortItems()
+        self.choice_list.itemDoubleClicked.connect(self._selected_choice)
 
         layout.addWidget(top_section)
         layout.addWidget(self.choice_list)
@@ -76,3 +83,7 @@ class AutocompleteMenu(QWidgetAction):
             for row in range(0, self.choice_list.count()):
                 item = self.choice_list.item(row)
                 item.setHidden(new_text not in item.text())
+
+    def _selected_choice(self, item):
+        self.setData(item.choice)
+        self.trigger()  # TODO trigger for obs menu

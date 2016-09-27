@@ -1,4 +1,4 @@
-from .autocomplete_menu import AutocompleteMenu
+from .type_and_reduce import TypeAndReduce
 from .fullscreen import FullScreen
 from .observation_table import ObservationTable
 from .organism_selector import OrganismSelector
