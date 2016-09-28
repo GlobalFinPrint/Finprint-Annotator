@@ -3,6 +3,7 @@ from annotation_view import TypeAndReduce
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
+from logging import getLogger
 
 
 class DialogActions(IntEnum):
@@ -36,7 +37,7 @@ class ContextMenu(QMenu):
         self._animal_group_menu = self.addMenu('Organism')
         for group in sorted(self._grouping.keys()):
             group_menu = self._animal_group_menu.addMenu(group)
-            group_menu.addAction(TypeAndReduce(group, self._grouping[group], self))
+            group_menu.addAction(TypeAndReduce(group, self._grouping[group], group_menu))
         self._interest_act = self.addAction('Of interest')
         self._observations_menu = self.addMenu('Add to existing observation')
         self._cancel_act = self.addAction('Cancel')
@@ -56,7 +57,7 @@ class ContextMenu(QMenu):
         elif action == self._interest_act:
             self.itemSelected.emit({"action": DialogActions.new_obs,
                                     "type_choice": 'I'})
-        elif type(action.data()).__name__ == 'Animal':
+        elif type(action.data()).__name__ == 'Animal':  # TODO may need different check here
             self.itemSelected.emit({"action": DialogActions.new_obs,
                                     "type_choice": 'A',
                                     "animal": action.data()})

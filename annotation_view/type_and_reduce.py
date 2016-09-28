@@ -1,6 +1,7 @@
 from .components import ClickLabel
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from logging import getLogger
 
 
 class TypeAndReduceChoice(QListWidgetItem):
@@ -76,14 +77,11 @@ class TypeAndReduce(QWidgetAction):
         self.setDefaultWidget(default_widget)
 
     def _text_changed(self, new_text):
-        if new_text == '':
-            for row in range(0, self.choice_list.count()):
-                self.choice_list.item(row).setHidden(False)
-        else:
-            for row in range(0, self.choice_list.count()):
-                item = self.choice_list.item(row)
-                item.setHidden(new_text not in item.text())
+        for row in range(0, self.choice_list.count()):
+            item = self.choice_list.item(row)
+            item.setHidden(new_text.lower() not in item.text().lower())
 
     def _selected_choice(self, item):
         self.setData(item.choice)
-        self.trigger()  # TODO trigger for obs menu
+        getLogger('finprint').debug('item chosen: {}'.format(str(item.choice)))
+        self.emit(SIGNAL('triggered()'))

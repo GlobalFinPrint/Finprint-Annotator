@@ -207,7 +207,7 @@ class CvVideoWidget(QWidget):
             d.finished.connect(self.clear_extent)
             x = self.rect().right() + d.width() + 15
             y = self.rect().top() + 75
-            print("Send dialog to {0}, {1}".format(x, y))
+            getLogger('finprint').debug('Send dialog to {0}, {1}'.format(x, y))
             d.move(x, y)
             d.launch(optDict)
         else:
