@@ -32,6 +32,7 @@ class TypeAndReduce(QWidgetAction):
         font = self.line_edit.font()
         font.setPointSize(self.FONT_SIZE)
         self.line_edit.setFont(font)
+        self.line_edit.setPlaceholderText('Search for a {}'.format(self.title.lower()))
         self.line_edit.textChanged.connect(self._text_changed)
 
         self.toggle_view = ClickLabel()
