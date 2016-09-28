@@ -37,7 +37,7 @@ class ContextMenu(QMenu):
         self._animal_group_menu = self.addMenu('Organism')
         for group in sorted(self._grouping.keys()):
             group_menu = self._animal_group_menu.addMenu(group)
-            group_menu.addAction(TypeAndReduce(group, self._grouping[group], group_menu))
+            group_menu.addAction(TypeAndReduce(group, self._grouping[group], self._debug, group_menu))
         self._interest_act = self.addAction('Of interest')
         self._observations_menu = self.addMenu('Add to existing observation')
         self._cancel_act = self.addAction('Cancel')
@@ -57,13 +57,14 @@ class ContextMenu(QMenu):
         elif action == self._interest_act:
             self.itemSelected.emit({"action": DialogActions.new_obs,
                                     "type_choice": 'I'})
-        elif type(action.data()).__name__ == 'Animal':  # TODO may need different check here
-            self.itemSelected.emit({"action": DialogActions.new_obs,
-                                    "type_choice": 'A',
-                                    "animal": action.data()})
         elif type(action.data()).__name__ == 'Observation':
             self.itemSelected.emit({"action": DialogActions.add_event,
                                     "obs": action.data()})
+
+    def _debug(self, item):
+        self.itemSelected.emit({"action": DialogActions.new_obs,
+                                "type_choice": 'A',
+                                "animal": item.choice})
 
 
 class EventDialog(QDialog):

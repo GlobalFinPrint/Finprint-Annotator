@@ -14,10 +14,11 @@ class TypeAndReduceChoice(QListWidgetItem):
 class TypeAndReduce(QWidgetAction):
     FONT_SIZE = 14
 
-    def __init__(self, title, choices, parent):
+    def __init__(self, title, choices, on_choice, parent):
         super().__init__(parent)
         self.title = title
         self.choices = choices
+        self.on_choice = on_choice
 
         default_widget = QWidget()
         default_widget.setFixedWidth(300)  # TODO update with toggle_view
@@ -83,6 +84,6 @@ class TypeAndReduce(QWidgetAction):
             item.setHidden(new_text.lower() not in item.text().lower())
 
     def _selected_choice(self, item):
-        self.setData(item.choice)
         getLogger('finprint').debug('item chosen: {}'.format(str(item.choice)))
-        self.emit(SIGNAL('triggered()'))
+        self.on_choice(item)  # workaround because documented methods for doing (trigger, events) do not work
+        self.parent().parent().parent().close()
