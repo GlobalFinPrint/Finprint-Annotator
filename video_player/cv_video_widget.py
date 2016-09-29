@@ -203,13 +203,14 @@ class CvVideoWidget(QWidget):
             optDict['event_time'] = int(self.get_position())
             optDict['extent'] = self.get_highlight_extent().to_wkt()
             optDict['set'] = self._current_set
-            d = EventDialog(parent=self)
-            d.finished.connect(self.clear_extent)
-            x = self.rect().right() + d.width() + 15
-            y = self.rect().top() + 75
+            diag = EventDialog(parent=self)
+            diag.finished.connect(self.clear_extent)
+            screen_center = QApplication.desktop().screenGeometry().center()
+            x = screen_center.x() - diag.rect().center().x()
+            y = screen_center.y() - 200
             getLogger('finprint').debug('Send dialog to {0}, {1}'.format(x, y))
-            d.move(x, y)
-            d.launch(optDict)
+            diag.move(x, y)
+            diag.launch(optDict)
         else:
             self.clear_extent()
 
