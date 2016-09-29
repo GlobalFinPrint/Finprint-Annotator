@@ -140,7 +140,7 @@ class AssignmentWidget(QWidget):
             QTableWidgetItem(set['file']),
         ]
         for col, item in enumerate(items):
-            if set['file'] == 'None':
+            if set['file'] == 'None' or set['file'] == '' or set['file'] is None:
                 item.setTextColor(QColor(204, 204, 204))
             item.setFlags(item.flags() ^ Qt.ItemIsEditable)
             self.set_table.setItem(row, col, item)
