@@ -25,9 +25,10 @@ class Extent(object):
         self.width = w
 
     def from_wkt(self, wkt_polygon):
-        self.empty = False
-        # Comes in SRID=4356;POLYGON ((X1 Y1, X2 Y1, X2 Y2, X1 Y2, X1 Y1))
-        self.numbers = re.findall(r'\d+(?:\.\d*)?', wkt_polygon.partition(';')[2])
+        if wkt_polygon is not None:  # imports don't have extents
+            self.empty = False
+            # Comes in SRID=4356;POLYGON ((X1 Y1, X2 Y1, X2 Y2, X1 Y2, X1 Y1))
+            self.numbers = re.findall(r'\d+(?:\.\d*)?', wkt_polygon.partition(';')[2])
 
     def _adjustX(self, x):
         return x * self.width
