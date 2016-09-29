@@ -86,6 +86,8 @@ class EventDialog(QDialog):
         self.obs_text = None
         self.selected_obs = None
         self.selected_event = None
+        self.action = None
+        self._set = None
 
     def launch(self, kwargs):
         self.action = kwargs['action']

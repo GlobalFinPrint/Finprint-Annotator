@@ -39,6 +39,7 @@ class TypeAndReduce(QWidgetAction):
 
         self.toggle_view = ClickLabel()
         self.toggle_view.setPixmap(QPixmap('images/fullscreen.png'))
+        self.toggle_view.setVisible(False)  # TODO expanded view to come later
 
         top_layout.addWidget(self.line_edit)
         top_layout.addWidget(self.toggle_view)

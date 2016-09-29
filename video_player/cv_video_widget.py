@@ -183,7 +183,7 @@ class CvVideoWidget(QWidget):
         self._aspect_ratio = 0.0
 
         self._timer_flag = False
-        self._timer = RepeatingTimer(0.0416) # 24 fps is GoPro norm
+        self._timer = RepeatingTimer(0.0416)  # 24 fps is GoPro norm
         self._timer.timerElapsed.connect(self.on_timer)
 
         self._last_progress = 0
@@ -226,7 +226,6 @@ class CvVideoWidget(QWidget):
 
         self.clear_extent()
 
-
         try:
             self._frame_manager = FrameManager(self._file_name)
         except Exception as ex:
@@ -258,7 +257,7 @@ class CvVideoWidget(QWidget):
 
         # Base line for measuring frame rate
         self.last_time = time.perf_counter()
-        self._timer.interval = 1 / self._frame_manager.FPS #Set the timer to the frame rate of the video
+        self._timer.interval = 1 / self._frame_manager.FPS  # Set the timer to the frame rate of the video
         self._timer.start()
 
         self.set_position(0)
@@ -339,7 +338,7 @@ class CvVideoWidget(QWidget):
             image = image.rgbSwapped()
 
         except Exception as ex:
-            getLogger('finprint').exception('Exception building image')
+            getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
 
         return image
 
