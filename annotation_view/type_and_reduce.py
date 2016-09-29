@@ -22,6 +22,7 @@ class TypeAndReduce(QWidgetAction):
 
         default_widget = QWidget()
         default_widget.setFixedWidth(300)  # TODO update with toggle_view
+        default_widget.setStyleSheet('background-color: white;')
         layout = QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
 
