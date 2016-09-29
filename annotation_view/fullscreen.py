@@ -179,6 +179,9 @@ class FullScreen(QWidget):
         # prepare video for display
         self.prepare(video_file)
 
+        # wire events for interactivity
+        self.wire_events()
+
     def revive(self, set, video_file, small_player):
         # TODO fix frame rate on revived fullscreen view
         self.current_set = set
@@ -195,7 +198,6 @@ class FullScreen(QWidget):
         self.seek_bar.setMaximumWidth(self.frameGeometry().width())
         self.video_length_label.setText(convert_position(int(self.video_player.get_length())))
         self.playback_speed_label.setText('(0x)')
-        self.wire_events()
         self.video_player.set_position(self.small_player.get_position())
 
     def wire_events(self):
