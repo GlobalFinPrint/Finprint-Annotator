@@ -163,6 +163,8 @@ class FullScreen(QWidget):
         third_row.addSpacerItem(QSpacerItem(1, 1, QSizePolicy.Expanding))
         for button in self.speed_buttons:
             third_row.addWidget(button)
+            if not GlobalFinPrintServer().is_lead() and button.speed > 1.5:
+                button.setVisible(False)
         controls_layout.addLayout(third_row)
 
         controls = QWidget()
