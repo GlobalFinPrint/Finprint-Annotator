@@ -272,7 +272,7 @@ class FullScreen(QWidget):
         self.small_player.parent().is_fullscreen = False
 
     def on_slider_tick(self, _, obs):
-        evt = sorted(obs.events, key=lambda e: e.event_time)[0]
+        evt = sorted(obs.events, key=lambda e: e.create_datetime)[0]
         self.video_player.pause()
         self.video_player.display_event(evt.event_time, evt.extent)
 

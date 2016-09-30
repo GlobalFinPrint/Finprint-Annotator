@@ -1,6 +1,7 @@
 from .animal import Animal
 from .extent import Extent
 from math import floor
+from datetime import datetime
 
 
 # TODO figure out why this won't import form annotation_view.util
@@ -18,6 +19,7 @@ class Event(object):
         self.note = None
         self.extent = Extent()
         self.observation = None
+        self.create_datetime = None
 
     def load(self, evt_dict, obs):
         self.id = evt_dict['id']
@@ -26,6 +28,7 @@ class Event(object):
         self.note = evt_dict['note']
         if 'extent' in evt_dict:
             self.extent.from_wkt(evt_dict['extent'])
+        self.create_datetime = datetime.strptime(evt_dict['create_datetime'], '%Y-%m-%d %H:%M:%S')
         self.observation = obs
 
     def to_dict(self):
@@ -77,7 +80,7 @@ class Observation(object):
         self.events = []
 
     def initial_time(self):
-        return min(e.event_time for e in self.events)
+        return sorted(self.events, key=lambda x: x.create_datetime)[0].event_time
 
     def load(self, obs_dict):
         self.type_choice = obs_dict['type_choice']

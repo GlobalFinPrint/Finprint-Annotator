@@ -44,7 +44,7 @@ class ContextMenu(QMenu):
 
     def _populate_obs_menu(self):
         self._observations_menu.clear()
-        self._set.observations.sort(key=lambda o: o.initial_time())
+        self._set.observations.sort(key=lambda o: o.initial_time(), reverse=True)
         for obs in self._set.observations:
             act = self._observations_menu.addAction(str(obs))
             act.setData(obs)

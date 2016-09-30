@@ -326,7 +326,7 @@ class VideoLayoutWidget(QWidget):
         self.current_set = None
 
     def on_slider_tick(self, position, obs):
-        events = sorted(obs.events, key=lambda e: e.event_time)
+        events = sorted(obs.events, key=lambda e: e.create_datetime)
         self.event_selected(events[0])
 
     def event_selected(self, evt):
