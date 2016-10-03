@@ -12,8 +12,6 @@ class TypeAndReduceChoice(QListWidgetItem):
 
 
 class TypeAndReduce(QWidgetAction):
-    FONT_SIZE = 14
-
     def __init__(self, title, choices, on_choice, parent):
         super().__init__(parent)
         self.title = title
@@ -31,9 +29,6 @@ class TypeAndReduce(QWidgetAction):
         top_layout = QHBoxLayout()
 
         self.line_edit = QLineEdit()
-        font = self.line_edit.font()
-        font.setPointSize(self.FONT_SIZE)
-        self.line_edit.setFont(font)
         self.line_edit.setPlaceholderText('Search for a {}'.format(self.title.lower()))
         self.line_edit.textChanged.connect(self._text_changed)
 
@@ -69,9 +64,6 @@ class TypeAndReduce(QWidgetAction):
             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); width: 0px;subcontrol-position: left;
             subcontrol-origin:margin}
         ''')
-        font = self.choice_list.font()
-        font.setPointSize(self.FONT_SIZE)
-        self.choice_list.setFont(font)
         self.choice_list.sortItems()
         self.choice_list.itemDoubleClicked.connect(self._selected_choice)
 
