@@ -48,7 +48,7 @@ class FullScreenLayout(QLayout):
         ))
 
     def sizeHint(self):
-        return self.parent().frameGeometry()
+        return self.parent().frameGeometry().size()
 
     def count(self):
         return len(self.items)
