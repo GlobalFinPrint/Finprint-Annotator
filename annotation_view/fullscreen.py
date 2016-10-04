@@ -199,6 +199,7 @@ class FullScreen(QWidget):
         self.video_length_label.setText(convert_position(int(self.video_player.get_length())))
         self.playback_speed_label.setText('(0x)')
         self.video_player.set_position(self.small_player.get_position())
+        QCoreApplication.instance().installEventFilter(self)
 
     def wire_events(self):
         self.play_pause_button.clicked.connect(self.on_toggle_play)
@@ -215,7 +216,6 @@ class FullScreen(QWidget):
         self.seek_bar.tickSelected.connect(self.on_slider_tick)
         for button in self.speed_buttons:
             button.speedClick.connect(self.on_speed)
-        QCoreApplication.instance().installEventFilter(self)
 
     def on_position_change(self, pos):
         self.video_time_label.setText(convert_position(int(pos)))
