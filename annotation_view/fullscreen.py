@@ -177,29 +177,35 @@ class FullScreen(QWidget):
         self.setLayout(self.layout)
 
         # prepare video for display
-        self.prepare(video_file)
+        self.prepare(video_file, True)
 
         # wire events for interactivity
         self.wire_events()
 
     def revive(self, set, video_file, small_player):
-        # TODO fix frame rate on revived fullscreen view
+        set_changed = self.current_set != set
         self.current_set = set
         self.small_player = small_player
-        self.prepare(video_file)
+        self.prepare(video_file, set_changed)
         self.show()
 
-    def prepare(self, video_file):
-        self.video_player.load_set(self.current_set)
-        self.video_player.load(video_file)
-        self.seek_bar.load_set(self.current_set)
-        self.seek_bar.setMaximum(int(self.video_player.get_length()))
+    def prepare(self, video_file, set_changed=False):
+        if set_changed:
+            self.video_player.load_set(self.current_set)
+            self.video_player.load(video_file)
+            self.seek_bar.load_set(self.current_set)
+            self.seek_bar.setMaximum(int(self.video_player.get_length()))
+            self.seek_bar.set_allowed_progress(self.current_set.progress)
+            self.seek_bar.setMaximumWidth(self.frameGeometry().width())
+        else:
+            self.video_player._timer.start()
+            self.seek_bar.generate_ticks()
         self.seek_bar.set_allowed_progress(self.current_set.progress)
-        self.seek_bar.setMaximumWidth(self.frameGeometry().width())
         self.video_length_label.setText(convert_position(int(self.video_player.get_length())))
         self.playback_speed_label.setText('(0x)')
         self.video_player.set_position(self.small_player.get_position())
         QCoreApplication.instance().installEventFilter(self)
+        QCoreApplication.instance().installEventFilter(self.video_player)
 
     def wire_events(self):
         self.play_pause_button.clicked.connect(self.on_toggle_play)
