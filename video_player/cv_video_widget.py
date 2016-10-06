@@ -97,16 +97,15 @@ class FrameManager(object):
         time.sleep(1)
         buffer_time = time.perf_counter()
         while not self._quit:
-            #print("qsize: {0}".format(self._frame_buffer.qsize()))
             if self._buffer.qsize() < self._buffer_size:
 
                 with self._capture_lock:
                     self._load_frame()
 
-                t = time.perf_counter()
-                diff = t - buffer_time
-                buffer_time = t
-                #print("buffer grab diff {0:.4f}".format(diff))
+                # t = time.perf_counter()
+                # diff = t - buffer_time
+                # buffer_time = t
+                # print("buffer grab diff {0:.4f}".format(diff))
 
             else:
                 time.sleep(0.01)
@@ -127,15 +126,11 @@ class FrameManager(object):
     def get_current_frame(self):
         return self._capture.retrieve()
 
-    def get_next_frame(self):
+    def get_next_frame(self, skip=1):
         try:
-            frame_time = time.perf_counter()
-            # if self._buffer.qsize() < FrameManager.BUFFER_SIZE:
-            #     time.sleep(2)
-            ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
-            str = "getting frame "
+            for i in range(skip):
+                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
 
-            #print("{0} {1:.1f} ms {2} frame in {3:.4f} ms".format(str, ms_pos, frame_pos, time.perf_counter() - frame_time))
         except Empty as e:
             print("empty buffer")
             return False, None
@@ -185,6 +180,7 @@ class CvVideoWidget(QWidget):
         self._timer_flag = False
         self._timer = RepeatingTimer(0.0416)  # 24 fps is GoPro norm
         self._timer.timerElapsed.connect(self.on_timer)
+        self._skip = 1
 
         self._last_progress = 0
 
@@ -353,7 +349,7 @@ class CvVideoWidget(QWidget):
 
     def load_frame(self):
         self.last_time = time.perf_counter()
-        grabbed, frame = self._frame_manager.get_next_frame()
+        grabbed, frame = self._frame_manager.get_next_frame(self._skip)
         if grabbed:
             self._image = self._build_image(frame)
             self._onPositionChange(self.get_position())
@@ -361,6 +357,11 @@ class CvVideoWidget(QWidget):
             # Hit the end
             self._play_state = PlayState.EndOfStream
             self.playStateChanged.emit(self._play_state)
+
+        # t = time.perf_counter()
+        # diff = t - self.last_time
+        # self.last_time = t
+        # print("get frame diff {0:.4f} skip {1}".format(diff, self._skip))
 
     def get_highlight_extent(self):
         ext = Extent()
@@ -495,10 +496,20 @@ class CvVideoWidget(QWidget):
     def clear_extent(self):
         self._highlighter.clear()
 
+    # To try and deal with the inefficiencies of openCV as our media decoder, when adjusting to speeds
+    #  which are greater than 2x, we simply skip the proportional amount of frames from the frame buffer
+    #  while clocking to the original frame rate.  If less than 2x, then we adjust our clock to a different
+    #  frame rate.
     def set_speed(self, speed):
         self.clear_extent()
+
         self._frame_manager.playback_FPS = speed * self._frame_manager.FPS
-        self._timer.interval = 1 / self._frame_manager.playback_FPS
+        if speed >= 2.0:
+            self._skip = int(speed)
+            self._timer.interval = 1 / self._frame_manager.FPS
+        else:
+            self._skip = 1
+            self._timer.interval = 1 / self._frame_manager.playback_FPS
 
         getLogger('finprint').debug('set playback speed to {}x'.format(speed))
         getLogger('finprint').debug('new FPS: {}'.format(self._frame_manager.playback_FPS))
