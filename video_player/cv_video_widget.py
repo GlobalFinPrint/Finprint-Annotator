@@ -57,7 +57,7 @@ class RepeatingTimer(QObject):
     def cancel(self):
         self.shutdown_event.set()
 
-DEFAULT_BUFFER_SIZE = 60
+DEFAULT_BUFFER_SIZE = 65
 
 
 class FrameManager(object):
@@ -75,6 +75,8 @@ class FrameManager(object):
             self._buffer_size = int(b)
 
         self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
+        # Effective frame rate is different than captured frame rate.
+        self.FPS *= 1.333
         self.playback_FPS = self.FPS
         self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -361,7 +363,7 @@ class CvVideoWidget(QWidget):
         # t = time.perf_counter()
         # diff = t - self.last_time
         # self.last_time = t
-        # print("get frame diff {0:.4f} skip {1}".format(diff, self._skip))
+        # print("get frame diff {0:.4f} skip {1} timer interval {2}".format(diff, self._skip, self._timer.interval))
 
     def get_highlight_extent(self):
         ext = Extent()
