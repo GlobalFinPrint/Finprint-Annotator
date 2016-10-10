@@ -45,7 +45,7 @@ class RepeatingTimer(QObject):
         self.active = True
         self.shutdown_event.clear()
         while self.active:
-            if self.shutdown_event.wait(timeout=self.interval):
+            if self.shutdown_event.wait(timeout=self.interval - 0.01):
                 self.active = False
             else:
                 self.timerElapsed.emit()
@@ -75,8 +75,6 @@ class FrameManager(object):
             self._buffer_size = int(b)
 
         self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
-        # Effective frame rate is different than captured frame rate.
-        self.FPS *= 1.333
         self.playback_FPS = self.FPS
         self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -121,7 +119,7 @@ class FrameManager(object):
         frame_pos = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
 
         if grabbed:
-            getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
+            #getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
             self._buffer.put((ms_pos, frame_pos, frame))
             self._last_frame_no = frame_pos
 
@@ -180,6 +178,7 @@ class CvVideoWidget(QWidget):
         self._aspect_ratio = 0.0
 
         self._timer_flag = False
+        self.timer_time = time.perf_counter()
         self._timer = RepeatingTimer(0.0416)  # 24 fps is GoPro norm
         self._timer.timerElapsed.connect(self.on_timer)
         self._skip = 1
@@ -255,6 +254,7 @@ class CvVideoWidget(QWidget):
         QCoreApplication.instance().installEventFilter(self)
 
         # Base line for measuring frame rate
+        self.timer_time = time.perf_counter()
         self.last_time = time.perf_counter()
         self._timer.interval = 1 / self._frame_manager.FPS  # Set the timer to the frame rate of the video
         self._timer.start()
@@ -285,6 +285,11 @@ class CvVideoWidget(QWidget):
             return 0
 
     def on_timer(self):
+
+        # t = time.perf_counter()
+        # diff = t - self.timer_time
+        # self.timer_time = t
+
         if not self._timer_flag:
             self._timer_flag = True
             if self._play_state == PlayState.Playing:
@@ -293,6 +298,7 @@ class CvVideoWidget(QWidget):
                     self._last_progress = pos
                     self.progressUpdate.emit(pos)
                 self.load_frame()
+                #print("timer call diff {0:.4f} in timer {1:.4f}".format(diff, time.perf_counter() - self.timer_time))
             elif self._play_state == PlayState.SeekForward:
                 self.load_frame()
             elif self._play_state == PlayState.SeekBack:
@@ -300,6 +306,7 @@ class CvVideoWidget(QWidget):
 
             self.update()
             self._timer_flag = False
+
 
     def clear(self):
         self._timer.cancel()
