@@ -1,5 +1,6 @@
 import cv2
 import time
+import platform
 import numpy as np
 from io import BytesIO
 from boto.s3.connection import S3Connection
@@ -40,12 +41,20 @@ class RepeatingTimer(QObject):
         self.active = False
         self.shutdown_event = Event()
         self.thread = None
+        self.interval_adjustment = 0.0
+
+        # platform dependent interval adjustments here
+        if platform.system() != 'Darwin':
+            pass  # keep at 0.0 for Mac
+        else:
+            self.interval_adjustment = 0.01
 
     def wrapper_function(self):
         self.active = True
         self.shutdown_event.clear()
+
         while self.active:
-            if self.shutdown_event.wait(timeout=self.interval - 0.01):
+            if self.shutdown_event.wait(timeout=self.interval - self.interval_adjustment):
                 self.active = False
             else:
                 self.timerElapsed.emit()
