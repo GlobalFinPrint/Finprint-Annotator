@@ -1,5 +1,6 @@
 import cv2
 import time
+import psutil
 import numpy as np
 from io import BytesIO
 from boto.s3.connection import S3Connection
@@ -13,7 +14,6 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from queue import *
 from config import global_config
-
 from threading import Thread, Event, Lock
 
 PROGRESS_UPDATE_INTERVAL = 30000
@@ -193,8 +193,8 @@ class CvVideoWidget(QWidget):
         self.setStyleSheet('QMenu { background-color: white; }')
 
     def _print_sys_info(self):
-        print('sys')
-        pass
+        getLogger('finprint').debug('CPU %: {}'.format(psutil.cpu_percent()))
+        getLogger('finprint').debug('Memory: {}'.format(psutil.virtual_memory()))
 
     def load_set(self, set):
         self._current_set = set

@@ -1,4 +1,6 @@
-import sys, os
+import sys
+import os
+import platform
 import logging
 import logging.config
 from finprint_annotator import MainWindow
@@ -21,6 +23,7 @@ def main():
     logging.config.fileConfig('./config.ini')
     l = logging.getLogger('finprint')
     l.info('Finprint Annotator Starting up')
+    l.debug('Platform: {}'.format(platform.uname()))
     app = QApplication(sys.argv)
     app.setStyle("Plastique")
     win = MainWindow()
