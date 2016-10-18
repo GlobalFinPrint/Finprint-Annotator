@@ -1,6 +1,5 @@
 import cv2
 import time
-import platform
 import numpy as np
 from io import BytesIO
 from boto.s3.connection import S3Connection
@@ -41,20 +40,12 @@ class RepeatingTimer(QObject):
         self.active = False
         self.shutdown_event = Event()
         self.thread = None
-        self.interval_adjustment = 0.0
-
-        # platform dependent interval adjustments here
-        if platform.system() != 'Darwin':
-            pass  # keep at 0.0 for Mac
-        else:
-            self.interval_adjustment = 0.01
 
     def wrapper_function(self):
         self.active = True
         self.shutdown_event.clear()
-
         while self.active:
-            if self.shutdown_event.wait(timeout=self.interval - self.interval_adjustment):
+            if self.shutdown_event.wait(timeout=self.interval):
                 self.active = False
             else:
                 self.timerElapsed.emit()
@@ -66,7 +57,7 @@ class RepeatingTimer(QObject):
     def cancel(self):
         self.shutdown_event.set()
 
-DEFAULT_BUFFER_SIZE = 65
+DEFAULT_BUFFER_SIZE = 60
 
 
 class FrameManager(object):
@@ -111,10 +102,10 @@ class FrameManager(object):
                 with self._capture_lock:
                     self._load_frame()
 
-                # t = time.perf_counter()
-                # diff = t - buffer_time
-                # buffer_time = t
-                # print("buffer grab diff {0:.4f}".format(diff))
+                t = time.perf_counter()
+                diff = t - buffer_time
+                buffer_time = t
+                getLogger('finprint').debug("buffer grab diff {0:.4f}".format(diff))
 
             else:
                 time.sleep(0.01)
@@ -128,7 +119,7 @@ class FrameManager(object):
         frame_pos = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
 
         if grabbed:
-            #getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
+            getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
             self._buffer.put((ms_pos, frame_pos, frame))
             self._last_frame_no = frame_pos
 
@@ -141,7 +132,7 @@ class FrameManager(object):
                 ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
 
         except Empty as e:
-            print("empty buffer")
+            getLogger('finprint').debug("empty buffer")
             return False, None
 
         self.current_pos = ms_pos
@@ -189,6 +180,8 @@ class CvVideoWidget(QWidget):
         self._timer_flag = False
         self.timer_time = time.perf_counter()
         self._timer = RepeatingTimer(0.0416)  # 24 fps is GoPro norm
+        self._profile_timer = RepeatingTimer(5)
+        self._profile_timer.timerElapsed.connect(self._print_sys_info)
         self._timer.timerElapsed.connect(self.on_timer)
         self._skip = 1
 
@@ -198,6 +191,10 @@ class CvVideoWidget(QWidget):
         self._current_set = None
 
         self.setStyleSheet('QMenu { background-color: white; }')
+
+    def _print_sys_info(self):
+        print('sys')
+        pass
 
     def load_set(self, set):
         self._current_set = set
@@ -246,9 +243,6 @@ class CvVideoWidget(QWidget):
         if not self._fullscreen:
             self.setFixedSize(self._target_width(), self._target_height())
 
-        getLogger('finprint').debug("FPS {0}".format(self._frame_manager.FPS))
-        getLogger('finprint').debug("frame height {0}".format(self._frame_manager.height))
-        getLogger('finprint').debug("frame width {0}".format(self._frame_manager.width))
         getLogger('finprint').debug("aspect ratio {0}".format(self._aspect_ratio))
         getLogger('finprint').debug("target height {0}".format(self._target_height()))
         getLogger('finprint').debug("target width {0}".format(self._target_width()))
@@ -267,6 +261,8 @@ class CvVideoWidget(QWidget):
         self.last_time = time.perf_counter()
         self._timer.interval = 1 / self._frame_manager.FPS  # Set the timer to the frame rate of the video
         self._timer.start()
+
+        self._profile_timer.start()
 
         self.set_position(0)
         return True
@@ -295,9 +291,9 @@ class CvVideoWidget(QWidget):
 
     def on_timer(self):
 
-        # t = time.perf_counter()
-        # diff = t - self.timer_time
-        # self.timer_time = t
+        t = time.perf_counter()
+        diff = t - self.timer_time
+        self.timer_time = t
 
         if not self._timer_flag:
             self._timer_flag = True
@@ -307,7 +303,7 @@ class CvVideoWidget(QWidget):
                     self._last_progress = pos
                     self.progressUpdate.emit(pos)
                 self.load_frame()
-                #print("timer call diff {0:.4f} in timer {1:.4f}".format(diff, time.perf_counter() - self.timer_time))
+                getLogger('finprint').debug("timer call diff {0:.4f} in timer {1:.4f}".format(diff, time.perf_counter() - self.timer_time))
             elif self._play_state == PlayState.SeekForward:
                 self.load_frame()
             elif self._play_state == PlayState.SeekBack:
@@ -319,6 +315,7 @@ class CvVideoWidget(QWidget):
 
     def clear(self):
         self._timer.cancel()
+        self._profile_timer.cancel()
         if self._capture is not None:
             self._capture.release()
         self._image = QImage(self._target_width(), self._target_height(), QImage.Format_RGB888)
@@ -376,10 +373,10 @@ class CvVideoWidget(QWidget):
             self._play_state = PlayState.EndOfStream
             self.playStateChanged.emit(self._play_state)
 
-        # t = time.perf_counter()
-        # diff = t - self.last_time
-        # self.last_time = t
-        # print("get frame diff {0:.4f} skip {1} timer interval {2}".format(diff, self._skip, self._timer.interval))
+        t = time.perf_counter()
+        diff = t - self.last_time
+        self.last_time = t
+        getLogger('finprint').debug("get frame diff {0:.4f} skip {1} timer interval {2:.4f} position {3:.1}".format(diff, self._skip, self._timer.interval, self.get_position()))
 
     def get_highlight_extent(self):
         ext = Extent()
