@@ -382,7 +382,7 @@ class CvVideoWidget(QWidget):
         t = time.perf_counter()
         diff = t - self.last_time
         self.last_time = t
-        getLogger('finprint').debug("get frame diff {0:.4f} skip {1} timer interval {2:.4f} position {3:.1}".format(diff, self._skip, self._timer.interval, self.get_position()))
+        getLogger('finprint').debug("get frame diff {0:.4f} skip {1} timer interval {2:.4f} position {3}".format(diff, self._skip, self._timer.interval, self.get_position()))
 
     def get_highlight_extent(self):
         ext = Extent()
