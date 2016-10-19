@@ -193,8 +193,14 @@ class CvVideoWidget(QWidget):
         self.setStyleSheet('QMenu { background-color: white; }')
 
     def _print_sys_info(self):
-        getLogger('finprint').debug('CPU %: {}'.format(psutil.cpu_percent()))
-        getLogger('finprint').debug('Memory: {}'.format(psutil.virtual_memory()))
+        l = getLogger('finprint')
+        p = psutil.Process()
+        l.debug('System CPU %: {}'.format(psutil.cpu_percent()))
+        l.debug('System Memory: {}'.format(psutil.virtual_memory()))
+        l.debug('Process CPU %: {}'.format(p.cpu_percent()))
+        l.debug('Process Threads: {}'.format(p.threads()))
+        l.debug('Process Memory: {}'.format(p.memory_info()))
+        l.debug('Process Memory %: {}'.format(p.memory_percent()))
 
     def load_set(self, set):
         self._current_set = set

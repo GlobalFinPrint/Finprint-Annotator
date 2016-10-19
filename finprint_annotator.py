@@ -24,6 +24,7 @@ def main():
     l = logging.getLogger('finprint')
     l.info('Finprint Annotator Starting up')
     l.debug('Platform: {}'.format(platform.uname()))
+    l.debug('Processor: {}'.format(platform.processor()))
     app = QApplication(sys.argv)
     app.setStyle("Plastique")
     win = MainWindow()
