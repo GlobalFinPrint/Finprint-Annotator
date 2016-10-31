@@ -76,7 +76,6 @@ class FrameManager(object):
 
         self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, VIDEO_WIDTH)
         self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, VIDEO_HEIGHT)
-        self._capture.set(cv2.CAP_PROP_CONVERT_RGB, True)
 
         self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
         self.playback_FPS = self.FPS
@@ -124,11 +123,12 @@ class FrameManager(object):
 
         if grabbed:
             # getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             self._buffer.put((ms_pos, frame_pos, frame))
             self._last_frame_no = frame_pos
 
     def get_current_frame(self):
-        return self._capture.retrieve()
+        return cv2.cvtColor(self._capture.retrieve(), cv2.COLOR_BGR2RGB)
 
     def get_next_frame(self, skip=1):
         try:
