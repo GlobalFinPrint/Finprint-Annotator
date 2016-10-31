@@ -105,7 +105,7 @@ class FrameManager(object):
                 t = time.perf_counter()
                 diff = t - buffer_time
                 buffer_time = t
-                getLogger('finprint').debug("buffer grab diff {0:.4f}".format(diff))
+                # getLogger('finprint').debug("buffer grab diff {0:.4f}".format(diff))
 
             else:
                 time.sleep(0.01)
@@ -119,7 +119,7 @@ class FrameManager(object):
         frame_pos = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
 
         if grabbed:
-            getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
+            # getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
             self._buffer.put((ms_pos, frame_pos, frame))
             self._last_frame_no = frame_pos
 
@@ -309,7 +309,7 @@ class CvVideoWidget(QWidget):
                     self._last_progress = pos
                     self.progressUpdate.emit(pos)
                 self.load_frame()
-                getLogger('finprint').debug("timer call diff {0:.4f} in timer {1:.4f}".format(diff, time.perf_counter() - self.timer_time))
+                # getLogger('finprint').debug("timer call diff {0:.4f} in timer {1:.4f}".format(diff, time.perf_counter() - self.timer_time))
             elif self._play_state == PlayState.SeekForward:
                 self.load_frame()
             elif self._play_state == PlayState.SeekBack:
@@ -382,7 +382,7 @@ class CvVideoWidget(QWidget):
         t = time.perf_counter()
         diff = t - self.last_time
         self.last_time = t
-        getLogger('finprint').debug("get frame diff {0:.4f} skip {1} timer interval {2:.4f} position {3}".format(diff, self._skip, self._timer.interval, self.get_position()))
+        # getLogger('finprint').debug("get frame diff {0:.4f} skip {1} timer interval {2:.4f} position {3}".format(diff, self._skip, self._timer.interval, self.get_position()))
 
     def get_highlight_extent(self):
         ext = Extent()
