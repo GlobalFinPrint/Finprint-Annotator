@@ -74,14 +74,14 @@ class FrameManager(object):
         else:
             self._buffer_size = int(b)
 
-        self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, VIDEO_WIDTH)
-        self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, VIDEO_HEIGHT)
-
         self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
         self.playback_FPS = self.FPS
         self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.count = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
+
+        self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, VIDEO_WIDTH)
+        self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, VIDEO_WIDTH / self.width / self.height)
 
         getLogger('finprint').debug("FPS {0}".format(self.FPS))
         getLogger('finprint').debug("frame height {0}".format(self.height))
