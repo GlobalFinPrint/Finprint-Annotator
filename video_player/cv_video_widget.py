@@ -74,6 +74,9 @@ class FrameManager(object):
         else:
             self._buffer_size = int(b)
 
+        self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, VIDEO_WIDTH)
+        self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, VIDEO_HEIGHT)
+
         self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
         self.playback_FPS = self.FPS
         self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
@@ -352,7 +355,7 @@ class CvVideoWidget(QWidget):
 
             height, width, channels = frame.shape
             image = QImage(frame, width, height, QImage.Format_RGB888)
-            image = image.scaled(self._target_width(), self._target_height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            # image = image.scaled(self._target_width(), self._target_height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
             image = image.rgbSwapped()
 
         except Exception as ex:
