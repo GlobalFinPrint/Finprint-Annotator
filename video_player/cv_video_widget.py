@@ -61,8 +61,9 @@ DEFAULT_BUFFER_SIZE = 60
 
 
 class FrameManager(object):
-    def __init__(self, file_name):
+    def __init__(self, file_name, parent):
         super(FrameManager, self).__init__()
+        self.parent = parent
         self._capture = cv2.VideoCapture(file_name)
         if not self._capture.isOpened():
             raise Exception("Could not open file")
@@ -79,9 +80,6 @@ class FrameManager(object):
         self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
         self.width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
         self.count = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
-
-        self._capture.set(cv2.CAP_PROP_FRAME_WIDTH, VIDEO_WIDTH)
-        self._capture.set(cv2.CAP_PROP_FRAME_HEIGHT, VIDEO_WIDTH / self.width / self.height)
 
         getLogger('finprint').debug("FPS {0}".format(self.FPS))
         getLogger('finprint').debug("frame height {0}".format(self.height))
@@ -124,6 +122,8 @@ class FrameManager(object):
         if grabbed:
             # getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            size = (int(self.parent._target_width()), int(self.parent._target_height()))
+            frame = cv2.resize(frame, size)
             self._buffer.put((ms_pos, frame_pos, frame))
             self._last_frame_no = frame_pos
 
@@ -241,7 +241,7 @@ class CvVideoWidget(QWidget):
         self.clear_extent()
 
         try:
-            self._frame_manager = FrameManager(self._file_name)
+            self._frame_manager = FrameManager(self._file_name, self)
         except Exception as ex:
             getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
             return False
