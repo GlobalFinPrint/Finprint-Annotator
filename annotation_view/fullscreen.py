@@ -2,7 +2,7 @@ from .util import convert_position
 from .components import ClickLabel, SpeedButton, GenericButton
 from .filter_widget import FilterWidget
 from .video_seek_widget import VideoSeekWidget
-from video_player import CvVideoWidget, PlayState
+from video_player import VlcVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -83,7 +83,7 @@ class FullScreen(QWidget):
         self.small_player = small_player
 
         # components
-        self.video_player = CvVideoWidget(parent=self,
+        self.video_player = VlcVideoWidget(parent=self,
                                           onPositionChange=self.on_position_change,
                                           fullscreen=True)
 

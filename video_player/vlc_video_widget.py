@@ -1,7 +1,5 @@
-#import cv2
 import time
 import psutil
-import numpy as np
 from io import BytesIO
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
@@ -12,9 +10,9 @@ from .highlighter import Highlighter
 from .context_menu import ContextMenu, EventDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from queue import *
 from config import global_config
-from threading import Thread, Event, Lock
+from threading import Thread, Event
+from .vlc import *
 
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
@@ -57,104 +55,46 @@ class RepeatingTimer(QObject):
     def cancel(self):
         self.shutdown_event.set()
 
-DEFAULT_BUFFER_SIZE = 60
+
+class AnnotationImage(QWidget):
+
+    def __init__(self) -> object:
+        QWidget.__init__(self)
+        self._highlighter = Highlighter()
+        self.dragging = False
+        self.curr_image = None
+        self.initUI()
+
+    def initUI(self):
+        self.show()
+
+    def clear(self):
+        self.curr_image = None
+        self._highlighter.clear()
+
+    def mousePressEvent(self, event):
+        self._highlighter.start_rect(event.pos())
+        self.update()
+
+    def mouseMoveEvent(self, event):
+        self._dragging = True
+        x, y = event.pos().x(), event.pos().y()
+        clamped_pos = QPoint(min(x, self.width()), min(y, self.height()))
+        self._highlighter.set_rect(clamped_pos)
+        self.update()
+
+    def paintEvent(self, e):
+        # This should only be called when
+        if self.curr_image is not None:
+            painter = QPainter()
+            painter.begin(self)
+            painter.drawImage(QPoint(0, 0), self.curr_image)
+            painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
+            painter.drawRect(self._highlighter.get_rect())
+            painter.end()
 
 
-class FrameManager(object):
-    def __init__(self, file_name, parent):
-        super(FrameManager, self).__init__()
-        self.parent = parent
-        self._capture = cv2.VideoCapture(file_name)
-        if not self._capture.isOpened():
-            raise Exception("Could not open file")
-        self._capture_lock = Lock()
-
-        b = global_config.get('VIDEOS', 'buffer_size')
-        if b is None:
-            self._buffer_size = DEFAULT_BUFFER_SIZE
-        else:
-            self._buffer_size = int(b)
-
-        self.FPS = self._capture.get(cv2.CAP_PROP_FPS)
-        self.playback_FPS = self.FPS
-        self.height = self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)
-        self.width = self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)
-        self.count = self._capture.get(cv2.CAP_PROP_FRAME_COUNT)
-
-        getLogger('finprint').debug("FPS {0}".format(self.FPS))
-        getLogger('finprint').debug("frame height {0}".format(self.height))
-        getLogger('finprint').debug("frame width {0}".format(self.width))
-        getLogger('finprint').debug("buffer size {0}".format(self._buffer_size))
-
-        self._buffer = Queue()
-        self._quit = False
-        self.thread = Thread(group=None, target=self._start_buffer, daemon=True)
-        self.thread.start()
-        self._last_frame_no = 0 # Relative to file reader
-        self.current_pos = 0 # Relative to client
-        self.current_frame_no = 0 # Relative to client
-
-    def _start_buffer(self):
-        time.sleep(1)
-        buffer_time = time.perf_counter()
-        while not self._quit:
-            if self._buffer.qsize() < self._buffer_size:
-
-                with self._capture_lock:
-                    self._load_frame()
-
-                t = time.perf_counter()
-                diff = t - buffer_time
-                buffer_time = t
-                # getLogger('finprint').debug("buffer grab diff {0:.4f}".format(diff))
-
-            else:
-                time.sleep(0.01)
-
-    def _load_frame(self, current=False):
-        if current:
-            grabbed, frame = self._capture.retrieve()
-        else:
-            grabbed, frame = self._capture.read()
-        ms_pos = self._capture.get(cv2.CAP_PROP_POS_MSEC)
-        frame_pos = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
-
-        if grabbed:
-            # getLogger('finprint').debug("buffering frame {0:.1f} ms {1} frame".format(ms_pos, frame_pos))
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            size = (int(self.parent._target_width()), int(self.parent._target_height()))
-            frame = cv2.resize(frame, size)
-            self._buffer.put((ms_pos, frame_pos, frame))
-            self._last_frame_no = frame_pos
-
-    def get_current_frame(self):
-        return cv2.cvtColor(self._capture.retrieve(), cv2.COLOR_BGR2RGB)
-
-    def get_next_frame(self, skip=1):
-        try:
-            for i in range(skip):
-                ms_pos, frame_pos, frame = self._buffer.get(timeout=5)
-
-        except Empty as e:
-            getLogger('finprint').debug("empty buffer")
-            return False, None
-
-        self.current_pos = ms_pos
-        self.current_frame_no = frame_pos
-        return True, frame
-
-    def get_position(self):
-        return self.current_pos
-
-    def set_position(self, pos):
-        getLogger('finprint').debug("setting position: {0}".format(pos))
-        with self._capture_lock:
-            self._capture.set(cv2.CAP_PROP_POS_MSEC, pos)
-            self._buffer = Queue()
-            self._load_frame(current=True)
-
-
-class CvVideoWidget(QWidget):
+class VlcVideoWidget(QStackedWidget):
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
     playbackSpeedChanged = pyqtSignal(float)
@@ -169,25 +109,39 @@ class CvVideoWidget(QWidget):
         self._play_state = PlayState.NotReady
         self._file_name = None
         self._fullscreen = fullscreen
-
-        self._frame_manager = None
-
         self._dragging = False
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
         self.last_time = time.perf_counter()
-        self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
-        self._image.fill(Qt.black)
+
+        # In this widget, the video will be drawn
+        if sys.platform == "darwin":  # for MacOS
+            self.videoframe = QMacCocoaViewContainer(0)
+        else:
+            self.videoframe = QFrame()
+
+        self.addWidget(self.videoframe)
+        self.setMinimumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
+
+        # self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
+        # self._image.fill(Qt.black)
+        # self.addWidget(self._image)
+
+        self.setCurrentIndex(0)
 
         self._aspect_ratio = 0.0
 
-        self._timer_flag = False
-        self.timer_time = time.perf_counter()
-        self._timer = RepeatingTimer(0.0416)  # 24 fps is GoPro norm
-        self._profile_timer = RepeatingTimer(5)
-        self._profile_timer.timerElapsed.connect(self._print_sys_info)
-        self._timer.timerElapsed.connect(self.on_timer)
-        self._skip = 1
+        # self._timer_flag = False
+        # self.timer_time = time.perf_counter()
+        # self._profile_timer = RepeatingTimer(5)
+        # self._profile_timer.timerElapsed.connect(self._print_sys_info)
+        # self._timer.timerElapsed.connect(self.on_timer)
+        # self._skip = 1
+
+        # vlc binding instance to load libvlc
+        self.instance = Instance()
+        # creati a vlc media player from loaded library
+        self.mediaplayer = self.instance.media_player_new()
 
         self._last_progress = 0
 
@@ -195,6 +149,11 @@ class CvVideoWidget(QWidget):
         self._current_set = None
 
         self.setStyleSheet('QMenu { background-color: white; }')
+
+        self.initUI()
+
+    def initUI(self):
+        pass
 
     def _print_sys_info(self):
         l = getLogger('finprint')
@@ -240,15 +199,29 @@ class CvVideoWidget(QWidget):
 
         self.clear_extent()
 
-        try:
-            self._frame_manager = FrameManager(self._file_name, self)
-        except Exception as ex:
-            getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
-            return False
+        getLogger('finprint').info("Loading loading video {0}".format(self._file_name))
+        self.media = self.instance.media_new(self._file_name)
+        self.mediaplayer.set_media(self.media)
+        self.media.parse()
+
+        # todo - figure out if the file couldn't be parsed or loaded
+        # getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
+
+        # the media player has to be 'connected' to the QFrame
+        # (otherwise a video would be displayed in it's own window)
+        # this is platform specific!
+        # you have to give the id of the QFrame (or similar object) to
+        # vlc, different platforms have different functions for this
+        if sys.platform.startswith('linux'):  # for Linux using the X Server
+            self.mediaplayer.set_xwindow(self.videoframe.winId())
+        elif sys.platform == "win32":  # for Windows
+            self.mediaplayer.set_hwnd(self.videoframe.winId())
+        elif sys.platform == "darwin":  # for MacOS
+            self.mediaplayer.set_nsobject(self.videoframe.winId())
 
         self._play_state = PlayState.Paused
 
-        self._aspect_ratio = self._frame_manager.width / self._frame_manager.height
+        self._aspect_ratio = self.videoframe.width() / self.videoframe.height()
 
         if not self._fullscreen:
             self.setFixedSize(self._target_width(), self._target_height())
@@ -260,21 +233,12 @@ class CvVideoWidget(QWidget):
 
         getLogger('finprint').debug("widget height {0}".format(self.height()))
         getLogger('finprint').debug("widget width {0}".format(self.width()))
-        getLogger('finprint').debug("image height {0}".format(self._image.height()))
-        getLogger('finprint').debug("image width {0}".format(self._image.width()))
+        #getLogger('finprint').debug("image height {0}".format(self._image.height()))
+        #getLogger('finprint').debug("image width {0}".format(self._image.width()))
 
         # don't start listening for spacebar until video is loaded and playable
         QCoreApplication.instance().installEventFilter(self)
 
-        # Base line for measuring frame rate
-        self.timer_time = time.perf_counter()
-        self.last_time = time.perf_counter()
-        self._timer.interval = 1 / self._frame_manager.FPS  # Set the timer to the frame rate of the video
-        self._timer.start()
-
-        self._profile_timer.start()
-
-        self.set_position(0)
         return True
 
     def _target_width(self):
@@ -300,121 +264,43 @@ class CvVideoWidget(QWidget):
             return 0
 
     def on_timer(self):
-
-        t = time.perf_counter()
-        diff = t - self.timer_time
-        self.timer_time = t
-
-        if not self._timer_flag:
-            self._timer_flag = True
-            if self._play_state == PlayState.Playing:
-                pos = self.get_position()
-                if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
-                    self._last_progress = pos
-                    self.progressUpdate.emit(pos)
-                self.load_frame()
-                # getLogger('finprint').debug("timer call diff {0:.4f} in timer {1:.4f}".format(diff, time.perf_counter() - self.timer_time))
-            elif self._play_state == PlayState.SeekForward:
-                self.load_frame()
-            elif self._play_state == PlayState.SeekBack:
-                self.load_frame()
-
-            self.update()
-            self._timer_flag = False
-
+        pass
 
     def clear(self):
-        self._timer.cancel()
-        self._profile_timer.cancel()
-        if self._capture is not None:
-            self._capture.release()
-        self._image = QImage(self._target_width(), self._target_height(), QImage.Format_RGB888)
-        self._image.fill(Qt.black)
+        # XXX TODO
+        # self._timer.cancel()
+        # self._profile_timer.cancel()
+        # if self._capture is not None:
+        #     self._capture.release()
         self.update()
-
-    def _build_image(self, frame):
-        image = None
-        try:
-            # adjust brightness and saturation
-            if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
-                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-                h, s, v = cv2.split(hsv)
-                final_hsv = cv2.merge((
-                    h,
-                    np.where(255 - s < self.saturation, 255, s + self.saturation),
-                    np.where(255 - v < self.brightness, 255, v + self.brightness)
-                ))
-                frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
-
-            # equalize contrast
-            if self.contrast is True and self._play_state == PlayState.Paused:
-                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
-                l_chan = cv2.extractChannel(lab, 0)
-                l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
-                cv2.insertChannel(l_chan, lab, 0)
-                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
-
-            height, width, channels = frame.shape
-            image = QImage(frame, width, height, QImage.Format_RGB888)
-            # image = image.scaled(self._target_width(), self._target_height(), Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            # image = image.rgbSwapped()
-
-        except Exception as ex:
-            getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
-
-        return image
-
-    def paintEvent(self, event):
-        painter = QPainter(self)
-
-        painter.drawImage(QPoint(0, 0), self._image)
-        if self._play_state == PlayState.Paused:
-            painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
-            painter.drawRect(self._highlighter.get_rect())
-
-    def load_frame(self):
-        self.last_time = time.perf_counter()
-        grabbed, frame = self._frame_manager.get_next_frame(self._skip)
-        if grabbed:
-            self._image = self._build_image(frame)
-            self._onPositionChange(self.get_position())
-        else:
-            # Hit the end
-            self._play_state = PlayState.EndOfStream
-            self.playStateChanged.emit(self._play_state)
-
-        t = time.perf_counter()
-        diff = t - self.last_time
-        self.last_time = t
-        # getLogger('finprint').debug("get frame diff {0:.4f} skip {1} timer interval {2:.4f} position {3}".format(diff, self._skip, self._timer.interval, self.get_position()))
 
     def get_highlight_extent(self):
         ext = Extent()
-        ext.setRect(self._highlighter.get_rect(), self._image.height(), self._image.width())
+        ext.setRect(self._highlighter.get_rect(), self.videoframe.height(), self.videoframe.width())
         return ext
 
     def get_highlight_as_list(self):
         r = self._highlighter.get_rect()
         return list(r.getCoords())
 
-
     def display_event(self, pos, extent):
-        rect = extent.getRect(self._image.height(), self._image.width())
+        # XXX I'm assuming this will also require capturing a still, and then drawing
+        # over it. Right now we are just dealing with the videoframe
+        rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._highlighter.start_rect(rect.topLeft())
         self._highlighter.set_rect(rect.bottomRight())
-        self.set_position(pos)
+        self.mediaplayer.set_time(pos)
         self.repaint()
 
     def jump_back(self, seconds):
         self.clear_extent()
-        pos = self.get_position() - seconds * 1000
-        if pos < 0:
-            pos = 0
-        self.set_position(pos)
+        time_back = self.mediaplayer.get_time() - seconds * 1000
+        if time_back < 0:
+            time_back = 0
+        self.set_time(time_back)
 
     def set_position(self, pos):
-        self._frame_manager.set_position(pos)
-        self.load_frame()
+        self.mediaplayer.set_time(pos)
         self._onPositionChange(self.get_position())
 
     def mousePressEvent(self, event):
@@ -436,11 +322,13 @@ class CvVideoWidget(QWidget):
 
     def pause(self):
         self._play_state = PlayState.Paused
+        self.mediaplayer.pause()
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
         if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
             self.refresh_frame()
 
+    # XXX fix me
     def save_image(self, filename):
         data = QByteArray()
         buffer = QBuffer(data)
@@ -460,29 +348,25 @@ class CvVideoWidget(QWidget):
             getLogger('finprint').error(str(e))
 
     def play(self):
-        if self._play_state == PlayState.EndOfStream:
-            self.set_position(0)
-        self._timer.interval = 1 / self._frame_manager.FPS
-
-        self._frame_manager.playback_FPS = self._frame_manager.FPS
-        self.playbackSpeedChanged.emit(1.0)
-
+        self.mediaplayer.play()
         self._play_state = PlayState.Playing
         self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
+    # XXX this is probably going to need to be
     def paused(self):
         return self._play_state == PlayState.Paused
 
     def get_position(self):
-        return self._frame_manager.get_position()
+        return self.mediaplayer.get_time()
 
     def get_length(self):
-        if self._frame_manager.FPS == 0 or self._frame_manager.count == 0:
+        duration = self.media.get_duration()
+        if duration == -1:
             getLogger('finprint').exception("Failed to calculate length")
             return 0
         else:
-            return (self._frame_manager.count / self._frame_manager.FPS) * 1000  # Returns milliseconds as a float
+            return duration
 
     def fast_forward(self):
         self.set_speed(2.0)
@@ -490,9 +374,9 @@ class CvVideoWidget(QWidget):
     ## No worky.
     def rewind(self):
         if self._play_state == PlayState.SeekBack:
-            self.pause()
+            self.mediaplayer.pause()
         else:
-            self._timer.interval = SEEK_CLOCK_FACTOR / self._frame_manager.FPS
+            # self._timer.interval = SEEK_CLOCK_FACTOR / self._frame_manager.FPS
             self._play_state = PlayState.SeekBack
             self.clear_extent()
         self.playStateChanged.emit(self._play_state)
@@ -543,5 +427,4 @@ class CvVideoWidget(QWidget):
         self.load_frame()
 
     def resizeEvent(self, ev):
-        if self._frame_manager is not None:
-            self.refresh_frame()
+        self.update()

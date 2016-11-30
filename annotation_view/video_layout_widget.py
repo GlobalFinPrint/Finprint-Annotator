@@ -1,6 +1,6 @@
 import os
 from logging import getLogger
-from video_player import CvVideoWidget, PlayState
+from video_player import VlcVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
 from config import global_config
 from .video_seek_widget import VideoSeekWidget
@@ -39,7 +39,7 @@ class VideoLayoutWidget(QWidget):
         self.vid_box = None
         self._video_label = QLabel('')
         self._video_label.setStyleSheet("""color:rgb(74,74,74); font: 75 12pt "Arial";""")
-        self._video_player = CvVideoWidget(parent=self, onPositionChange=self.on_position_change)
+        self._video_player = VlcVideoWidget(parent=self, onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
         self._duration_label = QLabel()
         self._playback_speed_label = QLabel()
@@ -124,6 +124,7 @@ class VideoLayoutWidget(QWidget):
         self._video_filter_button.clicked.connect(self.on_video_filter_button)
         self._fullscreen_button.clicked.connect(self.on_fullscreen)
 
+        print(self._video_player.size())
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
         self._video_player.progressUpdate.connect(self.on_progress_update)
         self._video_player.playbackSpeedChanged.connect(self.on_playback_speed_changed)
