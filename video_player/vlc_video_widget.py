@@ -340,10 +340,11 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.pause()
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
-        if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
-            self.refresh_frame()
+        # XXX TODO
+        # if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
+        #     self.refresh_frame()
 
-    # XXX fix me
+    # XXX fix me - need to read the file off the disk, and into the buffer
     def save_image(self, filename):
         data = QByteArray()
         buffer = QBuffer(data)
@@ -363,7 +364,7 @@ class VlcVideoWidget(QStackedWidget):
             getLogger('finprint').error(str(e))
 
     def play(self):
-        self.mediaplayer.set_rate(1.0)
+        self.set_speed(1.0)
         self.mediaplayer.play()
         self._play_state = PlayState.Playing
         self.clear_extent()
