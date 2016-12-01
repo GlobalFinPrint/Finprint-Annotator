@@ -8,7 +8,7 @@ from .filter_widget import FilterWidget
 from .fullscreen import FullScreen
 from .components import ClickLabel, SpeedButton, GenericButton
 from .observation_table import ObservationTable
-from .util import convert_position, millis_to_time
+from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
@@ -302,6 +302,7 @@ class VideoLayoutWidget(QWidget):
         self._playback_speed_label.setText('({}x)'.format(int(speed) if int(speed) == speed else speed))
 
     def on_progress_update(self, progress):
+        print('tock')
         if self.current_set is not None:
             self.current_set.update_progress(progress)
 
@@ -403,8 +404,7 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.scrollToBottom()
 
     def on_position_change(self, pos):
-        self._pos_label.setText(millis)
-        #self._pos_label.setText(convert_position(pos))
+        self._pos_label.setText(convert_position(pos))
         self._slider.setValue(int(pos))
 
     def onTableRefresh(self):

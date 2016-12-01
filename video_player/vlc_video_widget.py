@@ -137,7 +137,8 @@ class VlcVideoWidget(QStackedWidget):
         # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
 
-        # XXX should this be removed?
+        # XXX should this be removed - no, needed to determine
+        # progress of annotater?
         self._last_progress = 0
 
         # XXX Still need a timer to update the timeline display, may
@@ -169,6 +170,7 @@ class VlcVideoWidget(QStackedWidget):
         l.debug('Process Memory: {}'.format(p.memory_info()))
         l.debug('Process Memory %: {}'.format(p.memory_percent()))
 
+    # XXX what are the use of sets
     def load_set(self, set):
         self._current_set = set
         self._context_menu = ContextMenu(set, parent=self)
@@ -275,11 +277,12 @@ class VlcVideoWidget(QStackedWidget):
         except ZeroDivisionError:
             return 0
 
+    # Reinstate last_progress here
     def on_timer(self):
         if self._play_state == PlayState.Playing:
             ts = self.mediaplayer.get_time()
+            print(ts)
             self.progressUpdate.emit(ts)
-            self.update()
 
     def clear(self):
         # XXX TODO
@@ -364,6 +367,7 @@ class VlcVideoWidget(QStackedWidget):
             getLogger('finprint').error(str(e))
 
     def play(self):
+        # emit if end of stream
         self.set_speed(1.0)
         self.mediaplayer.play()
         self._play_state = PlayState.Playing
@@ -426,6 +430,7 @@ class VlcVideoWidget(QStackedWidget):
 
         self.playbackSpeedChanged.emit(speed)
 
+        # XXX Review this
         if self._play_state != PlayState.SeekForward:
             self._play_state = PlayState.SeekForward
             self.mediaplayer.play()
