@@ -11,7 +11,8 @@ from .context_menu import ContextMenu, EventDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from config import global_config
-from threading import Thread, Event, Lock
+from threading import Thread
+from threading import Event as PyEvent
 from .vlc import *
 
 PROGRESS_UPDATE_INTERVAL = 30000
@@ -36,7 +37,7 @@ class RepeatingTimer(QObject):
         super(RepeatingTimer, self).__init__()
         self.interval = interval
         self.active = False
-        self.shutdown_event = Event()
+        self.shutdown_event = PyEvent()
         self.thread = None
 
     def wrapper_function(self):
@@ -215,6 +216,10 @@ class VlcVideoWidget(QStackedWidget):
         elif sys.platform == "darwin":  # for MacOS
             self.mediaplayer.set_nsobject(self.videoframe.winId())
 
+        # XXX todo - we need mouse events in the video frame
+        # self.mediaplayer.video_set_mouse_input(True)
+        self.videoframe.setMouseTracking(True)
+
         self._play_state = PlayState.Paused
 
         self._aspect_ratio = self.videoframe.width() / self.videoframe.height()
@@ -232,6 +237,7 @@ class VlcVideoWidget(QStackedWidget):
         getLogger('finprint').debug("widget width {0}".format(self.width()))
         #getLogger('finprint').debug("image height {0}".format(self._image.height()))
         #getLogger('finprint').debug("image width {0}".format(self._image.width()))
+
 
         # don't start listening for spacebar until video is loaded and playable
         QCoreApplication.instance().installEventFilter(self)
@@ -268,12 +274,13 @@ class VlcVideoWidget(QStackedWidget):
         if self._play_state == PlayState.Playing:
             ts = self.mediaplayer.get_time()
             self.progressUpdate.emit(ts)
+            self.update()
 
     def clear(self):
         # XXX TODO
-        # self._timer.cancel()
         # self._profile_timer.cancel()
 
+        self._timer.cancel()
         self.update()
 
     def get_highlight_extent(self):
@@ -324,6 +331,7 @@ class VlcVideoWidget(QStackedWidget):
 
     def pause(self):
         self._play_state = PlayState.Paused
+        self.mediaplayer.set_rate(1.0)
         self.mediaplayer.pause()
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)

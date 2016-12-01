@@ -8,7 +8,7 @@ from .filter_widget import FilterWidget
 from .fullscreen import FullScreen
 from .components import ClickLabel, SpeedButton, GenericButton
 from .observation_table import ObservationTable
-from .util import convert_position
+from .util import convert_position, millis_to_time
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
@@ -403,7 +403,8 @@ class VideoLayoutWidget(QWidget):
         self._observation_table.scrollToBottom()
 
     def on_position_change(self, pos):
-        self._pos_label.setText(convert_position(pos))
+        self._pos_label.setText(millis)
+        #self._pos_label.setText(convert_position(pos))
         self._slider.setValue(int(pos))
 
     def onTableRefresh(self):
