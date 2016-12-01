@@ -11,8 +11,9 @@ from .context_menu import ContextMenu, EventDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from config import global_config
-from threading import Thread, Event, Lock
+from threading import Thread, Event, Lock, Timer
 from .vlc import *
+
 
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
@@ -114,13 +115,14 @@ class VlcVideoWidget(QStackedWidget):
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
 
-        # In this widget, the video will be drawn
+        # We will pass A QFrame window handle to libvlc
         if sys.platform == "darwin":  # for MacOS
             self.videoframe = QMacCocoaViewContainer(0)
         else:
             self.videoframe = QFrame()
 
         self.addWidget(self.videoframe)
+        # XXX Fixme - this is a hack
         self.setMinimumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
         self.setMaximumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
 
@@ -134,13 +136,15 @@ class VlcVideoWidget(QStackedWidget):
         # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
 
-        # XXX remove?
+        # XXX should this be removed?
         self._last_progress = 0
 
         # XXX Still need a timer to update the timeline display, may
         # want to move this into the layout widget, but for now, try
         # to honor the interface already in place
-        self._timer = RepeatingTimer(0.25)
+        self._timer_flag = False
+        self.timer_time = time.perf_counter()
+        self._timer = RepeatingTimer(0.125)
         self._timer.timerElapsed.connect(self.on_timer)
 
         self._context_menu = None
@@ -148,6 +152,7 @@ class VlcVideoWidget(QStackedWidget):
 
         self.setStyleSheet('QMenu { background-color: white; }')
 
+        # XXX Todo - move ui components into a initUI
         self.initUI()
 
     def initUI(self):
@@ -265,9 +270,32 @@ class VlcVideoWidget(QStackedWidget):
             return 0
 
     def on_timer(self):
-        if self._play_state == PlayState.Playing:
-            ts = self.mediaplayer.get_time()
-            self.progressUpdate.emit(ts)
+
+        # t = time.perf_counter()
+        # diff = t - self.timer_time
+        # self.timer_time = t
+
+        if not self._timer_flag:
+            self._timer_flag = True
+            if self._play_state == PlayState.Playing:
+                pos = self.get_position()
+                if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
+                    self._last_progress = pos
+                    self.progressUpdate.emit(pos)
+            #     self.load_frame()
+            #     # getLogger('finprint').debug("timer call diff {0:.4f} in timer {1:.4f}".format(diff, time.perf_counter() - self.timer_time))
+            # elif self._play_state == PlayState.SeekForward:
+            #     self.load_frame()
+            # elif self._play_state == PlayState.SeekBack:
+            #     self.load_frame()
+
+            self.update()
+            self._timer_flag = False
+
+    # def on_timer(self):
+    #     if self._play_state == PlayState.Playing:
+    #         ts = self.mediaplayer.get_time()
+    #         self.progressUpdate.emit(ts)
 
     def clear(self):
         # XXX TODO
@@ -350,6 +378,7 @@ class VlcVideoWidget(QStackedWidget):
             getLogger('finprint').error(str(e))
 
     def play(self):
+        self.mediaplayer.set_rate(1.0)
         self.mediaplayer.play()
         self._play_state = PlayState.Playing
         self.clear_extent()
@@ -416,9 +445,9 @@ class VlcVideoWidget(QStackedWidget):
             self.mediaplayer.play()
             self.playStateChanged.emit(self._play_state)
 
-    def refresh_frame(self):
-        self._frame_manager.set_position(self._frame_manager.get_position())
-        self.load_frame()
+    # def refresh_frame(self):
+    #     self._frame_manager.set_position(self._frame_manager.get_position())
+    #     self.load_frame()
 
     def resizeEvent(self, ev):
         self.update()
