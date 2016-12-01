@@ -124,7 +124,6 @@ class VideoLayoutWidget(QWidget):
         self._video_filter_button.clicked.connect(self.on_video_filter_button)
         self._fullscreen_button.clicked.connect(self.on_fullscreen)
 
-        print(self._video_player.size())
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
         self._video_player.progressUpdate.connect(self.on_progress_update)
         self._video_player.playbackSpeedChanged.connect(self.on_playback_speed_changed)

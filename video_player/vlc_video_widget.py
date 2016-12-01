@@ -11,7 +11,7 @@ from .context_menu import ContextMenu, EventDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from config import global_config
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from .vlc import *
 
 PROGRESS_UPDATE_INTERVAL = 30000
@@ -58,7 +58,7 @@ class RepeatingTimer(QObject):
 
 class AnnotationImage(QWidget):
 
-    def __init__(self) -> object:
+    def __init__(self):
         QWidget.__init__(self)
         self._highlighter = Highlighter()
         self.dragging = False
@@ -69,6 +69,7 @@ class AnnotationImage(QWidget):
         self.show()
 
     def clear(self):
+        self._timer.clear()
         self.curr_image = None
         self._highlighter.clear()
 
@@ -112,7 +113,6 @@ class VlcVideoWidget(QStackedWidget):
         self._dragging = False
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
-        self.last_time = time.perf_counter()
 
         # In this widget, the video will be drawn
         if sys.platform == "darwin":  # for MacOS
@@ -122,28 +122,26 @@ class VlcVideoWidget(QStackedWidget):
 
         self.addWidget(self.videoframe)
         self.setMinimumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
+        self.setMaximumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
 
-        # self._image = QImage(VIDEO_WIDTH, VIDEO_HEIGHT, QImage.Format_RGB888)
-        # self._image.fill(Qt.black)
-        # self.addWidget(self._image)
-
+        # set videoframe as default visibile widget
         self.setCurrentIndex(0)
-
+        # XXX todo - get aspect ratio from vlc
         self._aspect_ratio = 0.0
 
-        # self._timer_flag = False
-        # self.timer_time = time.perf_counter()
-        # self._profile_timer = RepeatingTimer(5)
-        # self._profile_timer.timerElapsed.connect(self._print_sys_info)
-        # self._timer.timerElapsed.connect(self.on_timer)
-        # self._skip = 1
-
-        # vlc binding instance to load libvlc
+        # bind instance to load libvlc
         self.instance = Instance()
-        # creati a vlc media player from loaded library
+        # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
 
+        # XXX remove?
         self._last_progress = 0
+
+        # XXX Still need a timer to update the timeline display, may
+        # want to move this into the layout widget, but for now, try
+        # to honor the interface already in place
+        self._timer = RepeatingTimer(0.25)
+        self._timer.timerElapsed.connect(self.on_timer)
 
         self._context_menu = None
         self._current_set = None
@@ -207,11 +205,9 @@ class VlcVideoWidget(QStackedWidget):
         # todo - figure out if the file couldn't be parsed or loaded
         # getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
 
-        # the media player has to be 'connected' to the QFrame
-        # (otherwise a video would be displayed in it's own window)
-        # this is platform specific!
-        # you have to give the id of the QFrame (or similar object) to
-        # vlc, different platforms have different functions for this
+        # Where the magic starts - you have to give the handle of the QFrame (or similar object) to
+        # vlc, different platforms have different functions for this. Downside is its opaque to you,
+        # libvlc is doing the rendering
         if sys.platform.startswith('linux'):  # for Linux using the X Server
             self.mediaplayer.set_xwindow(self.videoframe.winId())
         elif sys.platform == "win32":  # for Windows
@@ -222,6 +218,7 @@ class VlcVideoWidget(QStackedWidget):
         self._play_state = PlayState.Paused
 
         self._aspect_ratio = self.videoframe.width() / self.videoframe.height()
+
 
         if not self._fullscreen:
             self.setFixedSize(self._target_width(), self._target_height())
@@ -238,6 +235,10 @@ class VlcVideoWidget(QStackedWidget):
 
         # don't start listening for spacebar until video is loaded and playable
         QCoreApplication.instance().installEventFilter(self)
+
+        self._timer.start()
+
+        self.mediaplayer.set_position(0)
 
         return True
 
@@ -264,14 +265,15 @@ class VlcVideoWidget(QStackedWidget):
             return 0
 
     def on_timer(self):
-        pass
+        if self._play_state == PlayState.Playing:
+            ts = self.mediaplayer.get_time()
+            self.progressUpdate.emit(ts)
 
     def clear(self):
         # XXX TODO
         # self._timer.cancel()
         # self._profile_timer.cancel()
-        # if self._capture is not None:
-        #     self._capture.release()
+
         self.update()
 
     def get_highlight_extent(self):
@@ -297,7 +299,7 @@ class VlcVideoWidget(QStackedWidget):
         time_back = self.mediaplayer.get_time() - seconds * 1000
         if time_back < 0:
             time_back = 0
-        self.set_time(time_back)
+        self.mediaplayer.set_time(time_back)
 
     def set_position(self, pos):
         self.mediaplayer.set_time(pos)
@@ -376,7 +378,6 @@ class VlcVideoWidget(QStackedWidget):
         if self._play_state == PlayState.SeekBack:
             self.mediaplayer.pause()
         else:
-            # self._timer.interval = SEEK_CLOCK_FACTOR / self._frame_manager.FPS
             self._play_state = PlayState.SeekBack
             self.clear_extent()
         self.playStateChanged.emit(self._play_state)
@@ -388,7 +389,10 @@ class VlcVideoWidget(QStackedWidget):
     def step_back(self):
         if not self.paused():
             self.pause()
-        self.set_position(self.get_position() - FRAME_STEP * 3)
+        self.set_position(self.get_position() - FRAME_STEP)
+        # XXX ask why this was set to a multiple of 3
+        # self.set_position(self.get_position() - FRAME_STEP * 3)
+
 
     def step_forward(self):
         if not self.paused():
@@ -398,28 +402,18 @@ class VlcVideoWidget(QStackedWidget):
     def clear_extent(self):
         self._highlighter.clear()
 
-    # To try and deal with the inefficiencies of openCV as our media decoder, when adjusting to speeds
-    #  which are greater than 2x, we simply skip the proportional amount of frames from the frame buffer
-    #  while clocking to the original frame rate.  If less than 2x, then we adjust our clock to a different
-    #  frame rate.
     def set_speed(self, speed):
         self.clear_extent()
 
-        self._frame_manager.playback_FPS = speed * self._frame_manager.FPS
-        if speed >= 2.0:
-            self._skip = int(speed)
-            self._timer.interval = 1 / self._frame_manager.FPS
-        else:
-            self._skip = 1
-            self._timer.interval = 1 / self._frame_manager.playback_FPS
+        self.mediaplayer.set_rate(speed)
 
         getLogger('finprint').debug('set playback speed to {}x'.format(speed))
-        getLogger('finprint').debug('new FPS: {}'.format(self._frame_manager.playback_FPS))
 
         self.playbackSpeedChanged.emit(speed)
 
         if self._play_state != PlayState.SeekForward:
             self._play_state = PlayState.SeekForward
+            self.mediaplayer.play()
             self.playStateChanged.emit(self._play_state)
 
     def refresh_frame(self):
