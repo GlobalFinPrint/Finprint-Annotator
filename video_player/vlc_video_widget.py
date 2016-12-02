@@ -74,7 +74,6 @@ class AnnotationImage(QWidget):
         self.show()
 
     def clear(self):
-        self._timer.clear()
         self.curr_image = None
         self._highlighter.clear()
 
@@ -88,6 +87,12 @@ class AnnotationImage(QWidget):
         clamped_pos = QPoint(min(x, self.width()), min(y, self.height()))
         self._highlighter.set_rect(clamped_pos)
         self.update()
+
+    def mouseReleaseEvent(self, event):
+        if self._dragging:
+            self._dragging = False
+            self.update()
+            self.parent().context_menu()
 
     def paintEvent(self, e):
         # This should only be called when
@@ -309,12 +314,12 @@ class VlcVideoWidget(QStackedWidget):
     def clear(self):
         # XXX TODO
         # self._profile_timer.cancel()
-
         self._timer.cancel()
         self.update()
 
     def get_highlight_extent(self):
         ext = Extent()
+        # XXX Fix me - use annotation geometry, and expose the rect
         ext.setRect(self._highlighter.get_rect(), self.videoframe.height(), self.videoframe.width())
         return ext
 
@@ -436,7 +441,7 @@ class VlcVideoWidget(QStackedWidget):
         self.set_position(self.get_position() + FRAME_STEP)
 
     def clear_extent(self):
-        self._highlighter.clear()
+        self.annotationImage.clear()
 
     def set_speed(self, speed):
         self.clear_extent()
