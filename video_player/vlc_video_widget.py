@@ -26,6 +26,9 @@ FRAME_STEP = 50
 SEEK_CLOCK_FACTOR = 30
 SEEK_FRAME_JUMP = 60
 
+VIDEOFRAME_INDEX = 0
+ANNOTATION_INDEX = 1
+
 creds = open('./credentials.csv').readlines()[1].split(',')
 AWS_ACCESS_KEY_ID = creds[1].strip()
 AWS_SECRET_ACCESS_KEY = creds[2].strip()
@@ -122,14 +125,20 @@ class VlcVideoWidget(QStackedWidget):
         else:
             self.videoframe = QFrame()
 
+        # add the videoframe
         self.addWidget(self.videoframe)
         # XXX Fixme - this is a hack
         self.setMinimumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
         self.setMaximumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
 
+        # add the annotation image
+        self.annotationImage = AnnotationImage()
+        self.addWidget(self.annotationImage)
+
         # set videoframe as default visibile widget
-        self.setCurrentIndex(0)
-        # XXX todo - get aspect ratio from vlc
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
+
+        # XXX todo - get aspect ratio from vlc when played
         self._aspect_ratio = 0.0
 
         # bind instance to load libvlc
@@ -159,6 +168,13 @@ class VlcVideoWidget(QStackedWidget):
 
     def initUI(self):
         pass
+
+    # XXX TODO - add a video filter to libvlc to detect when video has been clicked
+    def playerPausedEvent(self, event):
+        print("playePaused:", event.type, event.u)
+
+    def streamEndEvent(self, event):
+        print("streamEndEvent:", event.type, event.u)
 
     def _print_sys_info(self):
         l = getLogger('finprint')
@@ -192,8 +208,11 @@ class VlcVideoWidget(QStackedWidget):
         else:
             self.clear_extent()
 
-    # listen for any spacebar touches for play/pause
+    # listen for any spacebar or mousedown event for play/pause
     def eventFilter(self, obj, evt):
+        if evt.type() == QEvent.MouseButtonPress:
+            print(evt.pos())
+            self.toggle_play()
         if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
             if evt.key() == Qt.Key_Space:
                 self.toggle_play()
@@ -215,7 +234,7 @@ class VlcVideoWidget(QStackedWidget):
 
         # Where the magic starts - you have to give the handle of the QFrame (or similar object) to
         # vlc, different platforms have different functions for this. Downside is its opaque to you,
-        # libvlc is doing the rendering
+        # libvlc is doing the rendering, so you are limited in what you can do with the widget
         if sys.platform.startswith('linux'):  # for Linux using the X Server
             self.mediaplayer.set_xwindow(self.videoframe.winId())
         elif sys.platform == "win32":  # for Windows
@@ -223,14 +242,16 @@ class VlcVideoWidget(QStackedWidget):
         elif sys.platform == "darwin":  # for MacOS
             self.mediaplayer.set_nsobject(self.videoframe.winId())
 
-        # XXX todo - we need mouse events in the video frame
-        # self.mediaplayer.video_set_mouse_input(True)
-        self.videoframe.setMouseTracking(True)
+        # don't start listening for spacebar until video is loaded and playable
+        QCoreApplication.instance().installEventFilter(self)
 
         self._play_state = PlayState.Paused
 
         self._aspect_ratio = self.videoframe.width() / self.videoframe.height()
 
+        # XXX TODO - wire up callbacks to VLC for when paused and end of stream
+        # mp_event_mgr = self.mediaplayer.event_manager()
+        # mp_event_mgr.event_attach(EventType.MediaPlayerPaused, self.playerHasPausedEvent)
 
         if not self._fullscreen:
             self.setFixedSize(self._target_width(), self._target_height())
@@ -247,7 +268,7 @@ class VlcVideoWidget(QStackedWidget):
 
 
         # don't start listening for spacebar until video is loaded and playable
-        QCoreApplication.instance().installEventFilter(self)
+        self.mediaplayer.video_set_mouse_input(False)
 
         self._timer.start()
 
@@ -321,17 +342,6 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.set_time(pos)
         self._onPositionChange(self.get_position())
 
-    def mousePressEvent(self, event):
-        self.pause()
-        self._highlighter.start_rect(event.pos())
-        self.update()
-
-    def mouseReleaseEvent(self, event):
-        if self._dragging:
-            self._dragging = False
-            self.update()
-            self.context_menu()
-
     def toggle_play(self):
         if self._play_state == PlayState.Paused or self._play_state == PlayState.EndOfStream:
             self.play()
@@ -339,12 +349,19 @@ class VlcVideoWidget(QStackedWidget):
             self.pause()
 
     def pause(self):
+        # first, pause the player, and notify state change
         self._play_state = PlayState.Paused
         self.mediaplayer.set_rate(1.0)
         self.mediaplayer.pause()
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
-        # XXX TODO
+        # next, get a snapshot of the frame, and make the
+        # annotation widget visible
+        pix = QPixmap.grabWindow(self.videoframe.winId())
+        self.setCurrentIndex(ANNOTATION_INDEX)
+        self.annotationImage.curr_image = pix.toImage()
+        self.update()
+        # XXX TODO - fix the saturation and brightness using VLC.
         # if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
         #     self.refresh_frame()
 
@@ -368,7 +385,9 @@ class VlcVideoWidget(QStackedWidget):
             getLogger('finprint').error(str(e))
 
     def play(self):
-        # emit if end of stream
+        # TODO emit if end of stream via callback
+        if self.currentIndex() is not VIDEOFRAME_INDEX:
+            self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.set_speed(1.0)
         self.mediaplayer.play()
         self._play_state = PlayState.Playing
@@ -410,9 +429,6 @@ class VlcVideoWidget(QStackedWidget):
         if not self.paused():
             self.pause()
         self.set_position(self.get_position() - FRAME_STEP)
-        # XXX ask why this was set to a multiple of 3
-        # self.set_position(self.get_position() - FRAME_STEP * 3)
-
 
     def step_forward(self):
         if not self.paused():
@@ -437,9 +453,12 @@ class VlcVideoWidget(QStackedWidget):
             self.mediaplayer.play()
             self.playStateChanged.emit(self._play_state)
 
-    # def refresh_frame(self):
-    #     self._frame_manager.set_position(self._frame_manager.get_position())
-    #     self.load_frame()
-
     def resizeEvent(self, ev):
         self.update()
+
+    def eventFilter(self, obj, evt):
+        if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
+            if evt.key() == Qt.Key_Space:
+                self.toggle_play()
+                return True
+        return False

@@ -302,7 +302,6 @@ class VideoLayoutWidget(QWidget):
         self._playback_speed_label.setText('({}x)'.format(int(speed) if int(speed) == speed else speed))
 
     def on_progress_update(self, progress):
-        print('tock')
         if self.current_set is not None:
             self.current_set.update_progress(progress)
 
