@@ -77,6 +77,9 @@ class AnnotationImage(QWidget):
         self.curr_image = None
         self._highlighter.clear()
 
+    def get_rect(self):
+        return self._highlighter.get_rect()
+
     def mousePressEvent(self, event):
         self._highlighter.start_rect(event.pos())
         self.update()
@@ -124,7 +127,8 @@ class VlcVideoWidget(QStackedWidget):
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
 
-        # We will pass A QFrame window handle to libvlc
+        # We will pass a window handle to libvlc, which
+        # will be responsible for the actual rendering of the video
         if sys.platform == "darwin":  # for MacOS
             self.videoframe = QMacCocoaViewContainer(0)
         else:
@@ -151,16 +155,12 @@ class VlcVideoWidget(QStackedWidget):
         # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
 
-        # XXX should this be removed - no, needed to determine
-        # progress of annotater?
+        # This keeps track of how far the annotator has gotten in the video
         self._last_progress = 0
 
-        # XXX Still need a timer to update the timeline display, may
-        # want to move this into the layout widget, but for now, try
-        # to honor the interface already in place
         self._timer_flag = False
         self.timer_time = time.perf_counter()
-        self._timer = RepeatingTimer(0.125)
+        self._timer = RepeatingTimer(0.25)
         self._timer.timerElapsed.connect(self.on_timer)
 
         self._context_menu = None
@@ -173,13 +173,6 @@ class VlcVideoWidget(QStackedWidget):
 
     def initUI(self):
         pass
-
-    # XXX TODO - add a video filter to libvlc to detect when video has been clicked
-    def playerPausedEvent(self, event):
-        print("playePaused:", event.type, event.u)
-
-    def streamEndEvent(self, event):
-        print("streamEndEvent:", event.type, event.u)
 
     def _print_sys_info(self):
         l = getLogger('finprint')
@@ -281,6 +274,11 @@ class VlcVideoWidget(QStackedWidget):
 
         return True
 
+    # XXX TODO need to add support for moving between observation markers. Because of the whole stacked widget design,
+    # it means showing the videoframe widget, moving the  timeline on the videoplayer, and then taking another snapshot,
+    # show the annotation image and applying the extent rectangle. But, maybe you can just just set position, and draw
+    # on the videoframe itself.
+
     def _target_width(self):
         try:
             if not self._fullscreen:
@@ -307,7 +305,6 @@ class VlcVideoWidget(QStackedWidget):
     def on_timer(self):
         if self._play_state == PlayState.Playing:
             ts = self.mediaplayer.get_time()
-            print(ts)
             self.progressUpdate.emit(ts)
             self._onPositionChange(self.get_position())
 
@@ -320,7 +317,7 @@ class VlcVideoWidget(QStackedWidget):
     def get_highlight_extent(self):
         ext = Extent()
         # XXX Fix me - use annotation geometry, and expose the rect
-        ext.setRect(self._highlighter.get_rect(), self.videoframe.height(), self.videoframe.width())
+        ext.setRect(self.annotationImage.get_rect(), self.videoframe.height(), self.videoframe.width())
         return ext
 
     def get_highlight_as_list(self):
@@ -328,8 +325,6 @@ class VlcVideoWidget(QStackedWidget):
         return list(r.getCoords())
 
     def display_event(self, pos, extent):
-        # XXX I'm assuming this will also require capturing a still, and then drawing
-        # over it. Right now we are just dealing with the videoframe
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._highlighter.start_rect(rect.topLeft())
         self._highlighter.set_rect(rect.bottomRight())
@@ -370,11 +365,14 @@ class VlcVideoWidget(QStackedWidget):
         # if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
         #     self.refresh_frame()
 
-    # XXX fix me - need to read the file off the disk, and into the buffer
+    # XXX TODO fix me - need to read the file off the disk via a callback, and
+    # then load that into the buffer. For now, we'll just load the screenshot
+    # into the buffer
     def save_image(self, filename):
+        curr_image = self.annotationImage.curr_image
         data = QByteArray()
         buffer = QBuffer(data)
-        self._image.save(buffer, 'PNG', SCREEN_CAPTURE_QUALITY)
+        curr_image.save(buffer, 'PNG', SCREEN_CAPTURE_QUALITY)
         bio = BytesIO(data.data())
         bio.seek(0)
         try:
@@ -399,7 +397,6 @@ class VlcVideoWidget(QStackedWidget):
         self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
-    # XXX this is probably going to need to be
     def paused(self):
         return self._play_state == PlayState.Paused
 
@@ -467,3 +464,18 @@ class VlcVideoWidget(QStackedWidget):
                 self.toggle_play()
                 return True
         return False
+
+    ## callbacks start here
+    # XXX TODO - add a video filter to libvlc to detect when video has been clicked
+    def playerPausedEvent(self, event):
+        print("playerPaused:", event.type, event.u)
+
+    # XXX TODO - emit an event when at end of video.
+    def streamEndEvent(self, event):
+        print("streamEndEvent callback:", event.type, event.u)
+        self._play_state = PlayState.EndOfStream
+        self.playStateChanged.emit(self._play_state)
+
+    # XXX TODO - post a raw decoded video frame
+    def snapShotTaken(self, event):
+        print("snapShotTaken:", event.type, event.u)
