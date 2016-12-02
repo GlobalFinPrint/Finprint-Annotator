@@ -283,6 +283,7 @@ class VlcVideoWidget(QStackedWidget):
             ts = self.mediaplayer.get_time()
             print(ts)
             self.progressUpdate.emit(ts)
+            self._onPositionChange(self.get_position())
 
     def clear(self):
         # XXX TODO
