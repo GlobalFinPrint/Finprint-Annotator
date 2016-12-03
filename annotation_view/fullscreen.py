@@ -33,8 +33,10 @@ class FullScreenLayout(QLayout):
         if self.hidden_offset < self.HIDDEN_OFFSET_MAX:
             availableHeight -= self.CONTROLS_HEIGHT
 
+        # vlc will maintain the video aspect for a given size container, so no
+        # need to center the video frame in the container
         screen.setGeometry(QRect(
-            rect.x() + ((rect.width() - screen.widget()._target_width()) / 2),
+            rect.x(),
             rect.y() + ((availableHeight - screen.widget()._target_height()) / 2),
             rect.width(),
             availableHeight
@@ -46,6 +48,7 @@ class FullScreenLayout(QLayout):
             rect.width(),
             self.CONTROLS_HEIGHT
         ))
+
 
     def sizeHint(self):
         return self.parent().frameGeometry().size()

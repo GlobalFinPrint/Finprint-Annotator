@@ -19,6 +19,7 @@ from .vlc import *
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
 VIDEO_HEIGHT = 450
+DEFAULT_ASPECT_RATIO = 16.0/9.0
 AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 FRAME_STEP = 50
@@ -66,7 +67,7 @@ class AnnotationImage(QWidget):
     def __init__(self):
         QWidget.__init__(self)
         self._highlighter = Highlighter()
-        self.dragging = False
+        self._dragging = False
         self.curr_image = None
         self.initUI()
 
@@ -136,9 +137,11 @@ class VlcVideoWidget(QStackedWidget):
 
         # add the videoframe
         self.addWidget(self.videoframe)
+
         # XXX Fixme - this is a hack
-        self.setMinimumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
-        self.setMaximumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
+        if not self._fullscreen:
+            self.setMinimumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
+            self.setMaximumSize(VIDEO_WIDTH, VIDEO_HEIGHT)
 
         # add the annotation image
         self.annotationImage = AnnotationImage()
@@ -148,7 +151,7 @@ class VlcVideoWidget(QStackedWidget):
         self.setCurrentIndex(VIDEOFRAME_INDEX)
 
         # XXX todo - get aspect ratio from vlc when played
-        self._aspect_ratio = 0.0
+        self._aspect_ratio = DEFAULT_ASPECT_RATIO
 
         # bind instance to load libvlc
         self.instance = Instance()
@@ -251,12 +254,9 @@ class VlcVideoWidget(QStackedWidget):
         # mp_event_mgr = self.mediaplayer.event_manager()
         # mp_event_mgr.event_attach(EventType.MediaPlayerPaused, self.playerHasPausedEvent)
 
-        if not self._fullscreen:
-            self.setFixedSize(self._target_width(), self._target_height())
-
-        getLogger('finprint').debug("aspect ratio {0}".format(self._aspect_ratio))
-        getLogger('finprint').debug("target height {0}".format(self._target_height()))
-        getLogger('finprint').debug("target width {0}".format(self._target_width()))
+        getLogger('finprint').info("aspect ratio {0}".format(self._aspect_ratio))
+        getLogger('finprint').info("target height {0}".format(self._target_height()))
+        getLogger('finprint').info("target width {0}".format(self._target_width()))
         getLogger('finprint').debug("target aspect ratio {0}".format(self._aspect_ratio))
 
         getLogger('finprint').debug("widget height {0}".format(self.height()))
@@ -274,8 +274,8 @@ class VlcVideoWidget(QStackedWidget):
 
         return True
 
-    # XXX TODO need to add support for moving between observation markers. Because of the whole stacked widget design,
-    # it means showing the videoframe widget, moving the  timeline on the videoplayer, and then taking another snapshot,
+    # XXX TODO add support for moving between observation markers. Because of the whole stacked widget design,
+    # it means showing the videoframe widget, moving the timeline on the videoplayer, and then taking another snapshot,
     # show the annotation image and applying the extent rectangle. But, maybe you can just just set position, and draw
     # on the videoframe itself.
 
@@ -316,7 +316,6 @@ class VlcVideoWidget(QStackedWidget):
 
     def get_highlight_extent(self):
         ext = Extent()
-        # XXX Fix me - use annotation geometry, and expose the rect
         ext.setRect(self.annotationImage.get_rect(), self.videoframe.height(), self.videoframe.width())
         return ext
 
@@ -367,7 +366,7 @@ class VlcVideoWidget(QStackedWidget):
 
     # XXX TODO fix me - need to read the file off the disk via a callback, and
     # then load that into the buffer. For now, we'll just load the screenshot
-    # into the buffer
+    # into the buffer.
     def save_image(self, filename):
         curr_image = self.annotationImage.curr_image
         data = QByteArray()
