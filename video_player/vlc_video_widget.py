@@ -13,6 +13,7 @@ from PyQt4.QtGui import *
 from config import global_config
 from threading import Thread
 from threading import Event as PyEvent
+from tempfile import gettempdir
 from .vlc import *
 
 
@@ -23,6 +24,7 @@ DEFAULT_ASPECT_RATIO = 16.0/9.0
 AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 FRAME_STEP = 50
+TEMP_SNAPSHOT_DIR = 'finprint-snapshot'
 
 SEEK_CLOCK_FACTOR = 30
 SEEK_FRAME_JUMP = 60
@@ -66,7 +68,7 @@ class AnnotationImage(QWidget):
 
     def __init__(self):
         QWidget.__init__(self)
-        self._highlighter = Highlighter()
+        self.highlighter = Highlighter()
         self._dragging = False
         self.curr_image = None
         self.initUI()
@@ -75,21 +77,21 @@ class AnnotationImage(QWidget):
         self.show()
 
     def clear(self):
-        #self.curr_image = None
-        self._highlighter.clear()
+        self.curr_image = None
+        self.highlighter.clear()
 
     def get_rect(self):
-        return self._highlighter.get_rect()
+        return self.highlighter.get_rect()
 
     def mousePressEvent(self, event):
-        self._highlighter.start_rect(event.pos())
+        self.highlighter.start_rect(event.pos())
         self.update()
 
     def mouseMoveEvent(self, event):
         self._dragging = True
         x, y = event.pos().x(), event.pos().y()
         clamped_pos = QPoint(min(x, self.width()), min(y, self.height()))
-        self._highlighter.set_rect(clamped_pos)
+        self.highlighter.set_rect(clamped_pos)
         self.update()
 
     def mouseReleaseEvent(self, event):
@@ -105,7 +107,7 @@ class AnnotationImage(QWidget):
             painter.begin(self)
             painter.drawImage(QPoint(0, 0), self.curr_image)
             painter.setPen(QPen(QBrush(Qt.green), 1, Qt.SolidLine))
-            painter.drawRect(self._highlighter.get_rect())
+            painter.drawRect(self.highlighter.get_rect())
             painter.end()
 
 
@@ -152,6 +154,11 @@ class VlcVideoWidget(QStackedWidget):
 
         # XXX todo - get aspect ratio from vlc when played
         self._aspect_ratio = DEFAULT_ASPECT_RATIO
+
+        # temporary storage for vlc snapshots
+        self.temp_snapshot_dir = os.path.join(gettempdir(), TEMP_SNAPSHOT_DIR)
+        if not os.path.exists(self.temp_snapshot_dir):
+            os.makedirs(self.temp_snapshot_dir)
 
         # bind instance to load libvlc
         self.instance = Instance()
@@ -251,8 +258,8 @@ class VlcVideoWidget(QStackedWidget):
         self._aspect_ratio = self.videoframe.width() / self.videoframe.height()
 
         # XXX TODO - wire up callbacks to VLC for when paused and end of stream
-        # mp_event_mgr = self.mediaplayer.event_manager()
-        # mp_event_mgr.event_attach(EventType.MediaPlayerPaused, self.playerHasPausedEvent)
+        mp_event_mgr = self.mediaplayer.event_manager()
+        mp_event_mgr.event_attach(EventType.MediaPlayerSnapshotTaken, self.snapShotTaken)
 
         getLogger('finprint').info("aspect ratio {0}".format(self._aspect_ratio))
         getLogger('finprint').info("target height {0}".format(self._target_height()))
@@ -324,19 +331,38 @@ class VlcVideoWidget(QStackedWidget):
         return list(r.getCoords())
 
     def display_event(self, pos, extent):
-        self.setCurrentIndex(VIDEOFRAME_INDEX)
-        self.clear_extent()
-        duration = self.media.get_duration()
-        self.mediaplayer.play()
-        self.mediaplayer.set_time(pos)
-        self.mediaplayer.pause()
+        self.annotationImage.clear()
+        self.move_to_position(pos)
+        self.take_videoframe_snapshot()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
-        self._highlighter.start_rect(rect.topLeft())
-        self._highlighter.set_rect(rect.bottomRight())
+        self.annotationImage.highlighter.start_rect(rect.topLeft())
+        self.annotationImage.highlighter.set_rect(rect.bottomRight())
+
+    def take_videoframe_snapshot(self):
+        # take a snapshot of the current videoframe, and make the
+        # annotation widget visible
+        if self.currentIndex() is not VIDEOFRAME_INDEX:
+            self.setCurrentIndex(VIDEOFRAME_INDEX)
+        pix = QPixmap.grabWindow(self.videoframe.winId())
+        self.annotationImage.curr_image = pix.toImage()
+        self.setCurrentIndex(ANNOTATION_INDEX)
+        self.annotationImage.repaint()
+        self.update()
+
+
+    def move_to_position(self, pos):
+        # if not playing, we need to switch to showing
+        # the videoframe
+        if self._play_state != PlayState.Playing:
+            self.mediaplayer.play()
+            self.mediaplayer.set_time(pos)
+            self.mediaplayer.pause()
+        else:
+            self.mediaplayer.set_time(pos)
 
     def jump_back(self, seconds):
         self.clear_extent()
-        time_back = self.mediaplayer.get_time() - (seconds * 1000)
+        time_back = self.mediaplayer.get_time() - seconds * 1000
         if time_back < 0:
             time_back = 0
         self.mediaplayer.set_time(time_back)
@@ -358,26 +384,22 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.pause()
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
-        # next, get a snapshot of the frame, and make the
-        # annotation widget visible
-        pix = QPixmap.grabWindow(self.videoframe.winId())
-        self.setCurrentIndex(ANNOTATION_INDEX)
-        self.annotationImage.curr_image = pix.toImage()
-        self.update()
+        self.take_videoframe_snapshot()
         # XXX TODO - fix the saturation and brightness using VLC.
         # if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
         #     self.refresh_frame()
 
-    # XXX TODO Put this off on a separate thread.
     def save_image(self, filename):
-        getLogger('finprint').info('Saving image to S3: {0}'.format(filename))
+        self.curr_s3_upload = filename
+        curr_snapshot = os.path.basename(filename)
+        snapshot_path_bytes = os.path.join(self.temp_snapshot_dir, curr_snapshot).encode('utf-8')
+        # vlc calls need a C style string
+        snapshot_path = ctypes.create_string_buffer(snapshot_path_bytes)
+        # request actual decoded frame size from libvlc
+        self.mediaplayer.video_take_snapshot(0, snapshot_path, 0, 0)
 
-        #scale if fullscreen
-        if self._fullscreen:
-            curr_image = self.annotationImage.curr_image.scaledToHeight(450)
-        else:
-            curr_image = self.annotationImage.curr_image
-
+    def upload_image(self, filename, curr_image):
+        getLogger('finprint').info('Uploading {0}'.format(filename))
         data = QByteArray()
         buffer = QBuffer(data)
         curr_image.save(buffer, 'PNG', SCREEN_CAPTURE_QUALITY)
@@ -405,7 +427,7 @@ class VlcVideoWidget(QStackedWidget):
         self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
-    def paused(self):
+    def is_paused(self):
         return self._play_state == PlayState.Paused
 
     def get_position(self):
@@ -436,12 +458,12 @@ class VlcVideoWidget(QStackedWidget):
             self._context_menu.display()
 
     def step_back(self):
-        if not self.paused():
+        if not self.is_paused():
             self.pause()
         self.set_position(self.get_position() - FRAME_STEP)
 
     def step_forward(self):
-        if not self.paused():
+        if not self.is_paused():
             self.pause()
         self.set_position(self.get_position() + FRAME_STEP)
 
@@ -478,12 +500,26 @@ class VlcVideoWidget(QStackedWidget):
     def playerPausedEvent(self, event):
         print("playerPaused:", event.type, event.u)
 
-    # XXX TODO - emit an event when at end of video.
+    # emit an event when at end of video.
     def streamEndEvent(self, event):
         print("streamEndEvent callback:", event.type, event.u)
         self._play_state = PlayState.EndOfStream
         self.playStateChanged.emit(self._play_state)
 
-    # XXX TODO - post a raw decoded video frame
+    # once a snaphsot is generated by vlc, post the snapshot (a decoded video frame)
     def snapShotTaken(self, event):
-        print("snapShotTaken:", event.type, event.u)
+        getLogger('finprint').info('Snapshot callback event')
+        if self.curr_s3_upload is not None:
+            s3_filename = os.path.basename(self.curr_s3_upload)
+            print('Searching for {0}'.format(s3_filename))
+            getLogger('finprint').info('Searching for {0}'.format(s3_filename))
+            expected_file = os.path.join(self.temp_snapshot_dir, s3_filename)
+            if os.path.isfile(expected_file):
+                print('Found {0}'.format(expected_file))
+                getLogger('finprint').info('Found {0}'.format(expected_file))
+                upload_img = QImage(expected_file)
+                self.upload_image(self.curr_s3_upload, upload_img)
+                self.curr_s3_upload = None
+                os.remove (expected_file)
+
+

@@ -307,5 +307,5 @@ class FullScreen(QWidget):
         self.video_player.saturation = saturation
         self.video_player.brightness = brightness
         self.video_player.contrast = contrast
-        if self.video_player.paused():
+        if self.video_player.is_paused():
             self.video_player.refresh_frame()

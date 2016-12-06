@@ -88,7 +88,7 @@ class VideoSeekWidget(QSlider):
         """ Jump to click position """
         self.dragging = True
         #self.allowed_progress = max(self.value(), self.allowed_progress)
-        self._player.pause()
+        #self._player.pause()
         self.setValue(QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), ev.x(), self.width()))
 
     def mouseMoveEvent(self, ev):
