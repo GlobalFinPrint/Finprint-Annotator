@@ -16,12 +16,10 @@ class LoginWidget(QWidget):
 
         self.user_edit = QLineEdit()
         self.user_edit.setMaximumWidth(300)
-        self.user_edit.setText('annotator1TestGlobalFinPrint')
 
         self.pwd_edit = QLineEdit()
         self.pwd_edit.setMaximumWidth(300)
         self.pwd_edit.setEchoMode(QLineEdit.Password)
-        self.pwd_edit.setText('annotator1TestGlobalFinPrint')
 
         self.svr_edit = QLineEdit()
         self.svr_edit.setMaximumWidth(300)
