@@ -75,7 +75,7 @@ class AnnotationImage(QWidget):
         self.show()
 
     def clear(self):
-        self.curr_image = None
+        #self.curr_image = None
         self._highlighter.clear()
 
     def get_rect(self):
@@ -324,15 +324,19 @@ class VlcVideoWidget(QStackedWidget):
         return list(r.getCoords())
 
     def display_event(self, pos, extent):
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
+        self.clear_extent()
+        duration = self.media.get_duration()
+        self.mediaplayer.play()
+        self.mediaplayer.set_time(pos)
+        self.mediaplayer.pause()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._highlighter.start_rect(rect.topLeft())
         self._highlighter.set_rect(rect.bottomRight())
-        self.mediaplayer.set_time(pos)
-        self.repaint()
 
     def jump_back(self, seconds):
         self.clear_extent()
-        time_back = self.mediaplayer.get_time() - seconds * 1000
+        time_back = self.mediaplayer.get_time() - (seconds * 1000)
         if time_back < 0:
             time_back = 0
         self.mediaplayer.set_time(time_back)
@@ -364,11 +368,16 @@ class VlcVideoWidget(QStackedWidget):
         # if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
         #     self.refresh_frame()
 
-    # XXX TODO fix me - need to read the file off the disk via a callback, and
-    # then load that into the buffer. For now, we'll just load the screenshot
-    # into the buffer.
+    # XXX TODO Put this off on a separate thread.
     def save_image(self, filename):
-        curr_image = self.annotationImage.curr_image
+        getLogger('finprint').info('Saving image to S3: {0}'.format(filename))
+
+        #scale if fullscreen
+        if self._fullscreen:
+            curr_image = self.annotationImage.curr_image.scaledToHeight(450)
+        else:
+            curr_image = self.annotationImage.curr_image
+
         data = QByteArray()
         buffer = QBuffer(data)
         curr_image.save(buffer, 'PNG', SCREEN_CAPTURE_QUALITY)

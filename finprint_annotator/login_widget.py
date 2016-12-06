@@ -15,7 +15,7 @@ class LoginWidget(QWidget):
         logo.setPixmap(QPixmap("./images/logo.png"))
 
         self.user_edit = QLineEdit()
-        self.user_edit.setMaximumWidth(300) 
+        self.user_edit.setMaximumWidth(300)
 
         self.pwd_edit = QLineEdit()
         self.pwd_edit.setMaximumWidth(300)
