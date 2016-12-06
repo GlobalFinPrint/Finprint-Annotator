@@ -8,3 +8,8 @@ class PlayState(Enum):
     SeekForward = 4
     NotReady = 5
     EndOfStream = 6
+
+class AnnotationState(Enum):
+    DisplayExistingObservation = 1
+    CreateNewObservation = 2
+    NoObservation = 3

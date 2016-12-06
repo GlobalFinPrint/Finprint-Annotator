@@ -430,5 +430,5 @@ class VideoLayoutWidget(QWidget):
         self._video_player.saturation = saturation
         self._video_player.brightness = brightness
         self._video_player.contrast = contrast
-        if self._video_player.paused():
+        if self._video_player.is_paused():
             self._video_player.refresh_frame()
