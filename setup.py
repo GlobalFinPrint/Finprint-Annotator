@@ -367,7 +367,7 @@ app_target = Target(
 
 
 py2exe_options = dict(
-        packages=['ctypes'],
+        packages=[],
         ##    excludes = "tof_specials Tkinter".split(),
         ##    ignores = "dotblas gnosis.xml.pickle.parsers._cexpat mx.DateTime".split(),
         ##    dll_excludes = "MSVCP90.dll mswsock.dll powrprof.dll".split(),
@@ -375,7 +375,7 @@ py2exe_options = dict(
         compressed=False,  # uncompressed may or may not have a faster startup
         bundle_files=0,
         #dist_dir='.\\dist',
-        includes=['sip'],
+        includes=['sip','ctypes', '_ctypes'],
         excludes=[],
         dll_excludes=[]
 )
