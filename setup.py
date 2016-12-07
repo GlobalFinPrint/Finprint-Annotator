@@ -367,7 +367,7 @@ app_target = Target(
 
 
 py2exe_options = dict(
-        packages=['ctypes', '_ctypes'],
+        packages=['ctypes'],
         ##    excludes = "tof_specials Tkinter".split(),
         ##    ignores = "dotblas gnosis.xml.pickle.parsers._cexpat mx.DateTime".split(),
         ##    dll_excludes = "MSVCP90.dll mswsock.dll powrprof.dll".split(),
