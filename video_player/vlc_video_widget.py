@@ -135,7 +135,8 @@ class VlcVideoWidget(QStackedWidget):
         if sys.platform == "darwin":  # for MacOS
             self.videoframe = QMacCocoaViewContainer(0)
         else:
-            self.videoframe = QFrame()
+            #self.videoframe = QFrame()
+            self.videoframe = QGraphicsView()
 
         # add the videoframe
         self.addWidget(self.videoframe)
@@ -333,11 +334,12 @@ class VlcVideoWidget(QStackedWidget):
     def display_event(self, pos, extent):
         self.annotationImage.clear()
         self.move_to_position(pos)
-        self.take_videoframe_snapshot()
+        #XXX todo - add a graphics scene here to fix the overlay
+        #self.take_videoframe_snapshot()
         self.update()
-        # rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
-        # self.annotationImage.highlighter.start_rect(rect.topLeft())
-        # self.annotationImage.highlighter.set_rect(rect.bottomRight())
+        rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
+        self.annotationImage.highlighter.start_rect(rect.topLeft())
+        self.annotationImage.highlighter.set_rect(rect.bottomRight())
 
     def take_videoframe_snapshot(self):
         pix = QPixmap.grabWindow(self.videoframe.winId())
