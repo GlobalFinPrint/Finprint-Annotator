@@ -330,7 +330,6 @@ class VideoLayoutWidget(QWidget):
         self.event_selected(events[0])
 
     def event_selected(self, evt):
-        self._video_player.pause()
         self._video_player.display_event(evt.event_time, evt.extent)
 
     def on_toggle_play(self):

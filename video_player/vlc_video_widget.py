@@ -310,7 +310,7 @@ class VlcVideoWidget(QStackedWidget):
 
     # Reinstate last_progress here
     def on_timer(self):
-        if self._play_state == PlayState.Playing:
+        if self.currentIndex() == VIDEOFRAME_INDEX and self._play_state in [PlayState.Playing, PlayState.SeekForward, PlayState.SeekBack] :
             ts = self.mediaplayer.get_time()
             self.progressUpdate.emit(ts)
             self._onPositionChange(self.get_position())
@@ -334,31 +334,25 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage.clear()
         self.move_to_position(pos)
         self.take_videoframe_snapshot()
-        rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
-        self.annotationImage.highlighter.start_rect(rect.topLeft())
-        self.annotationImage.highlighter.set_rect(rect.bottomRight())
+        self.update()
+        # rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
+        # self.annotationImage.highlighter.start_rect(rect.topLeft())
+        # self.annotationImage.highlighter.set_rect(rect.bottomRight())
 
     def take_videoframe_snapshot(self):
-        # take a snapshot of the current videoframe, and make the
-        # annotation widget visible
-        if self.currentIndex() is not VIDEOFRAME_INDEX:
-            self.setCurrentIndex(VIDEOFRAME_INDEX)
         pix = QPixmap.grabWindow(self.videoframe.winId())
         self.annotationImage.curr_image = pix.toImage()
         self.setCurrentIndex(ANNOTATION_INDEX)
-        self.annotationImage.repaint()
-        self.update()
-
 
     def move_to_position(self, pos):
         # if not playing, we need to switch to showing
         # the videoframe
-        if self._play_state != PlayState.Playing:
-            self.mediaplayer.play()
-            self.mediaplayer.set_time(pos)
-            self.mediaplayer.pause()
-        else:
-            self.mediaplayer.set_time(pos)
+        self.mediaplayer.play()
+        self.mediaplayer.set_time(pos)
+        # XXX VLC hack - if the set_time operation takes too long
+        # we cruise right pass the pause.
+        time.sleep(.1)
+        self.mediaplayer.pause()
 
     def jump_back(self, seconds):
         self.clear_extent()
@@ -372,7 +366,7 @@ class VlcVideoWidget(QStackedWidget):
         self._onPositionChange(self.get_position())
 
     def toggle_play(self):
-        if self._play_state == PlayState.Paused or self._play_state == PlayState.EndOfStream:
+        if self._play_state in [PlayState.Paused, PlayState.EndOfStream]:
             self.play()
         else:
             self.pause()
@@ -380,7 +374,6 @@ class VlcVideoWidget(QStackedWidget):
     def pause(self):
         # first, pause the player, and notify state change
         self._play_state = PlayState.Paused
-        self.mediaplayer.set_rate(1.0)
         self.mediaplayer.pause()
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
@@ -419,8 +412,7 @@ class VlcVideoWidget(QStackedWidget):
 
     def play(self):
         # TODO emit if end of stream via callback
-        if self.currentIndex() is not VIDEOFRAME_INDEX:
-            self.setCurrentIndex(VIDEOFRAME_INDEX)
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.set_speed(1.0)
         self.mediaplayer.play()
         self._play_state = PlayState.Playing
