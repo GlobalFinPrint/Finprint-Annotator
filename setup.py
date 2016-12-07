@@ -375,7 +375,7 @@ py2exe_options = dict(
         compressed=False,  # uncompressed may or may not have a faster startup
         bundle_files=0,
         #dist_dir='.\\dist',
-        includes=["sip"],
+        includes=["sip", "ctypes"],
         excludes=[],
         dll_excludes=[]
 )
