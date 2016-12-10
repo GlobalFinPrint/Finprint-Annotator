@@ -220,15 +220,15 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
-        shutil.copy('lib/opencv_ffmpeg300.dll',
-                    'dist/opencv_ffmpeg300.dll')
-        win32api.SetFileAttributes('dist/opencv_ffmpeg300.dll',
-                                    win32con.FILE_ATTRIBUTE_NORMAL)
-
-        shutil.copy('lib/opencv_ffmpeg310.dll',
-                    'dist/opencv_ffmpeg310.dll')
-        win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
-                               win32con.FILE_ATTRIBUTE_NORMAL)
+        # shutil.copy('lib/opencv_ffmpeg300.dll',
+        #             'dist/opencv_ffmpeg300.dll')
+        # win32api.SetFileAttributes('dist/opencv_ffmpeg300.dll',
+        #                             win32con.FILE_ATTRIBUTE_NORMAL)
+        #
+        # shutil.copy('lib/opencv_ffmpeg310.dll',
+        #             'dist/opencv_ffmpeg310.dll')
+        # win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
+        #                        win32con.FILE_ATTRIBUTE_NORMAL)
 
         shutil.copy('requests/cacert.pem',
                     'dist/cacert.pem')
@@ -242,7 +242,7 @@ class BuildInstaller(py2exe):
                 self.lib_files.append(path)
 
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'lib/shared.zip', 'credentials.csv', 'cacert.pem']
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'credentials.csv', 'cacert.pem']
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
@@ -367,7 +367,7 @@ app_target = Target(
 
 
 py2exe_options = dict(
-        packages=[],
+        packages=['ctypes'],
         ##    excludes = "tof_specials Tkinter".split(),
         ##    ignores = "dotblas gnosis.xml.pickle.parsers._cexpat mx.DateTime".split(),
         ##    dll_excludes = "MSVCP90.dll mswsock.dll powrprof.dll".split(),
@@ -375,7 +375,7 @@ py2exe_options = dict(
         compressed=False,  # uncompressed may or may not have a faster startup
         bundle_files=3,
         #dist_dir='.\\dist',
-        includes=['sip','ctypes', '_ctypes'],
+        includes=['sip'],
         excludes=[],
         dll_excludes=[]
 )
