@@ -242,7 +242,8 @@ class BuildInstaller(py2exe):
                 self.lib_files.append(path)
 
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'credentials.csv', 'cacert.pem']
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip',
+                                  'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll', 'QTGui4.dll' ]
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
