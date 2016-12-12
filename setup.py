@@ -373,7 +373,7 @@ py2exe_options = dict(
         ##    dll_excludes = "MSVCP90.dll mswsock.dll powrprof.dll".split(),
         optimize=0,
         compressed=False,  # uncompressed may or may not have a faster startup
-        bundle_files=3,
+        bundle_files=0,
         #dist_dir='.\\dist',
         includes=['sip'],
         excludes=[],
@@ -383,7 +383,7 @@ py2exe_options = dict(
 setup(
         name='finprint-annotator',
         version=config.__version_string__,
-        packages=[''],
+        # packages=[''],
         url='',
         license='',
         author='Vulcan Inc',
@@ -391,6 +391,8 @@ setup(
         description='',
         # console based executables
         console=[app_target],
+
+
         data_files = getdatafiles(),
         # windows subsystem executables (no console)
         windows=[],
