@@ -135,7 +135,7 @@ class VlcVideoWidget(QStackedWidget):
         if sys.platform == "darwin":  # for MacOS
             self.videoframe = QMacCocoaViewContainer(0)
         else:
-            #self.videoframe = QFrame()
+            #self.videoframe = QWidget()
             self.videoframe = QGraphicsView()
 
         # add the videoframe
@@ -336,7 +336,7 @@ class VlcVideoWidget(QStackedWidget):
         self.move_to_position(pos)
         #XXX todo - add a graphics scene here to fix the overlay
         #self.take_videoframe_snapshot()
-        self.update()
+  #      self.update()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self.annotationImage.highlighter.start_rect(rect.topLeft())
         self.annotationImage.highlighter.set_rect(rect.bottomRight())
@@ -353,7 +353,7 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.set_time(pos)
         # XXX VLC hack - if the set_time operation takes too long
         # we cruise right pass the pause.
-        time.sleep(.1)
+        time.sleep(.8)
         self.mediaplayer.pause()
 
     def jump_back(self, seconds):
@@ -364,7 +364,7 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.set_time(time_back)
 
     def set_position(self, pos):
-        self.mediaplayer.set_time(pos)
+        self.move_to_position(pos)
         self._onPositionChange(self.get_position())
 
     def toggle_play(self):

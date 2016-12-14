@@ -115,7 +115,20 @@ def find_lib():
             dll = ctypes.CDLL('libvlc.so.5')
     elif sys.platform.startswith('win'):
         libname = 'libvlc.dll'
-        p = find_library(libname)
+        # when using py2exe,
+        if hasattr(sys, 'frozen'):
+            plugin_path = os.path.dirname(sys.executable)
+            if plugin_path is not None:  # try loading
+                p = os.getcwd()
+                os.chdir(plugin_path)
+                # if chdir failed, this will raise an exception
+                dll = ctypes.CDLL(libname)
+                # restore cwd after dll has been loaded
+                os.chdir(p)
+            return (dll, plugin_path)
+        # when you are running from scripts
+        else:
+            p = find_library(libname)
         if p is None:
             try:  # some registry settings
                 # leaner than win32api, win32con

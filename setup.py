@@ -220,13 +220,19 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
-        # shutil.copy('lib/opencv_ffmpeg300.dll',
-        #             'dist/opencv_ffmpeg300.dll')
-        # win32api.SetFileAttributes('dist/opencv_ffmpeg300.dll',
-        #                             win32con.FILE_ATTRIBUTE_NORMAL)
-        #
-        # shutil.copy('lib/opencv_ffmpeg310.dll',
-        #             'dist/opencv_ffmpeg310.dll')
+        shutil.copy('lib/libvlc.dll',
+                    'dist/libvlc.dll')
+        win32api.SetFileAttributes('dist/libvlc.dll',
+                                    win32con.FILE_ATTRIBUTE_NORMAL)
+
+        shutil.copy('lib/libvlccore.dll',
+                    'dist/libvlccore.dll')
+        win32api.SetFileAttributes('dist/libvlccore.dll',
+                                   win32con.FILE_ATTRIBUTE_NORMAL)
+
+        shutil.copytree('lib/plugins',
+                     'dist/plugins')
+        # TODO - is it necessary to set file attributes for all the dlls?
         # win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
         #                        win32con.FILE_ATTRIBUTE_NORMAL)
 
@@ -241,9 +247,13 @@ class BuildInstaller(py2exe):
             for path in path_tuple[1]:
                 self.lib_files.append(path)
 
+        # XXX hack for plugins to wind up at same level as libvlc
+        lib_plugin_files = globr('lib\\plugins\\*')
+        trimmed_plugins = trim_plugin_tree(lib_plugin_files)
+        print(trimmed_plugins)
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip',
-                                  'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll', 'QTGui4.dll' ]
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
+                                  'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
@@ -280,11 +290,23 @@ def globr(pattern):
             files.append(candidate)
     return files
 
+# XXX a hack to fit the plugins into the existing installer
+def trim_plugin_tree(files):
+    trimmed = []
+    for file in files:
+        if 'lib\\' in file:
+            trimmed.append(file[4:])
+        else:
+            trimmed.append(file)
+    print(trimmed)
+    return trimmed
+
 def getdatafiles():
     data_files = []
     excluded_dirs = []
     excluded_file_extensions = ['.pyc', '.log']
-    static_files = globr('images\\*')
+    image_files = globr('images\\*')
+    static_files = image_files
     static_files_dict = {}
     for f in static_files:
         ex = False
@@ -393,7 +415,7 @@ setup(
         # console based executables
         console=[app_target],
 
-
+        # for now, we are loading the plugis here
         data_files = getdatafiles(),
         # windows subsystem executables (no console)
         windows=[],

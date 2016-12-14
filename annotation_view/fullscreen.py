@@ -206,7 +206,7 @@ class FullScreen(QWidget):
         self.seek_bar.set_allowed_progress(self.current_set.progress)
         self.video_length_label.setText(convert_position(int(self.video_player.get_length())))
         self.playback_speed_label.setText('(0x)')
-        self.video_player.set_position(self.small_player.get_position())
+        self.video_player.move_to_position(self.small_player.get_position())
         QCoreApplication.instance().installEventFilter(self)
         QCoreApplication.instance().installEventFilter(self.video_player)
 
@@ -272,7 +272,7 @@ class FullScreen(QWidget):
         self.video_player.pause()
         self.filter_widget.hide()
         self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
-        self.small_player.set_position(self.video_player.get_position())
+        self.small_player.move_to_position(self.video_player.get_position())
         self.small_player.parent()._observation_table.refresh_model()
         QCoreApplication.instance().removeEventFilter(self)
         QCoreApplication.instance().installEventFilter(self.small_player)
