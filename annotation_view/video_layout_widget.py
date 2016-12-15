@@ -82,19 +82,19 @@ class VideoLayoutWidget(QWidget):
 
         self._speed_buttons = list(SpeedButton(speed) for speed in [0.5, 1.5, 3])
 
-        self._submit_button = QPushButton('Send for Review')
+        self._submit_button = QPushButton(' Send for Review ')
         self._submit_button.setFixedWidth(190)
         self._submit_button.setDisabled(True)
         self._submit_button.setVisible(False)
         self._submit_button.setStyleSheet(button_style)
 
-        self._approve_button = QPushButton('Accept assignment')
+        self._approve_button = QPushButton(' Accept assignment ')
         self._approve_button.setFixedWidth(190)
         self._approve_button.setDisabled(True)
         self._approve_button.setVisible(False)
         self._approve_button.setStyleSheet(button_style)
 
-        self._reject_button = QPushButton('Reject assignment')
+        self._reject_button = QPushButton(' Reject assignment ')
         self._reject_button.setFixedWidth(190)
         self._reject_button.setDisabled(True)
         self._reject_button.setVisible(False)

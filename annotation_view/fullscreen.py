@@ -193,6 +193,7 @@ class FullScreen(QWidget):
         self.show()
 
     def prepare(self, video_file, set_changed=False):
+        self.video_player.clear_extent()
         if set_changed:
             self.video_player.load_set(self.current_set)
             self.video_player.load(video_file)

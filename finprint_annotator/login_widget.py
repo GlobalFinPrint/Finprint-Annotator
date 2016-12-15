@@ -28,13 +28,13 @@ class LoginWidget(QWidget):
         self.error_label = QLabel()
         self.error_label.setStyleSheet("QLabel {color:red;}")
 
-        login_button = QPushButton('Login')
+        login_button = QPushButton(' Login ')
         login_button.clicked.connect(self._on_login)
         login_button.setMaximumWidth(50)
         login_button.autoDefault = True
         login_button.keyPressEvent = self._key_press
 
-        cancel_button = QPushButton('Cancel')
+        cancel_button = QPushButton(' Cancel ')
         cancel_button.clicked.connect(self._login_cancel)
         cancel_button.setMaximumWidth(50)
 
