@@ -19,6 +19,20 @@ def copy_dylib(self, src):
     return self.appbuilder.copy_dylib(src, dest)
 py2app.build_app.PythonStandalone.copy_dylib = copy_dylib
 
+# monkeypatch macholib
+import macholib
+if macholib.__version__ <= "1.7":
+    import macholib.dyld
+    import macholib.MachOGraph
+
+    dyld_find_1_7 = macholib.dyld.dyld_find
+
+    def dyld_find(name, loader=None, **kwargs):
+        if loader is not None:
+            kwargs['loader_path'] = loader
+        return dyld_find_1_7(name, **kwargs)
+    macholib.MachOGraph.dyld_find = dyld_find
+
 
 from setuptools import setup
 
@@ -38,7 +52,8 @@ OPTIONS = {
     'resources': ['images', 'requests'] + DATA_DIRECTORIES,
     'includes': 'sip',
     'packages': 'PyQt4',
-    'frameworks': '/usr/local/Cellar/hdf5/1.8.16_1/lib/libhdf5.10.dylib',
+    # 'frameworks': '/usr/local/Cellar/hdf5/1.8.16_1/lib/libhdf5.10.dylib',
+    'frameworks': '/Applications/VLC.app/Contents/MacOS/lib/libvlc.dylib',
     'plist': {'NSPrincipalClass': 'NSApplication', 'NSHighResolutionCapable': 'True'},
 }
 
