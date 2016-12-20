@@ -261,24 +261,14 @@ class VlcVideoWidget(QStackedWidget):
         # XXX TODO - wire up callbacks to VLC for when paused and end of stream
         mp_event_mgr = self.mediaplayer.event_manager()
         mp_event_mgr.event_attach(EventType.MediaPlayerSnapshotTaken, self.snapShotTaken)
-
-        getLogger('finprint').info("aspect ratio {0}".format(self._aspect_ratio))
-        getLogger('finprint').info("target height {0}".format(self._target_height()))
-        getLogger('finprint').info("target width {0}".format(self._target_width()))
-        getLogger('finprint').debug("target aspect ratio {0}".format(self._aspect_ratio))
-
-        getLogger('finprint').debug("widget height {0}".format(self.height()))
-        getLogger('finprint').debug("widget width {0}".format(self.width()))
-        #getLogger('finprint').debug("image height {0}".format(self._image.height()))
-        #getLogger('finprint').debug("image width {0}".format(self._image.width()))
-
+        mp_event_mgr.event_attach(EventType.MediaPlayerEndReached, self.streamEndEvent)
 
         # don't start listening for spacebar until video is loaded and playable
         self.mediaplayer.video_set_mouse_input(False)
 
         self._timer.start()
 
-        self.mediaplayer.set_position(0)
+        self.mediaplayer.set_time(0)
 
         return True
 
@@ -311,7 +301,7 @@ class VlcVideoWidget(QStackedWidget):
 
     # Reinstate last_progress here
     def on_timer(self):
-        if self.currentIndex() == VIDEOFRAME_INDEX and self._play_state in [PlayState.Playing, PlayState.SeekForward, PlayState.SeekBack] :
+        if self._play_state in [PlayState.Playing, PlayState.SeekForward, PlayState.SeekBack] :
             ts = self.mediaplayer.get_time()
             self.progressUpdate.emit(ts)
             self._onPositionChange(self.get_position())
@@ -337,24 +327,27 @@ class VlcVideoWidget(QStackedWidget):
         #XXX todo - add a graphics scene here to fix the overlay
         #self.take_videoframe_snapshot()
   #      self.update()
-        rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
-        self.annotationImage.highlighter.start_rect(rect.topLeft())
-        self.annotationImage.highlighter.set_rect(rect.bottomRight())
+  #       rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
+  #       self.annotationImage.highlighter.start_rect(rect.topLeft())
+  #       self.annotationImage.highlighter.set_rect(rect.bottomRight())
 
     def take_videoframe_snapshot(self):
         pix = QPixmap.grabWindow(self.videoframe.winId())
         self.annotationImage.curr_image = pix.toImage()
         self.setCurrentIndex(ANNOTATION_INDEX)
 
+    # XXX This is used for displaying existing observations
     def move_to_position(self, pos):
         # if not playing, we need to switch to showing
         # the videoframe
+        self.set_speed(.25)
         self.mediaplayer.play()
+        time.sleep(.15)
         self.mediaplayer.set_time(pos)
-        # XXX VLC hack - if the set_time operation takes too long
-        # we cruise right pass the pause.
-        time.sleep(.8)
         self.mediaplayer.pause()
+        self._play_state = PlayState.Paused
+        self.playStateChanged.emit(self._play_state)
+        self.update()
 
     def jump_back(self, seconds):
         self.clear_extent()
@@ -365,7 +358,9 @@ class VlcVideoWidget(QStackedWidget):
 
     def set_position(self, pos):
         self.move_to_position(pos)
-        self._onPositionChange(self.get_position())
+        self._onPositionChange(pos)
+        self._play_state = PlayState.Paused
+
 
     def toggle_play(self):
         if self._play_state in [PlayState.Paused, PlayState.EndOfStream]:
@@ -465,18 +460,12 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage.clear()
 
     def set_speed(self, speed):
-        self.clear_extent()
-
         self.mediaplayer.set_rate(speed)
-
-        getLogger('finprint').debug('set playback speed to {}x'.format(speed))
-
         self.playbackSpeedChanged.emit(speed)
 
-        # XXX Review this
-        if self._play_state != PlayState.SeekForward:
-            self._play_state = PlayState.SeekForward
+        if self._play_state is PlayState.Paused:
             self.mediaplayer.play()
+            self._play_state = PlayState.SeekForward
             self.playStateChanged.emit(self._play_state)
 
     def resizeEvent(self, ev):
