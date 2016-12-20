@@ -1,3 +1,4 @@
+import imageio
 import time
 import psutil
 from io import BytesIO
@@ -111,7 +112,27 @@ class AnnotationImage(QWidget):
             painter.end()
 
 
+class VideoFrame(QFrame):
+
+    def __init__(self):
+        QFrame.__init__(self)
+        self.overlay = None
+
+    def clear(self):
+        self.overlay = None
+
+    def paintEvent(self, e):
+        # This should only be called when
+        if self.overlay is not None:
+            painter = QPainter()
+            painter.begin(self)
+            painter.setPen(QPen(QBrush(Qt.green), 3, Qt.SolidLine))
+            painter.drawRect(self.overlay)
+            painter.end()
+
+
 class VlcVideoWidget(QStackedWidget):
+
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
     playbackSpeedChanged = pyqtSignal(float)
@@ -136,7 +157,7 @@ class VlcVideoWidget(QStackedWidget):
             self.videoframe = QMacCocoaViewContainer(0)
         else:
             #self.videoframe = QWidget()
-            self.videoframe = QGraphicsView()
+            self.videoframe = VideoFrame()
 
         # add the videoframe
         self.addWidget(self.videoframe)
@@ -324,12 +345,9 @@ class VlcVideoWidget(QStackedWidget):
     def display_event(self, pos, extent):
         self.annotationImage.clear()
         self.move_to_position(pos)
-        #XXX todo - add a graphics scene here to fix the overlay
-        #self.take_videoframe_snapshot()
-  #      self.update()
-  #       rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
-  #       self.annotationImage.highlighter.start_rect(rect.topLeft())
-  #       self.annotationImage.highlighter.set_rect(rect.bottomRight())
+        rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
+        self.videoframe.overlay = rect
+        self.repaint()
 
     def take_videoframe_snapshot(self):
         pix = QPixmap.grabWindow(self.videoframe.winId())
@@ -340,9 +358,9 @@ class VlcVideoWidget(QStackedWidget):
     def move_to_position(self, pos):
         # if not playing, we need to switch to showing
         # the videoframe
-        self.set_speed(.25)
+        self.set_speed(1.0)
         self.mediaplayer.play()
-        time.sleep(.15)
+        time.sleep(.35)
         self.mediaplayer.set_time(pos)
         self.mediaplayer.pause()
         self._play_state = PlayState.Paused
@@ -357,10 +375,8 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.set_time(time_back)
 
     def set_position(self, pos):
-        self.move_to_position(pos)
-        self._onPositionChange(pos)
-        self._play_state = PlayState.Paused
-
+        getLogger('finprint').info('set_position {0}'.format(pos))
+        self.mediaplayer.set_time(pos)
 
     def toggle_play(self):
         if self._play_state in [PlayState.Paused, PlayState.EndOfStream]:
