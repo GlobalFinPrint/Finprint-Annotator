@@ -1,4 +1,3 @@
-import imageio
 import time
 import psutil
 from io import BytesIO
