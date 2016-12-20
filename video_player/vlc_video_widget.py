@@ -464,6 +464,7 @@ class VlcVideoWidget(QStackedWidget):
         self.playbackSpeedChanged.emit(speed)
 
         if self._play_state is PlayState.Paused:
+            self.setCurrentIndex(VIDEOFRAME_INDEX)
             self.mediaplayer.play()
             self._play_state = PlayState.SeekForward
             self.playStateChanged.emit(self._play_state)
