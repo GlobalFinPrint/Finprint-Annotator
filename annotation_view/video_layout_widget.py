@@ -289,6 +289,7 @@ class VideoLayoutWidget(QWidget):
         self._data_loading = False
 
     def on_playstate_changed(self, play_state):
+        getLogger('finprint').info('layout widget: playstate changed: {0}'.format(play_state))
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
             self.on_progress_update(self._video_player.get_position())  # update position on pause
             self._toggle_play_button.setPixmap(self._play_pixmap)
