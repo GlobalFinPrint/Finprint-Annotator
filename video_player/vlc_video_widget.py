@@ -71,6 +71,7 @@ class AnnotationImage(QWidget):
         self.highlighter = Highlighter()
         self._dragging = False
         self.curr_image = None
+        self.can_update = True
         self.initUI()
 
     def initUI(self):
@@ -80,19 +81,25 @@ class AnnotationImage(QWidget):
         self.curr_image = None
         self.highlighter.clear()
 
+    def set_rect(self, rect):
+        self.highlighter.set_rect(rect)
+        self.repaint()
+
     def get_rect(self):
         return self.highlighter.get_rect()
 
     def mousePressEvent(self, event):
-        self.highlighter.start_rect(event.pos())
-        self.update()
+        if self.can_update:
+            self.highlighter.start_rect(event.pos())
+            self.update()
 
     def mouseMoveEvent(self, event):
-        self._dragging = True
-        x, y = event.pos().x(), event.pos().y()
-        clamped_pos = QPoint(min(x, self.width()), min(y, self.height()))
-        self.highlighter.set_rect(clamped_pos)
-        self.update()
+        if self.can_update:
+            self._dragging = True
+            x, y = event.pos().x(), event.pos().y()
+            clamped_pos = QPoint(min(x, self.width()), min(y, self.height()))
+            self.highlighter.set_rect(clamped_pos)
+            self.update()
 
     def mouseReleaseEvent(self, event):
         if self._dragging:
@@ -110,7 +117,7 @@ class AnnotationImage(QWidget):
             painter.drawRect(self.highlighter.get_rect())
             painter.end()
 
-
+# XXX remove me, it does not work
 class VideoFrame(QFrame):
 
     def __init__(self):
@@ -121,7 +128,8 @@ class VideoFrame(QFrame):
         self.overlay = None
 
     def paintEvent(self, e):
-        # This should only be called when
+        # This should only be called when there is a rect set,
+        # and repaint has been called. Unfortuntely, it doesn't render
         if self.overlay is not None:
             painter = QPainter()
             painter.begin(self)
@@ -149,6 +157,8 @@ class VlcVideoWidget(QStackedWidget):
         self._dragging = False
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
+        self._extent_rect = None
+        self._scrub_position = 0
 
         # We will pass a window handle to libvlc, which
         # will be responsible for the actual rendering of the video
@@ -181,7 +191,8 @@ class VlcVideoWidget(QStackedWidget):
         if not os.path.exists(self.temp_snapshot_dir):
             os.makedirs(self.temp_snapshot_dir)
 
-        # bind instance to load libvlc
+        # bind instance to load libvlc. This is where we will pass parameters for
+        # buffering and the like
         self.instance = Instance()
         # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
@@ -215,7 +226,6 @@ class VlcVideoWidget(QStackedWidget):
         l.debug('Process Memory: {}'.format(p.memory_info()))
         l.debug('Process Memory %: {}'.format(p.memory_percent()))
 
-    # XXX what are the use of sets
     def load_set(self, set):
         self._current_set = set
         self._context_menu = ContextMenu(set, parent=self)
@@ -258,12 +268,10 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.set_media(self.media)
         self.media.parse()
 
-        # todo - figure out if the file couldn't be parsed or loaded
-        # getLogger('finprint').exception("Exception loading video {0}: {1}".format(self._file_name, ex))
-
         # Where the magic starts - you have to give the handle of the QFrame (or similar object) to
         # vlc, different platforms have different functions for this. Downside is its opaque to you,
-        # libvlc is doing the rendering, so you are limited in what you can do with the widget
+        # libvlc is doing the rendering, so you are limited in what you can do with the widget - it
+        # is an event black hole in Windows platforms
         if sys.platform.startswith('linux'):  # for Linux using the X Server
             self.mediaplayer.set_xwindow(self.videoframe.winId())
         elif sys.platform == "win32":  # for Windows
@@ -275,27 +283,27 @@ class VlcVideoWidget(QStackedWidget):
         QCoreApplication.instance().installEventFilter(self)
 
         self._play_state = PlayState.Paused
-
         self._aspect_ratio = self.videoframe.width() / self.videoframe.height()
 
-        # XXX TODO - wire up callbacks to VLC for when paused and end of stream
+        # wire up callbacks to VLC for snapshots and end of stream, which is relative to
+        # the media being played
         mp_event_mgr = self.mediaplayer.event_manager()
         mp_event_mgr.event_attach(EventType.MediaPlayerSnapshotTaken, self.snapShotTaken)
         mp_event_mgr.event_attach(EventType.MediaPlayerEndReached, self.streamEndEvent)
+        mp_event_mgr.event_attach(EventType.MediaPlayerPositionChanged, self.positionChangedEvent)
 
         # don't start listening for spacebar until video is loaded and playable
         self.mediaplayer.video_set_mouse_input(False)
 
         self._timer.start()
 
-        self.mediaplayer.set_time(0)
+        # XXX hack to display the first few frames, which alters the bahavior of
+        # VLC with respect to video scrubbing
+        self.mediaplayer.set_rate(1.0 / 48)
+        self.mediaplayer.play()
+        QTimer.singleShot(500, self.mediaplayer.pause)
 
         return True
-
-    # XXX TODO add support for moving between observation markers. Because of the whole stacked widget design,
-    # it means showing the videoframe widget, moving the timeline on the videoplayer, and then taking another snapshot,
-    # show the annotation image and applying the extent rectangle. But, maybe you can just just set position, and draw
-    # on the videoframe itself.
 
     def _target_width(self):
         try:
@@ -321,9 +329,11 @@ class VlcVideoWidget(QStackedWidget):
 
     # Reinstate last_progress here
     def on_timer(self):
-        if self._play_state in [PlayState.Playing, PlayState.SeekForward, PlayState.SeekBack] :
-            ts = self.mediaplayer.get_time()
-            self.progressUpdate.emit(ts)
+        if self._play_state == PlayState.Playing:
+            pos = self.get_position()
+            if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
+                self._last_progress = pos
+                self.progressUpdate.emit(pos)
             self._onPositionChange(self.get_position())
 
     def clear(self):
@@ -343,28 +353,37 @@ class VlcVideoWidget(QStackedWidget):
 
     def display_event(self, pos, extent):
         self.annotationImage.clear()
-        self.move_to_position(pos)
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self.videoframe.overlay = rect
-        self.repaint()
+        self.set_position(pos)
 
     def take_videoframe_snapshot(self):
+        getLogger('finprint').info('take videoframe snapshot')
+        self.annotationImage.clear()
         pix = QPixmap.grabWindow(self.videoframe.winId())
         self.annotationImage.curr_image = pix.toImage()
         self.setCurrentIndex(ANNOTATION_INDEX)
 
-    # XXX This is used for displaying existing observations
+    # This is used for displaying existing observations. It uses
+    # a single-shot timer to assure we can display the rect overlay
+    # of the original observation
     def move_to_position(self, pos):
-        # if not playing, we need to switch to showing
-        # the videoframe
-        self.set_speed(1.0)
-        self.mediaplayer.play()
-        time.sleep(.35)
+        getLogger('finprint').info('move_to_position {0}'.format(pos))
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
+        self._onPositionChange(pos)
         self.mediaplayer.set_time(pos)
         self.mediaplayer.pause()
-        self._play_state = PlayState.Paused
-        self.playStateChanged.emit(self._play_state)
-        self.update()
+        # if not playing, we need to switch to showing
+        # the videoframe, so that we can copy the visible
+        # surface to the annotation tool
+        self.set_speed(.25, False)
+        self.mediaplayer.play()
+        self.mediaplayer.set_position((pos) / self.media.get_duration())
+        # XXX still needs a higher resolution
+        QTimer.singleShot(0, self.mediaplayer.pause)
+        getLogger('finprint').info('move_to_position:pause enabled')
+       # QTimer.singleShot(200, self.take_videoframe_snapshot)
+        self.take_videoframe_snapshot
 
     def jump_back(self, seconds):
         self.clear_extent()
@@ -373,26 +392,59 @@ class VlcVideoWidget(QStackedWidget):
             time_back = 0
         self.mediaplayer.set_time(time_back)
 
+    def scrub_position(self, pos):
+        self._scrub_position = pos
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
+        p = (pos) / self.media.get_duration()
+        getLogger('finprint').info('scrub_position {0}'.format(p))
+        self.mediaplayer.set_position(p)
+
+
     def set_position(self, pos):
-        getLogger('finprint').info('set_position {0}'.format(pos))
+        self._scrub_position = pos
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
+        p = (pos) / self.media.get_duration()
+        getLogger('finprint').info('set_position {0}'.format(p))
+        self.set_speed(.25, False)
+        self.mediaplayer.play()
+        self.mediaplayer.set_position(p)
         self.mediaplayer.set_time(pos)
+        self._onPositionChange(self.get_position())
+        QTimer.singleShot(500, self.seek_and_take_snapshot)
 
     def toggle_play(self):
         if self._play_state in [PlayState.Paused, PlayState.EndOfStream]:
+            getLogger('finprint').info('toggle_play: play')
             self.play()
         else:
+            getLogger('finprint').info('toggle_play: pause')
             self.pause()
+            self.take_videoframe_snapshot()
 
     def pause(self):
-        # first, pause the player, and notify state change
+        getLogger('finprint').info('paused')
         self._play_state = PlayState.Paused
-        self.mediaplayer.pause()
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
-        self.take_videoframe_snapshot()
-        # XXX TODO - fix the saturation and brightness using VLC.
-        # if self.saturation > 0 or self.brightness > 0 or self.contrast is True:
-        #     self.refresh_frame()
+
+    def seek_and_take_snapshot(self):
+        # first, pause the player, and notify state change
+        actual_pos = self._scrub_position / self.media.get_duration()
+        self.mediaplayer.pause()
+        taken_snap = False
+        attempts = 0
+        # give it a couple of tries...
+        while not taken_snap and attempts < 5:
+            curr_pos = self.mediaplayer.get_position()
+            if curr_pos > (actual_pos - .005):
+                taken_snap = True
+                self.take_videoframe_snapshot()
+                getLogger('finprint').info('taking snapshot at {}'.format(curr_pos))
+            else:
+                time.sleep(.01)
+                attempts += 1
+        if not taken_snap:
+            getLogger('finprint').info('unable to take snapshot  curr_pos:{0}  scrub_pos: {1}'.format(curr_pos, actual_pos))
 
     def save_image(self, filename):
         self.curr_s3_upload = filename
@@ -424,11 +476,11 @@ class VlcVideoWidget(QStackedWidget):
 
     def play(self):
         # TODO emit if end of stream via callback
+        self.clear_extent()
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.set_speed(1.0)
         self.mediaplayer.play()
         self._play_state = PlayState.Playing
-        self.clear_extent()
         self.playStateChanged.emit(self._play_state)
 
     def is_paused(self):
@@ -474,14 +526,13 @@ class VlcVideoWidget(QStackedWidget):
     def clear_extent(self):
         self.annotationImage.clear()
 
-    def set_speed(self, speed):
+    def set_speed(self, speed, start_playing = True):
         self.mediaplayer.set_rate(speed)
         self.playbackSpeedChanged.emit(speed)
 
-        if self._play_state is PlayState.Paused:
-            self.setCurrentIndex(VIDEOFRAME_INDEX)
+        if PlayState.Paused and start_playing:
             self.mediaplayer.play()
-            self._play_state = PlayState.SeekForward
+            self._play_state = PlayState.Playing
             self.playStateChanged.emit(self._play_state)
 
     def resizeEvent(self, ev):
@@ -494,10 +545,12 @@ class VlcVideoWidget(QStackedWidget):
                 return True
         return False
 
-    ## callbacks start here
-    # XXX TODO - add a video filter to libvlc to detect when video has been clicked
+    # callbacks start here
+    # XXX TODO - add a video filter to libvlc to detect when video has been clicked,
+    # so that it acts like the previous opencv-based version
     def playerPausedEvent(self, event):
-        print("playerPaused:", event.type, event.u)
+        # XXX remove
+        getLogger('finprint').info('player paused event')
 
     # emit an event when at end of video.
     def streamEndEvent(self, event):
@@ -506,19 +559,27 @@ class VlcVideoWidget(QStackedWidget):
         self.playStateChanged.emit(self._play_state)
 
     # once a snaphsot is generated by vlc, post the snapshot (a decoded video frame)
+    # XXX TODO - put this in a background thread. It seems to be blocking on the main thread
     def snapShotTaken(self, event):
-        getLogger('finprint').info('Snapshot callback event')
+        getLogger('finprint').info('process snaphot')
+        # upload on a separate thread
+        QTimer.singleShot(50, self.process_snapshot)
+
+    def process_snapshot(self):
         if self.curr_s3_upload is not None:
             s3_filename = os.path.basename(self.curr_s3_upload)
-            print('Searching for {0}'.format(s3_filename))
             getLogger('finprint').info('Searching for {0}'.format(s3_filename))
             expected_file = os.path.join(self.temp_snapshot_dir, s3_filename)
             if os.path.isfile(expected_file):
-                print('Found {0}'.format(expected_file))
                 getLogger('finprint').info('Found {0}'.format(expected_file))
                 upload_img = QImage(expected_file)
                 self.upload_image(self.curr_s3_upload, upload_img)
                 self.curr_s3_upload = None
-                os.remove (expected_file)
+                os.remove(expected_file)
+
+    # callback for 'MediaPlayerPositionChanged'
+    def positionChangedEvent(self, event):
+        pos = self.mediaplayer.get_position()
+        getLogger('finprint').info('>>>>>>>Position changed: {0}'.format(pos))
 
 
