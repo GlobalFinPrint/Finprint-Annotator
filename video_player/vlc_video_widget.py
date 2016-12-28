@@ -81,6 +81,9 @@ class AnnotationImage(QWidget):
         self.curr_image = None
         self.highlighter.clear()
 
+    def clearExtent(self):
+        self.highlighter.clear()
+
     def set_rect(self, rect):
         self.highlighter.set_rect(rect)
         self.repaint()
@@ -291,6 +294,7 @@ class VlcVideoWidget(QStackedWidget):
         mp_event_mgr.event_attach(EventType.MediaPlayerSnapshotTaken, self.snapShotTaken)
         mp_event_mgr.event_attach(EventType.MediaPlayerEndReached, self.streamEndEvent)
         mp_event_mgr.event_attach(EventType.MediaPlayerPositionChanged, self.positionChangedEvent)
+        mp_event_mgr.event_attach(EventType.MediaPlayerTimeChanged, self.timeChangedEvent)
 
         # don't start listening for spacebar until video is loaded and playable
         self.mediaplayer.video_set_mouse_input(False)
@@ -371,41 +375,39 @@ class VlcVideoWidget(QStackedWidget):
         getLogger('finprint').info('move_to_position {0}'.format(pos))
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self._onPositionChange(pos)
+        self._scrub_position = pos
         self.mediaplayer.set_time(pos)
         self.mediaplayer.pause()
         # if not playing, we need to switch to showing
         # the videoframe, so that we can copy the visible
         # surface to the annotation tool
-        self.set_speed(.25, False)
+        self.set_speed(.025, False)
         self.mediaplayer.play()
         self.mediaplayer.set_position((pos) / self.media.get_duration())
         # XXX still needs a higher resolution
-        QTimer.singleShot(0, self.mediaplayer.pause)
-        getLogger('finprint').info('move_to_position:pause enabled')
-       # QTimer.singleShot(200, self.take_videoframe_snapshot)
-        self.take_videoframe_snapshot
+        QTimer.singleShot(500, self.seek_and_take_snapshot)
 
     def jump_back(self, seconds):
         self.clear_extent()
         time_back = self.mediaplayer.get_time() - seconds * 1000
         if time_back < 0:
             time_back = 0
-        self.mediaplayer.set_time(time_back)
+        self.mediaplayer.set_position(time_back)
 
     def scrub_position(self, pos):
+        getLogger('finprint').info('scrub_position {0}'.format(p))
         self._scrub_position = pos
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         p = (pos) / self.media.get_duration()
-        getLogger('finprint').info('scrub_position {0}'.format(p))
         self.mediaplayer.set_position(p)
 
-
     def set_position(self, pos):
-        self._scrub_position = pos
-        self.setCurrentIndex(VIDEOFRAME_INDEX)
         p = (pos) / self.media.get_duration()
         getLogger('finprint').info('set_position {0}'.format(p))
-        self.set_speed(.25, False)
+        getLogger('finprint').info('set_position time offset {0}'.format(pos))
+        self._scrub_position = pos
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
+        self.mediaplayer.set_rate(.50)
         self.mediaplayer.play()
         self.mediaplayer.set_position(p)
         self.mediaplayer.set_time(pos)
@@ -436,10 +438,10 @@ class VlcVideoWidget(QStackedWidget):
         # give it a couple of tries...
         while not taken_snap and attempts < 5:
             curr_pos = self.mediaplayer.get_position()
-            if curr_pos > (actual_pos - .005):
+            if curr_pos > (actual_pos - .0005):
                 taken_snap = True
                 self.take_videoframe_snapshot()
-                getLogger('finprint').info('taking snapshot at {}'.format(curr_pos))
+                getLogger('finprint').info('taking snapshot at {0}'.format(curr_pos))
             else:
                 time.sleep(.01)
                 attempts += 1
@@ -581,5 +583,10 @@ class VlcVideoWidget(QStackedWidget):
     def positionChangedEvent(self, event):
         pos = self.mediaplayer.get_position()
         getLogger('finprint').info('>>>>>>>Position changed: {0}'.format(pos))
+
+    # callback for 'MediaPlayerTimeChanged'
+    def timeChangedEvent(self, event):
+        pos = self.mediaplayer.get_time()
+        getLogger('finprint').info('>>>>>>>Time changed: {0}'.format(pos))
 
 
