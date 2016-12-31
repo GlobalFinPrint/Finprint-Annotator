@@ -120,27 +120,6 @@ class AnnotationImage(QWidget):
             painter.drawRect(self.highlighter.get_rect())
             painter.end()
 
-# XXX remove me, it does not work
-class VideoFrame(QFrame):
-
-    def __init__(self):
-        QFrame.__init__(self)
-        self.overlay = None
-
-    def clear(self):
-        self.overlay = None
-
-    def paintEvent(self, e):
-        # This should only be called when there is a rect set,
-        # and repaint has been called. Unfortuntely, it doesn't render
-        if self.overlay is not None:
-            painter = QPainter()
-            painter.begin(self)
-            painter.setPen(QPen(QBrush(Qt.green), 3, Qt.SolidLine))
-            painter.drawRect(self.overlay)
-            painter.end()
-
-
 class VlcVideoWidget(QStackedWidget):
 
     playStateChanged = pyqtSignal(PlayState)
@@ -169,7 +148,7 @@ class VlcVideoWidget(QStackedWidget):
             self.videoframe = QMacCocoaViewContainer(0)
         else:
             #self.videoframe = QWidget()
-            self.videoframe = VideoFrame()
+            self.videoframe = QFrame()
 
         # add the videoframe
         self.addWidget(self.videoframe)
@@ -210,6 +189,9 @@ class VlcVideoWidget(QStackedWidget):
 
         self._context_menu = None
         self._current_set = None
+
+        # current observation rect to display
+        self._observation_rect = None
 
         self.setStyleSheet('QMenu { background-color: white; }')
 
@@ -358,7 +340,7 @@ class VlcVideoWidget(QStackedWidget):
     def display_event(self, pos, extent):
         self.annotationImage.clear()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
-        self.videoframe.overlay = rect
+        self._observation_rect = rect
         self.set_position(pos)
 
     def take_videoframe_snapshot(self):
@@ -385,20 +367,25 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.play()
         self.mediaplayer.set_position((pos) / self.media.get_duration())
         # XXX still needs a higher resolution
-        QTimer.singleShot(500, self.seek_and_take_snapshot)
+        QTimer.singleShot(1000, self.seek_and_take_snapshot)
 
     def jump_back(self, seconds):
         self.clear_extent()
         time_back = self.mediaplayer.get_time() - seconds * 1000
+        pos_back = time_back/self.media.get_duration()
         if time_back < 0:
             time_back = 0
-        self.mediaplayer.set_position(time_back)
+        # if paused, swap out the static image
+        self.mediaplayer.set_position(pos_back)
+        if self._play_state is PlayState.Paused:
+            self.setCurrentIndex(VIDEOFRAME_INDEX)
+            self._onPositionChange(self.get_position())
 
     def scrub_position(self, pos):
+        p = (pos) / self.media.get_duration()
         getLogger('finprint').info('scrub_position {0}'.format(p))
         self._scrub_position = pos
         self.setCurrentIndex(VIDEOFRAME_INDEX)
-        p = (pos) / self.media.get_duration()
         self.mediaplayer.set_position(p)
 
     def set_position(self, pos):
@@ -412,7 +399,7 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.set_position(p)
         self.mediaplayer.set_time(pos)
         self._onPositionChange(self.get_position())
-        QTimer.singleShot(500, self.seek_and_take_snapshot)
+        QTimer.singleShot(1000, self.seek_and_take_snapshot)
 
     def toggle_play(self):
         if self._play_state in [PlayState.Paused, PlayState.EndOfStream]:
@@ -421,6 +408,7 @@ class VlcVideoWidget(QStackedWidget):
         else:
             getLogger('finprint').info('toggle_play: pause')
             self.pause()
+            self.mediaplayer.pause()
             self.take_videoframe_snapshot()
 
     def pause(self):
@@ -435,6 +423,7 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.pause()
         taken_snap = False
         attempts = 0
+        # just in case we haven't arrived at the position,
         # give it a couple of tries...
         while not taken_snap and attempts < 5:
             curr_pos = self.mediaplayer.get_position()
@@ -442,6 +431,11 @@ class VlcVideoWidget(QStackedWidget):
                 taken_snap = True
                 self.take_videoframe_snapshot()
                 getLogger('finprint').info('taking snapshot at {0}'.format(curr_pos))
+                if self._observation_rect is not None:
+                    getLogger('finprint').info('draw observation rect at {0}'.format(self._observation_rect))
+                    self.annotationImage.highlighter.start_rect(self._observation_rect.topLeft())
+                    self.annotationImage.highlighter.set_rect(self._observation_rect.bottomRight())
+                    self.annotationImage.repaint()
             else:
                 time.sleep(.01)
                 attempts += 1
