@@ -275,8 +275,9 @@ class VlcVideoWidget(QStackedWidget):
         mp_event_mgr = self.mediaplayer.event_manager()
         mp_event_mgr.event_attach(EventType.MediaPlayerSnapshotTaken, self.snapShotTaken)
         mp_event_mgr.event_attach(EventType.MediaPlayerEndReached, self.streamEndEvent)
-        mp_event_mgr.event_attach(EventType.MediaPlayerPositionChanged, self.positionChangedEvent)
-        mp_event_mgr.event_attach(EventType.MediaPlayerTimeChanged, self.timeChangedEvent)
+        # XXX Uncomment these for debugging
+        # mp_event_mgr.event_attach(EventType.MediaPlayerPositionChanged, self.positionChangedEvent)
+        # mp_event_mgr.event_attach(EventType.MediaPlayerTimeChanged, self.timeChangedEvent)
 
         # don't start listening for spacebar until video is loaded and playable
         self.mediaplayer.video_set_mouse_input(False)
@@ -285,7 +286,7 @@ class VlcVideoWidget(QStackedWidget):
 
         # XXX hack to display the first few frames, which alters the bahavior of
         # VLC with respect to video scrubbing
-        self.mediaplayer.set_rate(1.0 / 48)
+        self.mediaplayer.set_time(20)
         self.mediaplayer.play()
         QTimer.singleShot(500, self.mediaplayer.pause)
 
@@ -341,7 +342,7 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage.clear()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._observation_rect = rect
-        self.set_position(pos)
+        self.move_to_position(pos)
 
     def take_videoframe_snapshot(self):
         getLogger('finprint').info('take videoframe snapshot')
@@ -358,16 +359,10 @@ class VlcVideoWidget(QStackedWidget):
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self._onPositionChange(pos)
         self._scrub_position = pos
-        self.mediaplayer.set_time(pos)
-        self.mediaplayer.pause()
-        # if not playing, we need to switch to showing
-        # the videoframe, so that we can copy the visible
-        # surface to the annotation tool
         self.set_speed(.025, False)
+        self.mediaplayer.set_time(pos)
         self.mediaplayer.play()
-        self.mediaplayer.set_position((pos) / self.media.get_duration())
-        # XXX still needs a higher resolution
-        QTimer.singleShot(1000, self.seek_and_take_snapshot)
+        QTimer.singleShot(1000, self.move_to_time_and_take_snaphot)
 
     def jump_back(self, seconds):
         self.clear_extent()
@@ -417,6 +412,10 @@ class VlcVideoWidget(QStackedWidget):
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
 
+    def move_to_time_and_take_snaphot(self):
+        self.mediaplayer.pause()
+        self.take_videoframe_snapshot()
+
     def seek_and_take_snapshot(self):
         # first, pause the player, and notify state change
         actual_pos = self._scrub_position / self.media.get_duration()
@@ -424,7 +423,9 @@ class VlcVideoWidget(QStackedWidget):
         taken_snap = False
         attempts = 0
         # just in case we haven't arrived at the position,
-        # give it a couple of tries...
+        # give it a couple of tries. This is definitely the
+        # achilles heel for VLC - its more performant than
+        # the previous annotator, but it is not frame accurate.
         while not taken_snap and attempts < 5:
             curr_pos = self.mediaplayer.get_position()
             if curr_pos > (actual_pos - .0005):
@@ -473,7 +474,6 @@ class VlcVideoWidget(QStackedWidget):
     def play(self):
         # TODO emit if end of stream via callback
         self.clear_extent()
-        self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.set_speed(1.0)
         self.mediaplayer.play()
         self._play_state = PlayState.Playing
@@ -520,11 +520,16 @@ class VlcVideoWidget(QStackedWidget):
         self.set_position(self.get_position() + FRAME_STEP)
 
     def clear_extent(self):
-        self.annotationImage.clear()
+        self.annotationImage.clearExtent()
 
     def set_speed(self, speed, start_playing = True):
+        # XXX assume we are about to or are playing, so show videoframe
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.mediaplayer.set_rate(speed)
-        self.playbackSpeedChanged.emit(speed)
+
+        # XXX Hack for set_positon
+        if start_playing:
+            self.playbackSpeedChanged.emit(speed)
 
         if PlayState.Paused and start_playing:
             self.mediaplayer.play()
