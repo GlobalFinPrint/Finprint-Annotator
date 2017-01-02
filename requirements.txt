@@ -4,3 +4,4 @@ imutils==0.3.4
 pydispatcher==2.0.5
 boto==2.40.0
 psutil==4.3.0
+pillow==3.4.2

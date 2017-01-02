@@ -1,6 +1,17 @@
 import time
 import psutil
 from io import BytesIO
+
+# XXX Remove this if not needed
+import cv2
+import numpy as np
+
+# Alternate means of image filtering
+from PIL import Image
+from PIL import ImageQt
+from PIL import ImageEnhance
+from PIL import ImageOps
+
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
@@ -125,9 +136,6 @@ class VlcVideoWidget(QStackedWidget):
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
     playbackSpeedChanged = pyqtSignal(float)
-    saturation = 0
-    brightness = 0
-    contrast = False
 
     def __init__(self, parent=None, onPositionChange=None, fullscreen=False):
         QWidget.__init__(self, parent)
@@ -141,6 +149,11 @@ class VlcVideoWidget(QStackedWidget):
         self._onPositionChange = onPositionChange
         self._extent_rect = None
         self._scrub_position = 0
+        # XXX hacks for image filtering
+        self.current_snapshot = None
+        self.saturation = 0
+        self.brightness = 0
+        self.contrast = False
 
         # We will pass a window handle to libvlc, which
         # will be responsible for the actual rendering of the video
@@ -288,6 +301,10 @@ class VlcVideoWidget(QStackedWidget):
         # VLC with respect to video scrubbing
         self.mediaplayer.set_time(20)
         self.mediaplayer.play()
+
+        contrast = self.mediaplayer.video_get_adjust_float(VideoAdjustOption.Contrast)
+        brightness = self.mediaplayer.video_get_adjust_float(VideoAdjustOption.Brightness)
+        sat = self.mediaplayer.video_get_adjust_float(VideoAdjustOption.Saturation)
         QTimer.singleShot(500, self.mediaplayer.pause)
 
         return True
@@ -350,6 +367,7 @@ class VlcVideoWidget(QStackedWidget):
         pix = QPixmap.grabWindow(self.videoframe.winId())
         snap = pix.scaledToHeight(self.videoframe.height())
         self.annotationImage.curr_image = snap.toImage()
+        self.current_snapshot = snap.toImage()
         self.setCurrentIndex(ANNOTATION_INDEX)
 
     # This is used for displaying existing observations. It uses
@@ -540,6 +558,99 @@ class VlcVideoWidget(QStackedWidget):
     def resizeEvent(self, ev):
         self.update()
 
+    def refresh_frame(self):
+        self._refresh_frame_PIL()
+
+    # XXX Not a direct copy of opencv functionality, may need to change
+    def _refresh_frame_PIL(self):
+        if self._play_state is PlayState.Paused:
+            if self.saturation > 1.0 or self.brightness > 1.0 or self.contrast is True:
+                # XXX grab a png representation of the last snapshot that has
+                # not been filtered. We assume that a snapshot is taken prior
+                # to this function being called
+                curr_img = self.current_snapshot
+                data = QByteArray()
+                buf = QBuffer(data)
+                curr_img.save(buf, 'PNG')
+                # let PIL read the data
+                png_io = BytesIO(data.data())
+                png_io.seek(0)
+                pil_img = Image.open(png_io)
+                if self.saturation > 1.0:
+                    color_enhancer = ImageEnhance.Color(pil_img)
+                    sat = 1.0 + self.saturation/100
+                    getLogger('finprint').info('Setting saturation to {0}'.format(sat))
+                    pil_img = color_enhancer.enhance(sat)
+                if self.brightness > 1.0:
+                    brightness_enhancer = ImageEnhance.Brightness(pil_img)
+                    brightness = 1.0 + self.brightness / 100
+                    getLogger('finprint').info('Setting brightness to {0}'.format(brightness))
+                    pil_img = brightness_enhancer.enhance(brightness)
+                if self.contrast is True:
+                    getLogger('finprint').info('Setting autocontrast')
+                    pil_img = ImageOps.autocontrast(pil_img, 50, None)
+                self.annotationImage.curr_image = ImageQt.toqimage(pil_img)
+                self.update()
+
+    def _refresh_frame_cv(self):
+        if self._play_state is PlayState.Paused:
+            # grab a cv representation of the image
+            # that has not been filtered
+            curr_img = self.current_snapshot
+            cvFrame = self.convertQImageToCVImage(curr_img)
+            filtered_img = self.filter_image(cvFrame)
+            self.annotationImage.curr_image = filtered_img
+            self.update()
+
+
+    def convertQImageToCVImage(self, curr_image):
+        '''  Converts a QImage into an opencv MAT format  '''
+
+        curr_image = curr_image.convertToFormat(QImage.Format_RGB32)
+
+        width = curr_image.width()
+        height = curr_image.height()
+
+        ptr = curr_image.bits()
+        ptr.setsize(curr_image.byteCount())
+        frame = np.array(ptr).reshape(height, width, QImage.Format_RGB32)  # Copies the data
+        return frame
+
+    # XXX TODO - to be performant, this really should just be numpy calculations, but the histogram
+    # (contrast equalization) is a fair amount of code to write from scratch, so we'll leave it as
+    # (just a copy of the build_image function in the opencv version.
+    def filter_image(self, curr_img):
+        frame = curr_img
+        image = None
+        try:
+            # adjust brightness and saturation
+            if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
+                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                h, s, v = cv2.split(hsv)
+                final_hsv = cv2.merge((
+                    h,
+                    np.where(255 - s < self.saturation, 255, s + self.saturation),
+                    np.where(255 - v < self.brightness, 255, v + self.brightness)
+                ))
+                frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+
+            # equalize contrast
+            if self.contrast is True and self._play_state == PlayState.Paused:
+                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
+                l_chan = cv2.extractChannel(lab, 0)
+                l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
+                cv2.insertChannel(l_chan, lab, 0)
+                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+
+            height, width, channels = frame.shape
+            image = QImage(frame, width, height, QImage.Format_RGB888)
+
+        except Exception as ex:
+            getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
+
+        return image
+
+
     def eventFilter(self, obj, evt):
         if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
             if evt.key() == Qt.Key_Space:
@@ -549,7 +660,8 @@ class VlcVideoWidget(QStackedWidget):
 
     # callbacks start here
     # XXX TODO - add a video filter to libvlc to detect when video has been clicked,
-    # so that it acts like the previous opencv-based version
+    # so that it acts like the previous opencv-based version. This is likely a c based
+    # video filter (plugin) for libvlc.
     def playerPausedEvent(self, event):
         # XXX remove
         getLogger('finprint').info('player paused event')
@@ -561,7 +673,8 @@ class VlcVideoWidget(QStackedWidget):
         self.playStateChanged.emit(self._play_state)
 
     # once a snaphsot is generated by vlc, post the snapshot (a decoded video frame)
-    # XXX TODO - put this in a background thread. It seems to be blocking on the main thread
+    # in a background thread. It seems to be blocking on the main thread, even though
+    # we should be running off of a C runtime thread
     def snapShotTaken(self, event):
         getLogger('finprint').info('process snaphot')
         # upload on a separate thread
@@ -582,11 +695,11 @@ class VlcVideoWidget(QStackedWidget):
     # callback for 'MediaPlayerPositionChanged'
     def positionChangedEvent(self, event):
         pos = self.mediaplayer.get_position()
-        getLogger('finprint').info('>>>>>>>Position changed: {0}'.format(pos))
+        getLogger('finprint').info('Position changed: {0}'.format(pos))
 
     # callback for 'MediaPlayerTimeChanged'
     def timeChangedEvent(self, event):
         pos = self.mediaplayer.get_time()
-        getLogger('finprint').info('>>>>>>>Time changed: {0}'.format(pos))
+        getLogger('finprint').info('Time changed: {0}'.format(pos))
 
 
