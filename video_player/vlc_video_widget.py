@@ -348,7 +348,8 @@ class VlcVideoWidget(QStackedWidget):
         getLogger('finprint').info('take videoframe snapshot')
         self.annotationImage.clear()
         pix = QPixmap.grabWindow(self.videoframe.winId())
-        self.annotationImage.curr_image = pix.toImage()
+        snap = pix.scaledToHeight(self.videoframe.height())
+        self.annotationImage.curr_image = snap.toImage()
         self.setCurrentIndex(ANNOTATION_INDEX)
 
     # This is used for displaying existing observations. It uses
