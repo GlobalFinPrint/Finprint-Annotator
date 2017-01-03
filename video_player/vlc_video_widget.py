@@ -248,9 +248,6 @@ class VlcVideoWidget(QStackedWidget):
 
     # listen for any spacebar or mousedown event for play/pause
     def eventFilter(self, obj, evt):
-        if evt.type() == QEvent.MouseButtonPress:
-            print(evt.pos())
-            self.toggle_play()
         if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
             if evt.key() == Qt.Key_Space:
                 self.toggle_play()
@@ -379,8 +376,8 @@ class VlcVideoWidget(QStackedWidget):
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self._onPositionChange(pos)
         self._scrub_position = pos
-        self.set_speed(.025, False)
-        self.mediaplayer.set_time(pos)
+        self.set_speed(2.0, False)
+        self.mediaplayer.set_time(pos - 1000)
         self.mediaplayer.play()
         QTimer.singleShot(1000, self.move_to_time_and_take_snaphot)
 
