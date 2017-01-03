@@ -652,14 +652,6 @@ class VlcVideoWidget(QStackedWidget):
         #
         # return image
 
-
-    def eventFilter(self, obj, evt):
-        if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
-            if evt.key() == Qt.Key_Space:
-                self.toggle_play()
-                return True
-        return False
-
     # callbacks start here
     # XXX TODO - add a video filter to libvlc to detect when video has been clicked,
     # so that it acts like the previous opencv-based version. This is likely a c based
