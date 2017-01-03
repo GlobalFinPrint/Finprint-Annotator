@@ -32,8 +32,10 @@ class GlobalFinPrintServer(Singleton):
     def is_assigned_to_self(self, set):
         return self.user_id == set.assigned_to['id']
 
-    def login(self, user_name, pwd, server):
+    def login(self, user_name, pwd, server, skip_set_list=False):
         data = {'username': user_name, 'password': pwd}
+        if skip_set_list:
+            data['skip_set_list'] = True
         self.address = server
         r = requests.post(self.address + '/api/login', data)
         self.logged_in = False
