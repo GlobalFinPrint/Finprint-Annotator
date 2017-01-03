@@ -3,10 +3,11 @@ import psutil
 from io import BytesIO
 
 # XXX Remove this if not needed
-import cv2
-import numpy as np
+# import cv2
+# import numpy as np
 
-# Alternate means of image filtering
+# Alternate means of image filtering. Contrast
+# histograms appear to be broken.
 from PIL import Image
 from PIL import ImageQt
 from PIL import ImageEnhance
@@ -587,8 +588,8 @@ class VlcVideoWidget(QStackedWidget):
                     getLogger('finprint').info('Setting brightness to {0}'.format(brightness))
                     pil_img = brightness_enhancer.enhance(brightness)
                 if self.contrast is True:
-                    getLogger('finprint').info('Setting autocontrast')
-                    pil_img = ImageOps.autocontrast(pil_img, 50, None)
+                    getLogger('finprint').info('Setting faux autocontrast')
+                    pil_img = ImageOps.autocontrast(pil_img, 80)
                 self.annotationImage.curr_image = ImageQt.toqimage(pil_img)
                 self.update()
 
@@ -620,35 +621,36 @@ class VlcVideoWidget(QStackedWidget):
     # (contrast equalization) is a fair amount of code to write from scratch, so we'll leave it as
     # (just a copy of the build_image function in the opencv version.
     def filter_image(self, curr_img):
-        frame = curr_img
-        image = None
-        try:
-            # adjust brightness and saturation
-            if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
-                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-                h, s, v = cv2.split(hsv)
-                final_hsv = cv2.merge((
-                    h,
-                    np.where(255 - s < self.saturation, 255, s + self.saturation),
-                    np.where(255 - v < self.brightness, 255, v + self.brightness)
-                ))
-                frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
-
-            # equalize contrast
-            if self.contrast is True and self._play_state == PlayState.Paused:
-                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
-                l_chan = cv2.extractChannel(lab, 0)
-                l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
-                cv2.insertChannel(l_chan, lab, 0)
-                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
-
-            height, width, channels = frame.shape
-            image = QImage(frame, width, height, QImage.Format_RGB888)
-
-        except Exception as ex:
-            getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
-
-        return image
+        pass
+        # frame = curr_img
+        # image = None
+        # try:
+        #     # adjust brightness and saturation
+        #     if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
+        #         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        #         h, s, v = cv2.split(hsv)
+        #         final_hsv = cv2.merge((
+        #             h,
+        #             np.where(255 - s < self.saturation, 255, s + self.saturation),
+        #             np.where(255 - v < self.brightness, 255, v + self.brightness)
+        #         ))
+        #         frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+        #
+        #     # equalize contrast
+        #     if self.contrast is True and self._play_state == PlayState.Paused:
+        #         lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
+        #         l_chan = cv2.extractChannel(lab, 0)
+        #         l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
+        #         cv2.insertChannel(l_chan, lab, 0)
+        #         frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+        #
+        #     height, width, channels = frame.shape
+        #     image = QImage(frame, width, height, QImage.Format_RGB888)
+        #
+        # except Exception as ex:
+        #     getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
+        #
+        # return image
 
 
     def eventFilter(self, obj, evt):
