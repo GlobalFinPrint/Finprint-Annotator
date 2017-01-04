@@ -2,11 +2,13 @@ import itertools
 import config
 from pydispatch import dispatcher
 from annotation_view import VideoLayoutWidget
-from global_finprint import GlobalFinPrintServer, Set
+from global_finprint import GlobalFinPrintServer, Set, QueryException
 from .login_widget import LoginWidget
 from .assignment_widget import AssignmentWidget
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
+from sys import argv
+from config import global_config
 
 
 class MainWindow(QMainWindow):
@@ -35,7 +37,17 @@ class MainWindow(QMainWindow):
         self._set_menus()
         self.setCentralWidget(self._vid_layout)
         self.showMaximized()  # TODO adjust this?
-        self._launch_login_dialog()
+        try:
+            skip_set_list = bool(len(argv) > 3 and int(argv[3]))
+            success, data = GlobalFinPrintServer().login(
+                user_name=argv[1],
+                pwd=argv[2],
+                server=global_config.get('GLOBAL_FINPRINT_SERVER', 'address'),
+                skip_set_list=skip_set_list
+            )
+            self.on_login(None, None, value=None if skip_set_list else data['sets'])
+        except (IndexError, ValueError, QueryException):
+            self._launch_login_dialog()
 
     def _set_menus(self):
         menubar = QMenuBar()
@@ -180,9 +192,14 @@ class MainWindow(QMainWindow):
 
     def on_login(self, signal, sender, value):
         self._has_logged_in = True
-        self.login_diag.close()
+        if hasattr(self, 'login_diag'):
+            self.login_diag.close()
         self._set_menus()
-        self._launch_assign_diag(value)
+        try:
+            s = Set(int(argv[3]))
+            self._vid_layout.load_set(s)
+        except (IndexError, ValueError):
+            self._launch_assign_diag(value)
 
     def on_login_cancelled(self, signal, sender, value):
         self.login_diag.close()
