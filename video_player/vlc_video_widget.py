@@ -1,7 +1,7 @@
 import time
 import psutil
 from io import BytesIO
-
+import config
 # XXX Remove this if not needed
 # import cv2
 # import numpy as np
@@ -189,7 +189,7 @@ class VlcVideoWidget(QStackedWidget):
 
         # bind instance to load libvlc. This is where we will pass parameters for
         # buffering and the like
-        self.instance = Instance()
+        self.instance = Instance('--file-caching=10000', '--verbose=2', '--file-logging', '--logfile=vlc-debug.log')
         # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
 
@@ -376,7 +376,9 @@ class VlcVideoWidget(QStackedWidget):
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self._onPositionChange(pos)
         self._scrub_position = pos
-        self.set_speed(2.0, False)
+        self.set_speed(0.25, False)
+        # set the time a second earlier, and fire a timer
+        # off the second to find positioning
         self.mediaplayer.set_time(pos - 1000)
         self.mediaplayer.play()
         QTimer.singleShot(1000, self.move_to_time_and_take_snaphot)
@@ -602,10 +604,7 @@ class VlcVideoWidget(QStackedWidget):
 
 
     def convertQImageToCVImage(self, curr_image):
-        '''  Converts a QImage into an opencv MAT format  '''
-
         curr_image = curr_image.convertToFormat(QImage.Format_RGB32)
-
         width = curr_image.width()
         height = curr_image.height()
 
