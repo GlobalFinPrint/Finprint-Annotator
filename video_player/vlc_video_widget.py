@@ -376,10 +376,11 @@ class VlcVideoWidget(QStackedWidget):
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self._onPositionChange(pos)
         self._scrub_position = pos
-        self.set_speed(0.25, False)
+        self.mediaplayer.pause()
+        self.set_speed(.25, False)
         # set the time a second earlier, and fire a timer
         # off the second to find positioning
-        self.mediaplayer.set_time(pos - 1000)
+        self.mediaplayer.set_time(pos)
         self.mediaplayer.play()
         QTimer.singleShot(1000, self.move_to_time_and_take_snaphot)
 
@@ -408,10 +409,9 @@ class VlcVideoWidget(QStackedWidget):
         getLogger('finprint').info('set_position time offset {0}'.format(pos))
         self._scrub_position = pos
         self.setCurrentIndex(VIDEOFRAME_INDEX)
-        self.mediaplayer.set_rate(.50)
+        self.mediaplayer.set_rate(1.0)
         self.mediaplayer.play()
         self.mediaplayer.set_position(p)
-        self.mediaplayer.set_time(pos)
         self._onPositionChange(self.get_position())
         QTimer.singleShot(1000, self.seek_and_take_snapshot)
 
@@ -434,6 +434,11 @@ class VlcVideoWidget(QStackedWidget):
     def move_to_time_and_take_snaphot(self):
         self.mediaplayer.pause()
         self.take_videoframe_snapshot()
+        if self._observation_rect is not None:
+            getLogger('finprint').info('draw observation rect at {0}'.format(self._observation_rect))
+            self.annotationImage.highlighter.start_rect(self._observation_rect.topLeft())
+            self.annotationImage.highlighter.set_rect(self._observation_rect.bottomRight())
+            self.annotationImage.repaint()
 
     def seek_and_take_snapshot(self):
         # first, pause the player, and notify state change
@@ -451,11 +456,6 @@ class VlcVideoWidget(QStackedWidget):
                 taken_snap = True
                 self.take_videoframe_snapshot()
                 getLogger('finprint').info('taking snapshot at {0}'.format(curr_pos))
-                if self._observation_rect is not None:
-                    getLogger('finprint').info('draw observation rect at {0}'.format(self._observation_rect))
-                    self.annotationImage.highlighter.start_rect(self._observation_rect.topLeft())
-                    self.annotationImage.highlighter.set_rect(self._observation_rect.bottomRight())
-                    self.annotationImage.repaint()
             else:
                 time.sleep(.01)
                 attempts += 1
@@ -658,7 +658,6 @@ class VlcVideoWidget(QStackedWidget):
 
     # emit an event when at end of video.
     def streamEndEvent(self, event):
-        print("streamEndEvent callback:", event.type, event.u)
         self._play_state = PlayState.EndOfStream
         self.playStateChanged.emit(self._play_state)
 
