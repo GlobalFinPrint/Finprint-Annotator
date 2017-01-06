@@ -6,13 +6,6 @@ import config
 import cv2
 import numpy as np
 
-# Alternate means of image filtering. Contrast
-# histograms appear to be broken.
-from PIL import Image
-from PIL import ImageQt
-from PIL import ImageEnhance
-from PIL import ImageOps
-
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
@@ -357,8 +350,9 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage.clear()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._observation_rect = rect
+        self.scrub_position(pos - 200)
         self.scrub_position(pos)
-        QTimer.singleShot(500, self.display_observation_snaphot)
+        QTimer.singleShot(700, self.display_observation_snaphot)
 
     def take_videoframe_snapshot(self):
         getLogger('finprint').info('take videoframe snapshot')
@@ -519,37 +513,6 @@ class VlcVideoWidget(QStackedWidget):
 
     def refresh_frame(self):
         self._refresh_frame_cv()
-
-    # XXX Not a direct copy of opencv functionality, may need to change
-    def _refresh_frame_PIL(self):
-        if self._play_state is PlayState.Paused:
-            if self.saturation > 1.0 or self.brightness > 1.0 or self.contrast is True:
-                # XXX grab a png representation of the last snapshot that has
-                # not been filtered. We assume that a snapshot is taken prior
-                # to this function being called
-                curr_img = self.current_snapshot
-                data = QByteArray()
-                buf = QBuffer(data)
-                curr_img.save(buf, 'PNG')
-                # let PIL read the data
-                png_io = BytesIO(data.data())
-                png_io.seek(0)
-                pil_img = Image.open(png_io)
-                if self.saturation > 1.0:
-                    color_enhancer = ImageEnhance.Color(pil_img)
-                    sat = 1.0 + self.saturation/100
-                    getLogger('finprint').info('Setting saturation to {0}'.format(sat))
-                    pil_img = color_enhancer.enhance(sat)
-                if self.brightness > 1.0:
-                    brightness_enhancer = ImageEnhance.Brightness(pil_img)
-                    brightness = 1.0 + self.brightness / 100
-                    getLogger('finprint').info('Setting brightness to {0}'.format(brightness))
-                    pil_img = brightness_enhancer.enhance(brightness)
-                if self.contrast is True:
-                    getLogger('finprint').info('Setting faux autocontrast')
-                    pil_img = ImageOps.autocontrast(pil_img, 80)
-                self.annotationImage.curr_image = ImageQt.toqimage(pil_img)
-                self.update()
 
     def _refresh_frame_cv(self):
         if self._play_state is PlayState.Paused:
