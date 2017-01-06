@@ -2,9 +2,9 @@ import time
 import psutil
 from io import BytesIO
 import config
-# XXX Remove this if not needed
-# import cv2
-# import numpy as np
+# XXX opencv filtering
+import cv2
+import numpy as np
 
 # Alternate means of image filtering. Contrast
 # histograms appear to be broken.
@@ -357,7 +357,8 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage.clear()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._observation_rect = rect
-        self.move_to_position(pos)
+        self.scrub_position(pos)
+        QTimer.singleShot(500, self.display_observation_snaphot)
 
     def take_videoframe_snapshot(self):
         getLogger('finprint').info('take videoframe snapshot')
@@ -367,22 +368,15 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage.curr_image = snap.toImage()
         self.current_snapshot = snap.toImage()
         self.setCurrentIndex(ANNOTATION_INDEX)
+        time.sleep(.1)
 
-    # This is used for displaying existing observations. It uses
-    # a single-shot timer to assure we can display the rect overlay
-    # of the original observation
-    def move_to_position(self, pos):
-        getLogger('finprint').info('move_to_position {0}'.format(pos))
-        self.setCurrentIndex(VIDEOFRAME_INDEX)
-        self._onPositionChange(pos)
-        self._scrub_position = pos
-        self.mediaplayer.pause()
-        self.set_speed(.25, False)
-        # set the time a second earlier, and fire a timer
-        # off the second to find positioning
-        self.mediaplayer.set_time(pos)
-        self.mediaplayer.play()
-        QTimer.singleShot(1000, self.move_to_time_and_take_snaphot)
+    def display_observation_snaphot(self):
+        self.take_videoframe_snapshot()
+        if self._observation_rect is not None:
+            getLogger('finprint').info('draw observation rect at {0}'.format(self._observation_rect))
+            self.annotationImage.highlighter.start_rect(self._observation_rect.topLeft())
+            self.annotationImage.highlighter.set_rect(self._observation_rect.bottomRight())
+            self.annotationImage.repaint()
 
     def jump_back(self, seconds):
         self.clear_extent()
@@ -404,16 +398,12 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.set_position(p)
 
     def set_position(self, pos):
+        self._onPositionChange(pos)
         p = (pos) / self.media.get_duration()
         getLogger('finprint').info('set_position {0}'.format(p))
-        getLogger('finprint').info('set_position time offset {0}'.format(pos))
-        self._scrub_position = pos
         self.setCurrentIndex(VIDEOFRAME_INDEX)
-        self.mediaplayer.set_rate(1.0)
-        self.mediaplayer.play()
         self.mediaplayer.set_position(p)
-        self._onPositionChange(self.get_position())
-        QTimer.singleShot(1000, self.seek_and_take_snapshot)
+        self.take_videoframe_snapshot()
 
     def toggle_play(self):
         if self._play_state in [PlayState.Paused, PlayState.EndOfStream]:
@@ -430,37 +420,6 @@ class VlcVideoWidget(QStackedWidget):
         self._play_state = PlayState.Paused
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
-
-    def move_to_time_and_take_snaphot(self):
-        self.mediaplayer.pause()
-        self.take_videoframe_snapshot()
-        if self._observation_rect is not None:
-            getLogger('finprint').info('draw observation rect at {0}'.format(self._observation_rect))
-            self.annotationImage.highlighter.start_rect(self._observation_rect.topLeft())
-            self.annotationImage.highlighter.set_rect(self._observation_rect.bottomRight())
-            self.annotationImage.repaint()
-
-    def seek_and_take_snapshot(self):
-        # first, pause the player, and notify state change
-        actual_pos = self._scrub_position / self.media.get_duration()
-        self.mediaplayer.pause()
-        taken_snap = False
-        attempts = 0
-        # just in case we haven't arrived at the position,
-        # give it a couple of tries. This is definitely the
-        # achilles heel for VLC - its more performant than
-        # the previous annotator, but it is not frame accurate.
-        while not taken_snap and attempts < 5:
-            curr_pos = self.mediaplayer.get_position()
-            if curr_pos > (actual_pos - .0005):
-                taken_snap = True
-                self.take_videoframe_snapshot()
-                getLogger('finprint').info('taking snapshot at {0}'.format(curr_pos))
-            else:
-                time.sleep(.01)
-                attempts += 1
-        if not taken_snap:
-            getLogger('finprint').info('unable to take snapshot  curr_pos:{0}  scrub_pos: {1}'.format(curr_pos, actual_pos))
 
     def save_image(self, filename):
         self.curr_s3_upload = filename
@@ -559,7 +518,7 @@ class VlcVideoWidget(QStackedWidget):
         self.update()
 
     def refresh_frame(self):
-        self._refresh_frame_PIL()
+        self._refresh_frame_cv()
 
     # XXX Not a direct copy of opencv functionality, may need to change
     def _refresh_frame_PIL(self):
@@ -604,7 +563,8 @@ class VlcVideoWidget(QStackedWidget):
 
 
     def convertQImageToCVImage(self, curr_image):
-        curr_image = curr_image.convertToFormat(QImage.Format_RGB32)
+        rgb32_image = curr_image.convertToFormat(QImage.Format_RGB32)
+        curr_image = rgb32_image.rgbSwapped()
         width = curr_image.width()
         height = curr_image.height()
 
@@ -618,35 +578,35 @@ class VlcVideoWidget(QStackedWidget):
     # (just a copy of the build_image function in the opencv version.
     def filter_image(self, curr_img):
         pass
-        # frame = curr_img
-        # image = None
-        # try:
-        #     # adjust brightness and saturation
-        #     if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
-        #         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        #         h, s, v = cv2.split(hsv)
-        #         final_hsv = cv2.merge((
-        #             h,
-        #             np.where(255 - s < self.saturation, 255, s + self.saturation),
-        #             np.where(255 - v < self.brightness, 255, v + self.brightness)
-        #         ))
-        #         frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
-        #
-        #     # equalize contrast
-        #     if self.contrast is True and self._play_state == PlayState.Paused:
-        #         lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
-        #         l_chan = cv2.extractChannel(lab, 0)
-        #         l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
-        #         cv2.insertChannel(l_chan, lab, 0)
-        #         frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
-        #
-        #     height, width, channels = frame.shape
-        #     image = QImage(frame, width, height, QImage.Format_RGB888)
-        #
-        # except Exception as ex:
-        #     getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
-        #
-        # return image
+        frame = curr_img
+        image = None
+        try:
+            # adjust brightness and saturation
+            if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
+                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                h, s, v = cv2.split(hsv)
+                final_hsv = cv2.merge((
+                    h,
+                    np.where(255 - s < self.saturation, 255, s + self.saturation),
+                    np.where(255 - v < self.brightness, 255, v + self.brightness)
+                ))
+                frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+
+            # equalize contrast
+            if self.contrast is True and self._play_state == PlayState.Paused:
+                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
+                l_chan = cv2.extractChannel(lab, 0)
+                l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
+                cv2.insertChannel(l_chan, lab, 0)
+                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+
+            height, width, channels = frame.shape
+            image = QImage(frame, width, height, QImage.Format_RGB888)
+
+        except Exception as ex:
+            getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
+
+        return image
 
     # callbacks start here
     # XXX TODO - add a video filter to libvlc to detect when video has been clicked,

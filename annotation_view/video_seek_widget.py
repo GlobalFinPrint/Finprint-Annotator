@@ -88,7 +88,7 @@ class VideoSeekWidget(QSlider):
         """ Jump to click position """
         self.dragging = True
         self._player.pause()
-        #self.allowed_progress = max(self.value(), self.allowed_progress)
+        self.allowed_progress = max(self.value(), self.allowed_progress)
         self.setValue(QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), ev.x(), self.width()))
 
     def mouseMoveEvent(self, ev):
@@ -101,7 +101,7 @@ class VideoSeekWidget(QSlider):
 
     def mouseReleaseEvent(self, ev):
         self.dragging = False
-        self.set_position(self.value())
+        # self.set_position(self.value())
 
     def set_position(self, v):
         # do not allow fast forward for non-leads bob was here
