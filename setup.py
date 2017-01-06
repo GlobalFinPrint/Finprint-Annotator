@@ -220,6 +220,12 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
+        # used for image filtering
+        shutil.copy('lib/opencv_ffmpeg310.dll',
+                    'dist/opencv_ffmpeg310.dll')
+        win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
+                                   win32con.FILE_ATTRIBUTE_NORMAL)
+
         shutil.copy('lib/libvlc.dll',
                     'dist/libvlc.dll')
         win32api.SetFileAttributes('dist/libvlc.dll',
@@ -252,7 +258,7 @@ class BuildInstaller(py2exe):
         trimmed_plugins = trim_plugin_tree(lib_plugin_files)
         print(trimmed_plugins)
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'opencv_ffmpeg310.dll','libvlc.dll', 'libvlccore.dll',
                                   'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
