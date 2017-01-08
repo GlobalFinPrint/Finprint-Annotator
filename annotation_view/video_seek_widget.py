@@ -100,6 +100,9 @@ class VideoSeekWidget(QSlider):
         QToolTip.showText(QCursor.pos(), convert_position(pos))
 
     def mouseReleaseEvent(self, ev):
+        if self.dragging:
+            self._player.scrub_position(self.value())
+            QTimer.singleShot(1000, self._player.take_videoframe_snapshot)
         self.dragging = False
         # self.set_position(self.value())
 
