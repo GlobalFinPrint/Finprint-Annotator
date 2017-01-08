@@ -220,11 +220,10 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
-        # used for image filtering
-        shutil.copy('lib/opencv_ffmpeg310.dll',
-                    'dist/opencv_ffmpeg310.dll')
-        win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
-                                   win32con.FILE_ATTRIBUTE_NORMAL)
+        # shutil.copy('lib/opencv_ffmpeg310.dll',
+        #             'dist/opencv_ffmpeg310.dll')
+        # win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
+        #                            win32con.FILE_ATTRIBUTE_NORMAL)
 
         shutil.copy('lib/libvlc.dll',
                     'dist/libvlc.dll')
@@ -238,9 +237,6 @@ class BuildInstaller(py2exe):
 
         shutil.copytree('lib/plugins',
                      'dist/plugins')
-        # TODO - is it necessary to set file attributes for all the dlls?
-        # win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
-        #                        win32con.FILE_ATTRIBUTE_NORMAL)
 
         shutil.copy('requests/cacert.pem',
                     'dist/cacert.pem')
@@ -256,10 +252,12 @@ class BuildInstaller(py2exe):
         # XXX hack for plugins to wind up at same level as libvlc
         lib_plugin_files = globr('lib\\plugins\\*')
         trimmed_plugins = trim_plugin_tree(lib_plugin_files)
-        print(trimmed_plugins)
+        opencv_libs = globr('dist\\opencv*.dll')
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'opencv_ffmpeg310.dll','libvlc.dll', 'libvlccore.dll',
-                                  'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll',
+                                  'libvlccore.dll', 'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll',
+                                  'QTGui4.dll', 'libpng16.dll', 'mkl_intel_thread.dll', 'zlib.dll' ]  \
+                                 + opencv_libs + trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
@@ -304,7 +302,6 @@ def trim_plugin_tree(files):
             trimmed.append(file[4:])
         else:
             trimmed.append(file)
-    print(trimmed)
     return trimmed
 
 def getdatafiles():
