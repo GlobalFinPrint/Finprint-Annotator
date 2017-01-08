@@ -1,8 +1,8 @@
 import time
 import psutil
 from io import BytesIO
-import config
-# XXX opencv filtering
+# XXX opencv filtering for now. Planning on switching to skimage
+# for more image filtering possibilities in the future
 import cv2
 import numpy as np
 
@@ -142,7 +142,7 @@ class VlcVideoWidget(QStackedWidget):
         self._highlighter = Highlighter()
         self._onPositionChange = onPositionChange
         self._extent_rect = None
-        self._scrub_position = 0
+        self._duration = 0
         # XXX hacks for image filtering
         self.current_snapshot = None
         self.saturation = 0
@@ -154,7 +154,6 @@ class VlcVideoWidget(QStackedWidget):
         if sys.platform == "darwin":  # for MacOS
             self.videoframe = QMacCocoaViewContainer(0)
         else:
-            #self.videoframe = QWidget()
             self.videoframe = QFrame()
 
         # add the videoframe
@@ -180,8 +179,9 @@ class VlcVideoWidget(QStackedWidget):
         if not os.path.exists(self.temp_snapshot_dir):
             os.makedirs(self.temp_snapshot_dir)
 
-        # bind instance to load libvlc. This is where we will pass parameters for
-        # buffering and the like
+        # bind instance to load libvlc. This is where we pass parameters for
+        # buffering and the like.
+        # XXX TODO - Make this configurable
         self.instance = Instance('--file-caching=10000')
         # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
@@ -274,12 +274,12 @@ class VlcVideoWidget(QStackedWidget):
         self._play_state = PlayState.Paused
         self._aspect_ratio = self.videoframe.width() / self.videoframe.height()
 
-        # wire up callbacks to VLC for snapshots and end of stream, which is relative to
-        # the media being played
+        # wire up callbacks to VLC for snapshots and end of stream,
+        # which is relative to the media being played
         mp_event_mgr = self.mediaplayer.event_manager()
         mp_event_mgr.event_attach(EventType.MediaPlayerSnapshotTaken, self.snapShotTaken)
-        mp_event_mgr.event_attach(EventType.MediaPlayerEndReached, self.streamEndEvent)
         # XXX Uncomment these for debugging
+        # mp_event_mgr.event_attach(EventType.MediaPlayerEndReached, self.streamEndEvent)
         # mp_event_mgr.event_attach(EventType.MediaPlayerPositionChanged, self.positionChangedEvent)
         # mp_event_mgr.event_attach(EventType.MediaPlayerTimeChanged, self.timeChangedEvent)
 
@@ -292,10 +292,6 @@ class VlcVideoWidget(QStackedWidget):
         # VLC with respect to video scrubbing
         self.mediaplayer.set_time(20)
         self.mediaplayer.play()
-
-        contrast = self.mediaplayer.video_get_adjust_float(VideoAdjustOption.Contrast)
-        brightness = self.mediaplayer.video_get_adjust_float(VideoAdjustOption.Brightness)
-        sat = self.mediaplayer.video_get_adjust_float(VideoAdjustOption.Saturation)
         QTimer.singleShot(500, self.mediaplayer.pause)
 
         return True
@@ -324,16 +320,16 @@ class VlcVideoWidget(QStackedWidget):
 
     # Reinstate last_progress here
     def on_timer(self):
-        if self._play_state == PlayState.Playing:
+        if self._play_state in [PlayState.Playing, PlayState.SeekBack, PlayState.SeekForward]:
             pos = self.get_position()
+            if pos > (self.media.get_duration() - 2000):
+                self.streamEndEvent()
             if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
                 self._last_progress = pos
                 self.progressUpdate.emit(pos)
             self._onPositionChange(self.get_position())
 
     def clear(self):
-        # XXX TODO
-        # self._profile_timer.cancel()
         self._timer.cancel()
         self.update()
 
@@ -350,9 +346,8 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage.clear()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._observation_rect = rect
-        self.scrub_position(pos - 200)
         self.scrub_position(pos)
-        QTimer.singleShot(700, self.display_observation_snaphot)
+        QTimer.singleShot(1000, self.display_observation_snaphot)
 
     def take_videoframe_snapshot(self):
         getLogger('finprint').info('take videoframe snapshot')
@@ -362,7 +357,6 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage.curr_image = snap.toImage()
         self.current_snapshot = snap.toImage()
         self.setCurrentIndex(ANNOTATION_INDEX)
-        time.sleep(.1)
 
     def display_observation_snaphot(self):
         self.take_videoframe_snapshot()
@@ -385,9 +379,10 @@ class VlcVideoWidget(QStackedWidget):
             self._onPositionChange(self.get_position())
 
     def scrub_position(self, pos):
+        # todo - just have a Seek State
+        self._play_state = PlayState.Paused
         p = (pos) / self.media.get_duration()
         getLogger('finprint').info('scrub_position {0}'.format(p))
-        self._scrub_position = pos
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.mediaplayer.set_position(p)
 
@@ -400,7 +395,7 @@ class VlcVideoWidget(QStackedWidget):
         self.take_videoframe_snapshot()
 
     def toggle_play(self):
-        if self._play_state in [PlayState.Paused, PlayState.EndOfStream]:
+        if self._play_state in [PlayState.Paused, PlayState.SeekForward, PlayState.SeekBack]:
             getLogger('finprint').info('toggle_play: play')
             self.play()
         else:
@@ -519,31 +514,45 @@ class VlcVideoWidget(QStackedWidget):
             # grab a cv representation of the image
             # that has not been filtered
             curr_img = self.current_snapshot
-            cvFrame = self.convertQImageToCVImage(curr_img)
+            cvFrame = self.qImageToNumpy(curr_img)
             filtered_img = self.filter_image(cvFrame)
             self.annotationImage.curr_image = filtered_img
             self.update()
 
-
-    def convertQImageToCVImage(self, curr_image):
-        rgb32_image = curr_image.convertToFormat(QImage.Format_RGB32)
-        curr_image = rgb32_image.rgbSwapped()
+    def qImageToNumpy(self, curr_image):
+        curr_image = curr_image.convertToFormat(QImage.Format_RGB888)
+        curr_image.rgbSwapped()
         width = curr_image.width()
         height = curr_image.height()
 
         ptr = curr_image.bits()
         ptr.setsize(curr_image.byteCount())
-        frame = np.array(ptr).reshape(height, width, QImage.Format_RGB32)  # Copies the data
+        # XXX Make the # of channels (shape[2]) conditional, so if we have an alpha or b/w
+        frame = np.array(ptr).reshape(height, width, 3)  # Copies the data
         return frame
 
-    # XXX TODO - to be performant, this really should just be numpy calculations, but the histogram
-    # (contrast equalization) is a fair amount of code to write from scratch, so we'll leave it as
-    # (just a copy of the build_image function in the opencv version.
+    # XXX TODO - When we go to skimage, use this to
+    def numpyToQImage(self, im, copy=False):
+        if im is None:
+            return QImage()
+
+        if len(im.shape) == 3:
+            if im.shape[2] == 3:
+                qim = QImage(im.data, im.shape[1], im.shape[0], im.strides[0], QImage.Format_RGB888);
+                return qim.copy() if copy else qim
+            elif im.shape[2] == 4:
+                qim = QImage(im.data, im.shape[1], im.shape[0], im.strides[0], QImage.Format_ARGB32);
+                return qim.copy() if copy else qim
+
+        return QImage()
+
+    # XXX TODO - Move this over to skimage, so that we can have more
+    # possibilities in histogram manipulation
     def filter_image(self, curr_img):
-        pass
         frame = curr_img
         image = None
         try:
+            print('saturation: {0}  brightness: {1}'.format(self.saturation, self.brightness))
             # adjust brightness and saturation
             if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
                 hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -580,9 +589,11 @@ class VlcVideoWidget(QStackedWidget):
         getLogger('finprint').info('player paused event')
 
     # emit an event when at end of video.
-    def streamEndEvent(self, event):
+    def streamEndEvent(self):
+        getLogger('finprint').info('end of stream event')
         self._play_state = PlayState.EndOfStream
         self.playStateChanged.emit(self._play_state)
+        self.mediaplayer.pause()
 
     # once a snaphsot is generated by vlc, post the snapshot (a decoded video frame)
     # in a background thread. It seems to be blocking on the main thread, even though
@@ -613,5 +624,3 @@ class VlcVideoWidget(QStackedWidget):
     def timeChangedEvent(self, event):
         pos = self.mediaplayer.get_time()
         getLogger('finprint').info('Time changed: {0}'.format(pos))
-
-
