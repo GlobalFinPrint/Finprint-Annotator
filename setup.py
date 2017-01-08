@@ -256,7 +256,7 @@ class BuildInstaller(py2exe):
 
         self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll',
                                   'libvlccore.dll', 'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll',
-                                  'QTGui4.dll', 'libpng16.dll', 'mkl_intel_thread.dll', 'zlib.dll' ]  \
+                                  'QTGui4.dll' ]  \
                                  + opencv_libs + trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
