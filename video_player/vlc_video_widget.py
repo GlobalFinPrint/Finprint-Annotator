@@ -329,7 +329,6 @@ class VlcVideoWidget(QStackedWidget):
                 self.progressUpdate.emit(pos)
             self._onPositionChange(self.get_position())
 
-
     def clear(self):
         self._timer.cancel()
         self.update()
@@ -357,6 +356,9 @@ class VlcVideoWidget(QStackedWidget):
         snap = pix.scaledToHeight(self.videoframe.height())
         self.annotationImage.curr_image = snap.toImage()
         self.current_snapshot = snap.toImage()
+        # XXX inline this function
+        if self.is_filtered():
+            self.refresh_frame()
         self.setCurrentIndex(ANNOTATION_INDEX)
 
     def display_observation_snaphot(self):
@@ -402,7 +404,6 @@ class VlcVideoWidget(QStackedWidget):
         else:
             getLogger('finprint').info('toggle_play: pause')
             self.pause()
-            self.mediaplayer.pause()
             self.take_videoframe_snapshot()
 
     def pause(self):
@@ -488,6 +489,9 @@ class VlcVideoWidget(QStackedWidget):
         if not self.is_paused():
             self.pause()
         self.set_position(self.get_position() + FRAME_STEP)
+
+    def is_filtered(self):
+        return self.saturation > 0 or self.brightness > 0 or self.contrast
 
     def clear_extent(self):
         self.annotationImage.clearExtent()
