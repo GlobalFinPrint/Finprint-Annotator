@@ -84,8 +84,6 @@ class InnoScript:
 
 excludes = ["Tkinter"]
 
-
-
 class Target(object):
     '''Target is the baseclass for all executables that are created.
     It defines properties that are shared by all of them.
@@ -220,6 +218,11 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
+        shutil.copy('lib/opencv_ffmpeg310.dll',
+                    'dist/opencv_ffmpeg310.dll')
+        win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
+                                   win32con.FILE_ATTRIBUTE_NORMAL)
+
         shutil.copy('lib/libpng16.dll',
                     'dist/libpng16.dll')
         win32api.SetFileAttributes('dist/libpng16.dll',
@@ -230,9 +233,9 @@ class BuildInstaller(py2exe):
         win32api.SetFileAttributes('dist/mkl_intel_thread.dll',
                                    win32con.FILE_ATTRIBUTE_NORMAL)
 
-        shutil.copy('lib/zlib.dll',
-                    'dist/zlib.dll')
-        win32api.SetFileAttributes('dist/zlib.dll',
+        shutil.copy('lib/numpy-atlas.dll',
+                    'dist/numpy-atlas.dll')
+        win32api.SetFileAttributes('dist/numpy-atlas.dll',
                                    win32con.FILE_ATTRIBUTE_NORMAL)
 
         shutil.copy('lib/libvlc.dll',
@@ -265,8 +268,8 @@ class BuildInstaller(py2exe):
         opencv_libs = globr('dist\\opencv*.dll')
 
         self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
-                                  'zlib.dll', 'mkl_intel_thread.dll', 'libpng16.dll','credentials.csv', 'cacert.pem', 'python34.dll',
-                                  'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins + opencv_libs
+                                  'numpy-atlas.dll', 'mkl_intel_thread.dll', 'libpng16.dll','credentials.csv', 'cacert.pem',
+                                  'python34.dll', 'opencv_ffmpeg310.dll', 'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
