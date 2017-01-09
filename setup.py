@@ -220,14 +220,19 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
-        shutil.copy('lib/opencv_ffmpeg300.dll',
-                    'dist/opencv_ffmpeg300.dll')
-        win32api.SetFileAttributes('dist/opencv_ffmpeg300.dll',
+        shutil.copy('lib/libpng16.dll',
+                    'dist/libpng16.dll')
+        win32api.SetFileAttributes('dist/libpng16.dll',
                                    win32con.FILE_ATTRIBUTE_NORMAL)
 
-        shutil.copy('lib/opencv_ffmpeg310.dll',
-                    'dist/opencv_ffmpeg310.dll')
-        win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
+        shutil.copy('lib/mkl_intel_thread.dll',
+                    'dist/mkl_intel_thread.dll')
+        win32api.SetFileAttributes('dist/mkl_intel_thread.dll',
+                                   win32con.FILE_ATTRIBUTE_NORMAL)
+
+        shutil.copy('lib/zlib.dll',
+                    'dist/zlib.dll')
+        win32api.SetFileAttributes('dist/zlib.dll',
                                    win32con.FILE_ATTRIBUTE_NORMAL)
 
         shutil.copy('lib/libvlc.dll',
@@ -260,7 +265,8 @@ class BuildInstaller(py2exe):
         opencv_libs = globr('dist\\opencv*.dll')
 
         self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
-                                  'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins + opencv_libs
+                                  'zlib.dll', 'mkl_intel_thread.dll', 'libpng16.dll','credentials.csv', 'cacert.pem', 'python34.dll',
+                                  'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins + opencv_libs
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
