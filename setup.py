@@ -220,6 +220,11 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
+        # shutil.copy('lib/numpy-atlas.dll',
+        #             'dist/numpy-atlas.dll')
+        # win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
+        #                            win32con.FILE_ATTRIBUTE_NORMAL)
+
         # shutil.copy('lib/opencv_ffmpeg310.dll',
         #             'dist/opencv_ffmpeg310.dll')
         # win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
@@ -255,9 +260,8 @@ class BuildInstaller(py2exe):
         opencv_libs = globr('dist\\opencv*.dll')
 
         self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll',
-                                  'libvlccore.dll', 'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll',
-                                  'QTGui4.dll' ]  \
-                                 + opencv_libs + trimmed_plugins
+                                  'libvlccore.dll', 'credentials.csv', 'cacert.pem', 'python34.dll',
+                                  'QTCore4.dll', 'QTGui4.dll' ]  + trimmed_plugins + opencv_libs
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
