@@ -257,11 +257,10 @@ class BuildInstaller(py2exe):
         # XXX hack for plugins to wind up at same level as libvlc
         lib_plugin_files = globr('lib\\plugins\\*')
         trimmed_plugins = trim_plugin_tree(lib_plugin_files)
-        # opencv_libs = globr('dist\\opencv*.dll')
+        opencv_libs = globr('dist\\opencv*.dll')
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'opencv_ffmpeg300.dll',
-                                   'opencv_ffmpeg310.dll', 'libvlccore.dll', 'credentials.csv', 'cacert.pem', 'python34.dll',
-                                  'QTCore4.dll', 'QTGui4.dll' ]  + trimmed_plugins
+        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
+                                  'credentials.csv', 'cacert.pem', 'python34.dll', 'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins + opencv_libs
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
