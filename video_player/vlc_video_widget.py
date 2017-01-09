@@ -3,7 +3,7 @@ import psutil
 from io import BytesIO
 # XXX opencv filtering for now. Planning on switching to skimage
 # for more image filtering possibilities in the future
-# import cv2
+import cv2
 import numpy as np
 
 from boto.s3.connection import S3Connection
@@ -520,10 +520,10 @@ class VlcVideoWidget(QStackedWidget):
         if self._play_state is PlayState.Paused:
             # grab a cv representation of the image
             # that has not been filtered
-            # curr_img = self.current_snapshot
-            # cvFrame = self.qImageToNumpy(curr_img)
-            # filtered_img = self.filter_image(cvFrame)
-            # self.annotationImage.curr_image = filtered_img
+            curr_img = self.current_snapshot
+            cvFrame = self.qImageToNumpy(curr_img)
+            filtered_img = self.filter_image(cvFrame)
+            self.annotationImage.curr_image = filtered_img
             self.update()
 
     def qImageToNumpy(self, curr_image):
@@ -556,37 +556,36 @@ class VlcVideoWidget(QStackedWidget):
     # XXX TODO - Move this over to skimage, so that we can have more
     # possibilities in histogram manipulation
     def filter_image(self, curr_img):
-        pass
-        # frame = curr_img
-        # image = None
-        # try:
-        #     getLogger('finprint').debug('saturation: {0}  brightness: {1}'.format(self.saturation, self.brightness))
-        #     # adjust brightness and saturation
-        #     if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
-        #         hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        #         h, s, v = cv2.split(hsv)
-        #         final_hsv = cv2.merge((
-        #             h,
-        #             np.where(255 - s < self.saturation, 255, s + self.saturation),
-        #             np.where(255 - v < self.brightness, 255, v + self.brightness)
-        #         ))
-        #         frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
-        #
-        #     # equalize contrast
-        #     if self.contrast is True and self._play_state == PlayState.Paused:
-        #         lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
-        #         l_chan = cv2.extractChannel(lab, 0)
-        #         l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
-        #         cv2.insertChannel(l_chan, lab, 0)
-        #         frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
-        #
-        #     height, width, channels = frame.shape
-        #     image = QImage(frame, width, height, QImage.Format_RGB888)
-        #
-        # except Exception as ex:
-        #     getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
-        #
-        # return image
+        frame = curr_img
+        image = None
+        try:
+            getLogger('finprint').debug('saturation: {0}  brightness: {1}'.format(self.saturation, self.brightness))
+            # adjust brightness and saturation
+            if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
+                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                h, s, v = cv2.split(hsv)
+                final_hsv = cv2.merge((
+                    h,
+                    np.where(255 - s < self.saturation, 255, s + self.saturation),
+                    np.where(255 - v < self.brightness, 255, v + self.brightness)
+                ))
+                frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+
+            # equalize contrast
+            if self.contrast is True and self._play_state == PlayState.Paused:
+                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
+                l_chan = cv2.extractChannel(lab, 0)
+                l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
+                cv2.insertChannel(l_chan, lab, 0)
+                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+
+            height, width, channels = frame.shape
+            image = QImage(frame, width, height, QImage.Format_RGB888)
+
+        except Exception as ex:
+            getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
+
+        return image
 
     # callbacks start here
     # XXX TODO - add a video filter to libvlc to detect when video has been clicked,
