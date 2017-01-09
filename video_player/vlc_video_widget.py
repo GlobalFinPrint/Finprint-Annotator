@@ -4,7 +4,7 @@ from io import BytesIO
 # XXX opencv filtering for now. Planning on switching to skimage
 # for more image filtering possibilities in the future
 # import cv2
-# import numpy as np
+import numpy as np
 
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
@@ -526,32 +526,32 @@ class VlcVideoWidget(QStackedWidget):
             # self.annotationImage.curr_image = filtered_img
             self.update()
 
-    # def qImageToNumpy(self, curr_image):
-    #     curr_image = curr_image.convertToFormat(QImage.Format_RGB888)
-    #     curr_image.rgbSwapped()
-    #     width = curr_image.width()
-    #     height = curr_image.height()
-    #
-    #     ptr = curr_image.bits()
-    #     ptr.setsize(curr_image.byteCount())
-    #     # XXX Make the # of channels (shape[2]) conditional, so if we have an alpha or b/w
-    #     frame = np.array(ptr).reshape(height, width, 3)  # Copies the data
-    #     return frame
+    def qImageToNumpy(self, curr_image):
+        curr_image = curr_image.convertToFormat(QImage.Format_RGB888)
+        curr_image = curr_image.rgbSwapped()
+        width = curr_image.width()
+        height = curr_image.height()
+
+        ptr = curr_image.bits()
+        ptr.setsize(curr_image.byteCount())
+        # XXX Make the # of channels (shape[2]) conditional, so if we have an alpha or b/w
+        frame = np.array(ptr).reshape(height, width, 3)  # Copies the data
+        return frame
 
     # XXX TODO - When we go to skimage, use this to
-    # def numpyToQImage(self, im, copy=False):
-    #     if im is None:
-    #         return QImage()
-    #
-    #     if len(im.shape) == 3:
-    #         if im.shape[2] == 3:
-    #             qim = QImage(im.data, im.shape[1], im.shape[0], im.strides[0], QImage.Format_RGB888)
-    #             return qim.copy() if copy else qim
-    #         elif im.shape[2] == 4:
-    #             qim = QImage(im.data, im.shape[1], im.shape[0], im.strides[0], QImage.Format_ARGB32)
-    #             return qim.copy() if copy else qim
-    #
-    #     return QImage()
+    def numpyToQImage(self, im, copy=False):
+        if im is None:
+            return QImage()
+
+        if len(im.shape) == 3:
+            if im.shape[2] == 3:
+                qim = QImage(im.data, im.shape[1], im.shape[0], im.strides[0], QImage.Format_RGB888)
+                return qim.copy() if copy else qim
+            elif im.shape[2] == 4:
+                qim = QImage(im.data, im.shape[1], im.shape[0], im.strides[0], QImage.Format_ARGB32)
+                return qim.copy() if copy else qim
+
+        return QImage()
 
     # XXX TODO - Move this over to skimage, so that we can have more
     # possibilities in histogram manipulation
