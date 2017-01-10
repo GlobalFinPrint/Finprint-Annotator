@@ -218,16 +218,6 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
-        # shutil.copy('lib/opencv_ffmpeg310.dll',
-        #             'dist/opencv_ffmpeg310.dll')
-        # win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
-        #                            win32con.FILE_ATTRIBUTE_NORMAL)
-
-        shutil.copy('lib/libpng16.dll',
-                    'dist/libpng16.dll')
-        win32api.SetFileAttributes('dist/libpng16.dll',
-                                   win32con.FILE_ATTRIBUTE_NORMAL)
-
         shutil.copy('lib/mkl_intel_thread.dll',
                     'dist/mkl_intel_thread.dll')
         win32api.SetFileAttributes('dist/mkl_intel_thread.dll',
@@ -265,10 +255,9 @@ class BuildInstaller(py2exe):
         # XXX hack for plugins to wind up at same level as libvlc
         lib_plugin_files = globr('lib\\plugins\\*')
         trimmed_plugins = trim_plugin_tree(lib_plugin_files)
-        opencv_libs = globr('dist\\opencv*.dll')
 
         self.console_exe_files = ['finprint_annotator.exe', 'credentials.csv', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
-                                  'numpy-atlas.dll', 'mkl_intel_thread.dll', 'QTCore4.dll', 'QTGui4.dll' ] + trimmed_plugins + opencv_libs
+                                  'numpy-atlas.dll', 'mkl_intel_thread.dll', 'QTCore4.dll', 'QTGui4.dll', ] + trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')

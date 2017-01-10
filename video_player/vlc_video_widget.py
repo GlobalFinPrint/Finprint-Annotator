@@ -1,10 +1,12 @@
 import time
 import psutil
 from io import BytesIO
-# XXX opencv filtering for now. Planning on switching to skimage
+# XXX removed opencv filtering for now. Planning on switching to skimage
 # for more image filtering possibilities in the future
-import cv2
 import numpy as np
+from PIL import Image
+from PIL import ImageEnhance
+from PIL import ImageOps
 
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
@@ -21,11 +23,10 @@ from threading import Event as PyEvent
 from tempfile import gettempdir
 from .vlc import *
 
-
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
 VIDEO_HEIGHT = 450
-DEFAULT_ASPECT_RATIO = 16.0/9.0
+DEFAULT_ASPECT_RATIO = 16.0 / 9.0
 AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
 FRAME_STEP = 50
@@ -70,7 +71,6 @@ class RepeatingTimer(QObject):
 
 
 class AnnotationImage(QWidget):
-
     def __init__(self):
         QWidget.__init__(self)
         self.highlighter = Highlighter()
@@ -125,8 +125,8 @@ class AnnotationImage(QWidget):
             painter.drawRect(self.highlighter.get_rect())
             painter.end()
 
-class VlcVideoWidget(QStackedWidget):
 
+class VlcVideoWidget(QStackedWidget):
     playStateChanged = pyqtSignal(PlayState)
     progressUpdate = pyqtSignal(int)
     playbackSpeedChanged = pyqtSignal(float)
@@ -324,7 +324,7 @@ class VlcVideoWidget(QStackedWidget):
             pos = self.get_position()
             if pos > (self.media.get_duration() - 2000):
                 self.streamEndEvent()
-            if pos - self._last_progress > PROGRESS_UPDATE_INTERVAL:
+            if self._play_state is PlayState.Playing and self._last_progress > PROGRESS_UPDATE_INTERVAL:
                 self._last_progress = pos
                 self.progressUpdate.emit(pos)
             self._onPositionChange(self.get_position())
@@ -372,7 +372,7 @@ class VlcVideoWidget(QStackedWidget):
     def jump_back(self, seconds):
         self.clear_extent()
         time_back = self.mediaplayer.get_time() - seconds * 1000
-        pos_back = time_back/self.media.get_duration()
+        pos_back = time_back / self.media.get_duration()
         if time_back < 0:
             time_back = 0
         # if paused, swap out the static image
@@ -496,7 +496,7 @@ class VlcVideoWidget(QStackedWidget):
     def clear_extent(self):
         self.annotationImage.clearExtent()
 
-    def set_speed(self, speed, start_playing = True):
+    def set_speed(self, speed, start_playing=True):
         # XXX assume we are about to or are playing, so show videoframe
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.mediaplayer.set_rate(speed)
@@ -514,17 +514,54 @@ class VlcVideoWidget(QStackedWidget):
         self.update()
 
     def refresh_frame(self):
-        self._refresh_frame_cv()
+        self._refresh_frame_PIL()
 
-    def _refresh_frame_cv(self):
+    def _refresh_frame_PIL(self):
         if self._play_state is PlayState.Paused:
-            # grab a cv representation of the image
-            # that has not been filtered
-            curr_img = self.current_snapshot
-            cvFrame = self.qImageToNumpy(curr_img)
-            filtered_img = self.filter_image(cvFrame)
-            self.annotationImage.curr_image = filtered_img
-            self.update()
+            if self.saturation > 1.0 or self.brightness > 1.0 or self.contrast is True:
+                # XXX grab a png representation of the last snapshot that has
+                # not been filtered. We assume that a snapshot is taken prior
+                # to this function being called
+                curr_img = self.current_snapshot
+                data = QByteArray()
+                buf = QBuffer(data)
+                curr_img.save(buf, 'PNG')
+                # let PIL read the data
+                png_io = BytesIO(data.data())
+                png_io.seek(0)
+                pil_img = Image.open(png_io)
+                if self.saturation > 1.0:
+                    color_enhancer = ImageEnhance.Color(pil_img)
+                    sat = self.saturation / 50
+                    getLogger('finprint').info('Setting saturation to {0}'.format(sat))
+                    pil_img = color_enhancer.enhance(sat)
+                if self.brightness > 1.0:
+                    brightness_enhancer = ImageEnhance.Brightness(pil_img)
+                    brightness = .70 + self.brightness / 100
+                    getLogger('finprint').info('Setting brightness to {0}'.format(brightness))
+                    pil_img = brightness_enhancer.enhance(brightness)
+                if self.contrast is True:
+                    # contrast_enhancer = ImageEnhance.Contrast(pil_img)
+                    # contrast = 1.55
+                    # pil_img = contrast_enhancer.enhance(contrast)
+                    pil_img = ImageOps.autocontrast(pil_img, cutoff=7.95)
+                    # np_arr = self.pil_to_array(pil_img)
+                    # getLogger('finprint').info('Setting contrast')
+                    # adjusted_img = exposure.equalize_adapthist(np_arr, clip_limit =.12)
+                    # qimg = self.numpy_to_qimage(adjusted_img)
+                qimg = pil_img.toqimage()
+                self.annotationImage.curr_image = qimg
+                self.update()
+
+    # def _refresh_frame_cv(self):
+    #     if self._play_state is PlayState.Paused:
+    #         # grab a cv representation of the image
+    #         # that has not been filtered
+    #         curr_img = self.current_snapshot
+    #         cvFrame = self.qImageToNumpy(curr_img)
+    #         filtered_img = self.filter_image(cvFrame)
+    #         self.annotationImage.curr_image = filtered_img
+    #         self.update()
 
     def qImageToNumpy(self, curr_image):
         curr_image = curr_image.convertToFormat(QImage.Format_RGB888)
@@ -538,54 +575,68 @@ class VlcVideoWidget(QStackedWidget):
         frame = np.array(ptr).reshape(height, width, 3)  # Copies the data
         return frame
 
-    # XXX TODO - When we go to skimage, use this to
-    def numpyToQImage(self, im, copy=False):
-        if im is None:
-            return QImage()
-
-        if len(im.shape) == 3:
-            if im.shape[2] == 3:
-                qim = QImage(im.data, im.shape[1], im.shape[0], im.strides[0], QImage.Format_RGB888)
-                return qim.copy() if copy else qim
-            elif im.shape[2] == 4:
-                qim = QImage(im.data, im.shape[1], im.shape[0], im.strides[0], QImage.Format_ARGB32)
-                return qim.copy() if copy else qim
-
-        return QImage()
+    def numpy_to_qimage(self, n_image):
+        height, width, bytesPerComponent = n_image.shape
+        bgra = np.zeros([height, width, 4], dtype=np.uint8)
+        bgra[:, :, 0:3] = n_image
+        return QImage(bgra.data, width, height, QImage.Format_RGB32)
 
     # XXX TODO - Move this over to skimage, so that we can have more
     # possibilities in histogram manipulation
-    def filter_image(self, curr_img):
-        frame = curr_img
-        image = None
-        try:
-            getLogger('finprint').debug('saturation: {0}  brightness: {1}'.format(self.saturation, self.brightness))
-            # adjust brightness and saturation
-            if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
-                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-                h, s, v = cv2.split(hsv)
-                final_hsv = cv2.merge((
-                    h,
-                    np.where(255 - s < self.saturation, 255, s + self.saturation),
-                    np.where(255 - v < self.brightness, 255, v + self.brightness)
-                ))
-                frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    # def filter_image(self, curr_img):
+    #     frame = curr_img
+    #     image = None
+    #     try:
+    #         getLogger('finprint').debug('saturation: {0}  brightness: {1}'.format(self.saturation, self.brightness))
+    #         # adjust brightness and saturation
+    #         if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
+    #             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    #             h, s, v = cv2.split(hsv)
+    #             final_hsv = cv2.merge((
+    #                 h,
+    #                 np.where(255 - s < self.saturation, 255, s + self.saturation),
+    #                 np.where(255 - v < self.brightness, 255, v + self.brightness)
+    #             ))
+    #             frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
+    #
+    #         # equalize contrast
+    #         if self.contrast is True and self._play_state == PlayState.Paused:
+    #             lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
+    #             l_chan = cv2.extractChannel(lab, 0)
+    #             l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
+    #             cv2.insertChannel(l_chan, lab, 0)
+    #             frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+    #
+    #         height, width, channels = frame.shape
+    #         image = QImage(frame, width, height, QImage.Format_RGB888)
+    #
+    #     except Exception as ex:
+    #         getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
+    #
+    #     return image
 
-            # equalize contrast
-            if self.contrast is True and self._play_state == PlayState.Paused:
-                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
-                l_chan = cv2.extractChannel(lab, 0)
-                l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
-                cv2.insertChannel(l_chan, lab, 0)
-                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
+    def qimage_to_pil(self, qimg):
+        bytes = qimg.bits().asstring(qimg.numBytes())
+        Image.frombuffer("L", (qimg.width(), qimg.height()), bytes, 'raw', "L", 0, 1)
 
-            height, width, channels = frame.shape
-            image = QImage(frame, width, height, QImage.Format_RGB888)
+    def pil_to_array(self, img):
+        return np.array(img.getdata(),
+                        np.uint8).reshape(img.size[1], img.size[0], 3)
 
-        except Exception as ex:
-            getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
+    def np_array_to_pil(self, arr, size):
+        mode = 'RGBA'
+        arr = arr.reshape(arr.shape[0] * arr.shape[1], arr.shape[2])
+        if len(arr[0]) == 3:
+            arr = np.c_[arr, 255 * np.ones((len(arr), 1), np.uint8)]
+        return Image.frombuffer(mode, size, arr.tostring(), 'raw', mode, 0, 1)
 
-        return image
+    def pil_to_qimage(self, pil_img):
+        if pil_img.mode == "RGB":
+            pass
+        elif pil_img.mode == "L":
+            pil_img = pil_img.convert("RGBA")
+        data = pil_img.tobytes('raw', "RGBA")
+        return QImage(data, pil_img.size[0], pil_img.size[1], QImage.Format_ARGB32)
 
     # callbacks start here
     # XXX TODO - add a video filter to libvlc to detect when video has been clicked,
@@ -601,10 +652,9 @@ class VlcVideoWidget(QStackedWidget):
         self._play_state = PlayState.EndOfStream
         self.playStateChanged.emit(self._play_state)
         dur = self.media.get_duration()
-        self.mediaplayer.set_position((dur - 1000)/dur)
+        self.mediaplayer.set_position((dur - 1000) / dur)
         self.pause()
         self.playStateChanged.emit(self._play_state)
-
 
     # once a snaphsot is generated by vlc, post the snapshot (a decoded video frame)
     # in a background thread. It seems to be blocking on the main thread, even though
