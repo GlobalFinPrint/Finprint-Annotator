@@ -96,15 +96,22 @@ class VideoSeekWidget(QSlider):
         pos = QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), ev.x(), self.width())
         x = self._posFromValue(pos)
         self.setValue(pos)
-        self._player.scrub_position(self.value())
+        self.scrub_position(self.value())
         QToolTip.showText(QCursor.pos(), convert_position(pos))
 
     def mouseReleaseEvent(self, ev):
         if self.dragging:
-            self._player.scrub_position(self.value())
+            self.scrub_position(self.value())
             QTimer.singleShot(1000, self._player.take_videoframe_snapshot)
         self.dragging = False
         # self.set_position(self.value())
+
+    def scrub_position(self, v):
+        # do not allow fast forward for non-leads bob was here
+        if GlobalFinPrintServer().is_lead():
+            self._player.scrub_position(v)
+        else:
+            self._player.scrub_position(min(v, self._set.progress))
 
     def set_position(self, v):
         # do not allow fast forward for non-leads bob was here
