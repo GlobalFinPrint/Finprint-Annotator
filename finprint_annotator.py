@@ -10,7 +10,7 @@ from PyQt4.QtGui import *
 
 def main():
     try:
-        1/0
+        # 1/0
         # Get the base directory and the certificates directory for requests
         if getattr(sys, 'frozen', None):
             basedir = os.path.dirname(sys.executable)
