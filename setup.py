@@ -256,8 +256,8 @@ class BuildInstaller(py2exe):
         lib_plugin_files = globr('lib\\plugins\\*')
         trimmed_plugins = trim_plugin_tree(lib_plugin_files)
 
-        self.console_exe_files = ['finprint_annotator.exe', 'credentials.csv', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
-                                  'numpy-atlas.dll', 'mkl_intel_thread.dll', 'QTCore4.dll', 'QTGui4.dll', ] + trimmed_plugins
+        self.console_exe_files = ['finprint_annotator.exe', 'credentials.csv', 'cacert.pem', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
+                                  'numpy-atlas.dll', 'mkl_intel_thread.dll', 'QTCore4.dll', 'QTGui4.dll',] + trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
