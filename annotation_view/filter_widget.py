@@ -94,8 +94,11 @@ class FilterWidget(QWidget):
             return 'images/filters-active.png'
 
     def reveal(self, filter_button):
+        # XXX make this widget align to the button container
+        # top, as in some high resolution displays, the bottom of the
+        # widget is off the screen
         xy = filter_button.parent().mapToGlobal(QPoint(
-            filter_button.x(), filter_button.y()
+            filter_button.x(), filter_button.y() - 75
         ))
         self.setGeometry(xy.x() - 205, xy.y() - 105, 200, 100)
         self.show()
