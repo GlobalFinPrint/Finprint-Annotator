@@ -84,8 +84,6 @@ class InnoScript:
 
 excludes = ["Tkinter"]
 
-
-
 class Target(object):
     '''Target is the baseclass for all executables that are created.
     It defines properties that are shared by all of them.
@@ -220,15 +218,28 @@ class BuildInstaller(py2exe):
         shutil.copy('credentials.csv', 'dist/credentials.csv')
         win32api.SetFileAttributes('dist/credentials.csv', win32con.FILE_ATTRIBUTE_NORMAL)
 
-        shutil.copy('lib/opencv_ffmpeg300.dll',
-                    'dist/opencv_ffmpeg300.dll')
-        win32api.SetFileAttributes('dist/opencv_ffmpeg300.dll',
+        shutil.copy('lib/mkl_intel_thread.dll',
+                    'dist/mkl_intel_thread.dll')
+        win32api.SetFileAttributes('dist/mkl_intel_thread.dll',
+                                   win32con.FILE_ATTRIBUTE_NORMAL)
+
+        shutil.copy('lib/numpy-atlas.dll',
+                    'dist/numpy-atlas.dll')
+        win32api.SetFileAttributes('dist/numpy-atlas.dll',
+                                   win32con.FILE_ATTRIBUTE_NORMAL)
+
+        shutil.copy('lib/libvlc.dll',
+                    'dist/libvlc.dll')
+        win32api.SetFileAttributes('dist/libvlc.dll',
                                     win32con.FILE_ATTRIBUTE_NORMAL)
 
-        shutil.copy('lib/opencv_ffmpeg310.dll',
-                    'dist/opencv_ffmpeg310.dll')
-        win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
-                               win32con.FILE_ATTRIBUTE_NORMAL)
+        shutil.copy('lib/libvlccore.dll',
+                    'dist/libvlccore.dll')
+        win32api.SetFileAttributes('dist/libvlccore.dll',
+                                   win32con.FILE_ATTRIBUTE_NORMAL)
+
+        shutil.copytree('lib/plugins',
+                     'dist/plugins')
 
         shutil.copy('requests/cacert.pem',
                     'dist/cacert.pem')
@@ -241,8 +252,12 @@ class BuildInstaller(py2exe):
             for path in path_tuple[1]:
                 self.lib_files.append(path)
 
+        # XXX hack for plugins to wind up at same level as libvlc
+        lib_plugin_files = globr('lib\\plugins\\*')
+        trimmed_plugins = trim_plugin_tree(lib_plugin_files)
 
-        self.console_exe_files = ['finprint_annotator.exe', 'config.ini', 'opencv_ffmpeg300.dll', 'opencv_ffmpeg310.dll', 'lib/shared.zip', 'credentials.csv', 'cacert.pem']
+        self.console_exe_files = ['finprint_annotator.exe', 'credentials.csv', 'cacert.pem', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
+                                  'numpy-atlas.dll', 'mkl_intel_thread.dll', 'QTCore4.dll', 'QTGui4.dll',] + trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
@@ -279,11 +294,22 @@ def globr(pattern):
             files.append(candidate)
     return files
 
+# XXX a hack to fit the plugins into the existing installer
+def trim_plugin_tree(files):
+    trimmed = []
+    for file in files:
+        if 'lib\\' in file:
+            trimmed.append(file[4:])
+        else:
+            trimmed.append(file)
+    return trimmed
+
 def getdatafiles():
     data_files = []
     excluded_dirs = []
     excluded_file_extensions = ['.pyc', '.log']
-    static_files = globr('images\\*')
+    image_files = globr('images\\*')
+    static_files = image_files
     static_files_dict = {}
     for f in static_files:
         ex = False
@@ -367,15 +393,15 @@ app_target = Target(
 
 
 py2exe_options = dict(
-        packages=[],
+        packages=['ctypes'],
         ##    excludes = "tof_specials Tkinter".split(),
         ##    ignores = "dotblas gnosis.xml.pickle.parsers._cexpat mx.DateTime".split(),
         ##    dll_excludes = "MSVCP90.dll mswsock.dll powrprof.dll".split(),
         optimize=0,
         compressed=False,  # uncompressed may or may not have a faster startup
-        bundle_files=0,
+        bundle_files=2,
         #dist_dir='.\\dist',
-        includes=["sip"],
+        includes=['sip'],
         excludes=[],
         dll_excludes=[]
 )
@@ -383,7 +409,7 @@ py2exe_options = dict(
 setup(
         name='finprint-annotator',
         version=config.__version_string__,
-        packages=[''],
+        # packages=[''],
         url='',
         license='',
         author='Vulcan Inc',
@@ -391,6 +417,8 @@ setup(
         description='',
         # console based executables
         console=[app_target],
+
+        # for now, we are loading the plugis here
         data_files = getdatafiles(),
         # windows subsystem executables (no console)
         windows=[],

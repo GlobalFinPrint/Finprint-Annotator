@@ -2,7 +2,7 @@ from .util import convert_position
 from .components import ClickLabel, SpeedButton, GenericButton
 from .filter_widget import FilterWidget
 from .video_seek_widget import VideoSeekWidget
-from video_player import CvVideoWidget, PlayState
+from video_player import VlcVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
@@ -33,8 +33,10 @@ class FullScreenLayout(QLayout):
         if self.hidden_offset < self.HIDDEN_OFFSET_MAX:
             availableHeight -= self.CONTROLS_HEIGHT
 
+        # vlc will maintain the video aspect for a given size container, so no
+        # need to center the video frame in the container
         screen.setGeometry(QRect(
-            rect.x() + ((rect.width() - screen.widget()._target_width()) / 2),
+            rect.x(),
             rect.y() + ((availableHeight - screen.widget()._target_height()) / 2),
             rect.width(),
             availableHeight
@@ -46,6 +48,7 @@ class FullScreenLayout(QLayout):
             rect.width(),
             self.CONTROLS_HEIGHT
         ))
+
 
     def sizeHint(self):
         return self.parent().frameGeometry().size()
@@ -83,7 +86,7 @@ class FullScreen(QWidget):
         self.small_player = small_player
 
         # components
-        self.video_player = CvVideoWidget(parent=self,
+        self.video_player = VlcVideoWidget(parent=self,
                                           onPositionChange=self.on_position_change,
                                           fullscreen=True)
 
@@ -190,6 +193,7 @@ class FullScreen(QWidget):
         self.show()
 
     def prepare(self, video_file, set_changed=False):
+        self.video_player.clear_extent()
         if set_changed:
             self.video_player.load_set(self.current_set)
             self.video_player.load(video_file)
@@ -304,5 +308,5 @@ class FullScreen(QWidget):
         self.video_player.saturation = saturation
         self.video_player.brightness = brightness
         self.video_player.contrast = contrast
-        if self.video_player.paused():
+        if self.video_player.is_paused():
             self.video_player.refresh_frame()

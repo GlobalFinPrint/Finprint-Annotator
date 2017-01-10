@@ -13,11 +13,14 @@ class FilterSlider(QWidget):
 
         self._slider = QSlider(Qt.Horizontal)
         self._slider.setRange(range_min, range_max)
-        self._slider.setSingleStep(range_max // 5)
-        self._slider.setTickInterval(range_max // 5)
+        self._slider.setSingleStep(range_max)
+        self._slider.setTickInterval(range_max)
         self._slider.setTickPosition(QSlider.TicksBelow)
         self._slider.setValue(range_min)
         self._slider.valueChanged.connect(self._on_value_change)
+        self._slider.sliderPressed.connect(self._on_slider_pressed)
+        self._slider.sliderReleased.connect(self._on_slider_released)
+        self._slider_pressed = False
 
         range_labels = QWidget()
         range_layout = QHBoxLayout()
@@ -33,8 +36,16 @@ class FilterSlider(QWidget):
         layout.addWidget(range_labels)
         self.setLayout(layout)
 
+    def _on_slider_pressed(self):
+        self._slider_pressed = True
+
+    def _on_slider_released(self):
+        self._slider_pressed = False
+        self._on_value_change()
+
     def _on_value_change(self):
-        self.change.emit()
+        if self._slider_pressed is False:
+            self.change.emit()
 
     def value(self):
         return self._slider.value()
@@ -94,8 +105,11 @@ class FilterWidget(QWidget):
             return 'images/filters-active.png'
 
     def reveal(self, filter_button):
+        # XXX make this widget align to the button container
+        # top, as in some high resolution displays, the bottom of the
+        # widget is off the screen
         xy = filter_button.parent().mapToGlobal(QPoint(
-            filter_button.x(), filter_button.y()
+            filter_button.x(), filter_button.y() - 75
         ))
         self.setGeometry(xy.x() - 205, xy.y() - 105, 200, 100)
         self.show()

@@ -1,6 +1,6 @@
 import os
 from logging import getLogger
-from video_player import CvVideoWidget, PlayState
+from video_player import VlcVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
 from config import global_config
 from .video_seek_widget import VideoSeekWidget
@@ -39,7 +39,7 @@ class VideoLayoutWidget(QWidget):
         self.vid_box = None
         self._video_label = QLabel('')
         self._video_label.setStyleSheet("""color:rgb(74,74,74); font: 75 12pt "Arial";""")
-        self._video_player = CvVideoWidget(parent=self, onPositionChange=self.on_position_change)
+        self._video_player = VlcVideoWidget(parent=self, onPositionChange=self.on_position_change)
         self._pos_label = QLabel()
         self._duration_label = QLabel()
         self._playback_speed_label = QLabel()
@@ -82,19 +82,19 @@ class VideoLayoutWidget(QWidget):
 
         self._speed_buttons = list(SpeedButton(speed) for speed in [0.5, 1.5, 3])
 
-        self._submit_button = QPushButton('Send for Review')
+        self._submit_button = QPushButton(' Send for Review ')
         self._submit_button.setFixedWidth(190)
         self._submit_button.setDisabled(True)
         self._submit_button.setVisible(False)
         self._submit_button.setStyleSheet(button_style)
 
-        self._approve_button = QPushButton('Accept assignment')
+        self._approve_button = QPushButton(' Accept assignment ')
         self._approve_button.setFixedWidth(190)
         self._approve_button.setDisabled(True)
         self._approve_button.setVisible(False)
         self._approve_button.setStyleSheet(button_style)
 
-        self._reject_button = QPushButton('Reject assignment')
+        self._reject_button = QPushButton(' Reject assignment ')
         self._reject_button.setFixedWidth(190)
         self._reject_button.setDisabled(True)
         self._reject_button.setVisible(False)
@@ -289,6 +289,7 @@ class VideoLayoutWidget(QWidget):
         self._data_loading = False
 
     def on_playstate_changed(self, play_state):
+        getLogger('finprint').info('layout widget: playstate changed: {0}'.format(play_state))
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
             self.on_progress_update(self._video_player.get_position())  # update position on pause
             self._toggle_play_button.setPixmap(self._play_pixmap)
@@ -330,7 +331,6 @@ class VideoLayoutWidget(QWidget):
         self.event_selected(events[0])
 
     def event_selected(self, evt):
-        self._video_player.pause()
         self._video_player.display_event(evt.event_time, evt.extent)
 
     def on_toggle_play(self):
@@ -373,7 +373,7 @@ class VideoLayoutWidget(QWidget):
         self._video_player.set_speed(speed)
 
     def on_quit(self):
-        if self._video_player is not None and self._video_player._frame_manager is not None:
+        if self._video_player is not None:
             self.on_progress_update(self._video_player.get_position())  # update position on quit
         QCoreApplication.instance().quit()
 
@@ -430,5 +430,5 @@ class VideoLayoutWidget(QWidget):
         self._video_player.saturation = saturation
         self._video_player.brightness = brightness
         self._video_player.contrast = contrast
-        if self._video_player.paused():
+        if self._video_player.is_paused():
             self._video_player.refresh_frame()
