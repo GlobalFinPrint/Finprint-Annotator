@@ -22,6 +22,7 @@ from threading import Thread
 from threading import Event as PyEvent
 from tempfile import gettempdir
 from .vlc import *
+from .vlc_utils import *
 
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
@@ -180,8 +181,8 @@ class VlcVideoWidget(QStackedWidget):
             os.makedirs(self.temp_snapshot_dir)
 
         # bind instance to load libvlc. This is where we pass parameters for
-        # buffering and the like.
-        # XXX TODO - Make this configurable
+        # startup, like buffering and vlc specific debug and logging params
+        #startup_args = get_vlc_params()
         self.instance = Instance('--file-caching=10000')
         # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
@@ -343,6 +344,8 @@ class VlcVideoWidget(QStackedWidget):
         return list(r.getCoords())
 
     def display_event(self, pos, extent):
+        if self.mediaplayer.is_playing():
+            self.mediaplayer.pause()
         self.annotationImage.clear()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._observation_rect = rect
@@ -518,7 +521,7 @@ class VlcVideoWidget(QStackedWidget):
 
     def _refresh_frame_PIL(self):
         if self._play_state is PlayState.Paused:
-            if self.saturation > 1.0 or self.brightness > 1.0 or self.contrast is True:
+            if self.is_filtered():
                 # XXX grab a png representation of the last snapshot that has
                 # not been filtered. We assume that a snapshot is taken prior
                 # to this function being called
@@ -541,9 +544,6 @@ class VlcVideoWidget(QStackedWidget):
                     getLogger('finprint').info('Setting brightness to {0}'.format(brightness))
                     pil_img = brightness_enhancer.enhance(brightness)
                 if self.contrast is True:
-                    # contrast_enhancer = ImageEnhance.Contrast(pil_img)
-                    # contrast = 1.55
-                    # pil_img = contrast_enhancer.enhance(contrast)
                     pil_img = ImageOps.autocontrast(pil_img, cutoff=7.95)
                     # np_arr = self.pil_to_array(pil_img)
                     # getLogger('finprint').info('Setting contrast')
@@ -563,17 +563,7 @@ class VlcVideoWidget(QStackedWidget):
     #         self.annotationImage.curr_image = filtered_img
     #         self.update()
 
-    def qImageToNumpy(self, curr_image):
-        curr_image = curr_image.convertToFormat(QImage.Format_RGB888)
-        curr_image = curr_image.rgbSwapped()
-        width = curr_image.width()
-        height = curr_image.height()
 
-        ptr = curr_image.bits()
-        ptr.setsize(curr_image.byteCount())
-        # XXX Make the # of channels (shape[2]) conditional, so if we have an alpha or b/w
-        frame = np.array(ptr).reshape(height, width, 3)  # Copies the data
-        return frame
 
     def numpy_to_qimage(self, n_image):
         height, width, bytesPerComponent = n_image.shape
