@@ -18,18 +18,21 @@ class Config():
             self._configdict.write(file)
 
     def get(self, section=None, key=None):
-        if self._configdict is None:
-            try:
-                self._configdict = ConfigParser()
-                self._configdict.read(self.CONFIG_FILENAME)
-            except:
-                pass
+        self.load_config()
         if section:
             if key in self._configdict[section]:
                 return self._configdict[section][key]
             else:
                 return None
         return self._configdict
+
+    def load_config(self):
+        if self._configdict is None:
+            try:
+                self._configdict = ConfigParser()
+                self._configdict.read(self.CONFIG_FILENAME)
+            except:
+                pass
 
     def __getitem__(self, key):
         return self._configdict[key]
@@ -51,6 +54,12 @@ class Config():
             self.save()
         except KeyError:
             pass
+
+    def items(self, section):
+        self.load_config()
+        if section:
+            return self._configdict.items(section)
+
 
 
 global_config = Config()
