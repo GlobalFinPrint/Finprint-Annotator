@@ -344,8 +344,7 @@ class VlcVideoWidget(QStackedWidget):
         return list(r.getCoords())
 
     def display_event(self, pos, extent):
-        if self.mediaplayer.is_playing():
-            self.mediaplayer.pause()
+        self.pause()
         self.annotationImage.clear()
         rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._observation_rect = rect
