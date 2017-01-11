@@ -182,8 +182,8 @@ class VlcVideoWidget(QStackedWidget):
 
         # bind instance to load libvlc. This is where we pass parameters for
         # startup, like buffering and vlc specific debug and logging params
-        #startup_args = get_vlc_params()
-        self.instance = Instance('--file-caching=10000')
+        startup_args = get_vlc_params()
+        self.instance = Instance(startup_args)
         # create a vlc media player from loaded library
         self.mediaplayer = self.instance.media_player_new()
 

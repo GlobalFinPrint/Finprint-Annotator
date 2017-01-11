@@ -6,8 +6,10 @@ def get_vlc_params():
     cfg = config.global_config
 
     params = dict(cfg.items('vlc_params'))
-    for key, value in params.items:
-        if value is not 'None':
+    for key, value in params.items():
+        # we use the keyword 'True' for any parameters
+        # that don't have an associated value, like the param logFile
+        if value is not 'True':
             plist.append('--{0}={1}'.format(key, value))
         else:
             plist.append('--{0}'.format(key))
@@ -19,5 +21,5 @@ def get_vlc_options():
 
     opts = dict(cfg.items('vlc_options'))
     if opts:
-        return opts.items()
-    return []
+        return opts
+    return {}
