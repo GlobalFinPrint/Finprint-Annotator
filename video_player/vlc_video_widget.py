@@ -483,14 +483,12 @@ class VlcVideoWidget(QStackedWidget):
             self._context_menu.display()
 
     def step_back(self):
-        if not self.is_paused():
-            self.pause()
-        self.set_position(self.get_position() - FRAME_STEP)
+        self.scrub_position(self.get_position() - FRAME_STEP)
+        QTimer.singleShot(500, self.display_observation_snaphot)
 
     def step_forward(self):
-        if not self.is_paused():
-            self.pause()
-        self.set_position(self.get_position() + FRAME_STEP)
+        self.scrub_position(self.get_position() + FRAME_STEP)
+        QTimer.singleShot(500, self.display_observation_snaphot)
 
     def is_filtered(self):
         return self.saturation > 0 or self.brightness > 0 or self.contrast
