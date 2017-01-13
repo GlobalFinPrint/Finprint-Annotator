@@ -29,3 +29,7 @@ class ExceptionHandling:
 
     def heartbeat(self):
         return requests.get('{}/heartbeat'.format(self.base_url))
+
+    def url_ok(url):
+        r = requests.head(url)
+        return r.status_code == 200
