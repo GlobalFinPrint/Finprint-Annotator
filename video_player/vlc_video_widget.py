@@ -1,16 +1,13 @@
 import time
 import psutil
 from io import BytesIO
-# XXX removed opencv filtering for now. Planning on switching to skimage
-# for more image filtering possibilities in the future
+import cv2
 import numpy as np
-from PIL import Image
-from PIL import ImageEnhance
-from PIL import ImageOps
 
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
+
 from global_finprint import Extent
 from .play_state import PlayState
 from .highlighter import Highlighter
@@ -483,12 +480,14 @@ class VlcVideoWidget(QStackedWidget):
             self._context_menu.display()
 
     def step_back(self):
+        self.pause()
         self.scrub_position(self.get_position() - FRAME_STEP)
-        QTimer.singleShot(500, self.display_observation_snaphot)
+        QTimer.singleShot(500, self.take_videoframe_snapshot)
 
     def step_forward(self):
+        self.pause()
         self.scrub_position(self.get_position() + FRAME_STEP)
-        QTimer.singleShot(500, self.display_observation_snaphot)
+        QTimer.singleShot(500, self.take_videoframe_snapshot)
 
     def is_filtered(self):
         return self.saturation > 0 or self.brightness > 0 or self.contrast
@@ -514,116 +513,65 @@ class VlcVideoWidget(QStackedWidget):
         self.update()
 
     def refresh_frame(self):
-        self._refresh_frame_PIL()
+        self._refresh_frame_cv()
 
-    def _refresh_frame_PIL(self):
+    def _refresh_frame_cv(self):
         if self._play_state is PlayState.Paused:
-            if self.is_filtered():
-                # XXX grab a png representation of the last snapshot that has
-                # not been filtered. We assume that a snapshot is taken prior
-                # to this function being called
-                curr_img = self.current_snapshot
-                data = QByteArray()
-                buf = QBuffer(data)
-                curr_img.save(buf, 'PNG')
-                # let PIL read the data
-                png_io = BytesIO(data.data())
-                png_io.seek(0)
-                pil_img = Image.open(png_io)
-                if self.saturation > 1.0:
-                    color_enhancer = ImageEnhance.Color(pil_img)
-                    sat = self.saturation / 50
-                    getLogger('finprint').info('Setting saturation to {0}'.format(sat))
-                    pil_img = color_enhancer.enhance(sat)
-                if self.brightness > 1.0:
-                    brightness_enhancer = ImageEnhance.Brightness(pil_img)
-                    brightness = .70 + self.brightness / 100
-                    getLogger('finprint').info('Setting brightness to {0}'.format(brightness))
-                    pil_img = brightness_enhancer.enhance(brightness)
-                if self.contrast is True:
-                    pil_img = ImageOps.autocontrast(pil_img, cutoff=7.95)
-                    # np_arr = self.pil_to_array(pil_img)
-                    # getLogger('finprint').info('Setting contrast')
-                    # adjusted_img = exposure.equalize_adapthist(np_arr, clip_limit =.12)
-                    # qimg = self.numpy_to_qimage(adjusted_img)
-                qimg = pil_img.toqimage()
-                self.annotationImage.curr_image = qimg
-                self.update()
+            # grab a cv representation of the image
+            # that has not been filtered
+            curr_img = self.current_snapshot
+            bgr = curr_img.rgbSwapped()
+            cvFrame = self.qimage_to_numpy(bgr)
+            filtered_img = self.filter_image(cvFrame)
+            self.annotationImage.curr_image = filtered_img
+            self.update()
 
-    # def _refresh_frame_cv(self):
-    #     if self._play_state is PlayState.Paused:
-    #         # grab a cv representation of the image
-    #         # that has not been filtered
-    #         curr_img = self.current_snapshot
-    #         cvFrame = self.qImageToNumpy(curr_img)
-    #         filtered_img = self.filter_image(cvFrame)
-    #         self.annotationImage.curr_image = filtered_img
-    #         self.update()
+    def filter_image(self, curr_img):
+        frame = curr_img
+        image = None
+        try:
+            getLogger('finprint').debug('saturation: {0}  brightness: {1}'.format(self.saturation, self.brightness))
+            # adjust brightness and saturation
+            if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
+                hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+                h, s, v = cv2.split(hsv)
+                final_hsv = cv2.merge((
+                    h,
+                    np.where(255 - s < self.saturation, 255, s + self.saturation),
+                    np.where(255 - v < self.brightness, 255, v + self.brightness)
+                ))
+                frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
 
+            # equalize contrast
+            if self.contrast is True and self._play_state == PlayState.Paused:
+                lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
+                l_chan = cv2.extractChannel(lab, 0)
+                l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
+                cv2.insertChannel(l_chan, lab, 0)
+                frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
 
+            height, width, channels = frame.shape
+            image = QImage(frame, width, height, QImage.Format_RGB888)
 
-    def numpy_to_qimage(self, n_image):
-        height, width, bytesPerComponent = n_image.shape
-        bgra = np.zeros([height, width, 4], dtype=np.uint8)
-        bgra[:, :, 0:3] = n_image
-        return QImage(bgra.data, width, height, QImage.Format_RGB32)
+        except Exception as ex:
+            getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
 
-    # XXX TODO - Move this over to skimage, so that we can have more
-    # possibilities in histogram manipulation
-    # def filter_image(self, curr_img):
-    #     frame = curr_img
-    #     image = None
-    #     try:
-    #         getLogger('finprint').debug('saturation: {0}  brightness: {1}'.format(self.saturation, self.brightness))
-    #         # adjust brightness and saturation
-    #         if (self.saturation > 0 or self.brightness > 0) and self._play_state == PlayState.Paused:
-    #             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    #             h, s, v = cv2.split(hsv)
-    #             final_hsv = cv2.merge((
-    #                 h,
-    #                 np.where(255 - s < self.saturation, 255, s + self.saturation),
-    #                 np.where(255 - v < self.brightness, 255, v + self.brightness)
-    #             ))
-    #             frame = cv2.cvtColor(final_hsv, cv2.COLOR_HSV2BGR)
-    #
-    #         # equalize contrast
-    #         if self.contrast is True and self._play_state == PlayState.Paused:
-    #             lab = cv2.cvtColor(frame, cv2.COLOR_BGR2Lab)
-    #             l_chan = cv2.extractChannel(lab, 0)
-    #             l_chan = cv2.createCLAHE(clipLimit=2.0).apply(l_chan)
-    #             cv2.insertChannel(l_chan, lab, 0)
-    #             frame = cv2.cvtColor(lab, cv2.COLOR_Lab2BGR)
-    #
-    #         height, width, channels = frame.shape
-    #         image = QImage(frame, width, height, QImage.Format_RGB888)
-    #
-    #     except Exception as ex:
-    #         getLogger('finprint').exception('Exception building image: {}'.format(str(ex)))
-    #
-    #     return image
+        return image
 
-    def qimage_to_pil(self, qimg):
-        bytes = qimg.bits().asstring(qimg.numBytes())
-        Image.frombuffer("L", (qimg.width(), qimg.height()), bytes, 'raw', "L", 0, 1)
+    def qimage_to_numpy(self, curr_image):
+        # make sure we have the smallest usable size
+        curr_image = curr_image.convertToFormat(QImage.Format_RGB888)
+        curr_image = curr_image.rgbSwapped()
+        width = curr_image.width()
+        height = curr_image.height()
 
-    def pil_to_array(self, img):
-        return np.array(img.getdata(),
-                        np.uint8).reshape(img.size[1], img.size[0], 3)
+        ptr = curr_image.bits()
+        ptr.setsize(curr_image.byteCount())
+        # XXX Make the # of channels (shape[2]) conditional, so if we
+        # have an alpha or b/w it can be scaled accordingly
+        frame = np.array(ptr).reshape(height, width, 3)  # Copies the data
 
-    def np_array_to_pil(self, arr, size):
-        mode = 'RGBA'
-        arr = arr.reshape(arr.shape[0] * arr.shape[1], arr.shape[2])
-        if len(arr[0]) == 3:
-            arr = np.c_[arr, 255 * np.ones((len(arr), 1), np.uint8)]
-        return Image.frombuffer(mode, size, arr.tostring(), 'raw', mode, 0, 1)
-
-    def pil_to_qimage(self, pil_img):
-        if pil_img.mode == "RGB":
-            pass
-        elif pil_img.mode == "L":
-            pil_img = pil_img.convert("RGBA")
-        data = pil_img.tobytes('raw', "RGBA")
-        return QImage(data, pil_img.size[0], pil_img.size[1], QImage.Format_ARGB32)
+        return frame
 
     # callbacks start here
     # XXX TODO - add a video filter to libvlc to detect when video has been clicked,
