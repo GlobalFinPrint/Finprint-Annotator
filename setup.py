@@ -263,7 +263,7 @@ class BuildInstaller(py2exe):
         opencv_dlls = globr('dist\\opencv*')
 
         self.console_exe_files = ['finprint_annotator.exe', 'credentials.csv', 'cacert.pem', 'config.ini', 'lib/shared.zip', 'libvlc.dll', 'libvlccore.dll',
-                                  'numpy-atlas.dll', 'mkl_intel_thread.dll', 'QTCore4.dll', 'QTGui4.dll', 'python34.dll', 'opencv_ffmpeg310.dll'] + trimmed_plugins
+                                  'numpy-atlas.dll', 'mkl_intel_thread.dll', 'QTCore4.dll', 'QTGui4.dll', 'python34.dll'] + opencv_dlls +  trimmed_plugins
         self.windows_exe_files = []
         self.service_exe_files = []
         print('################## end post_run ################')
