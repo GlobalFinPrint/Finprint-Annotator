@@ -223,6 +223,11 @@ class BuildInstaller(py2exe):
         win32api.SetFileAttributes('dist/mkl_intel_thread.dll',
                                    win32con.FILE_ATTRIBUTE_NORMAL)
 
+        shutil.copy('lib/opencv_ffmpeg310.dll',
+                    'dist/opencv_ffmpeg310.dll')
+        win32api.SetFileAttributes('dist/opencv_ffmpeg310.dll',
+                                   win32con.FILE_ATTRIBUTE_NORMAL)
+
         shutil.copy('lib/numpy-atlas.dll',
                     'dist/numpy-atlas.dll')
         win32api.SetFileAttributes('dist/numpy-atlas.dll',
