@@ -284,6 +284,12 @@ class VlcVideoWidget(QStackedWidget):
         # don't start listening for spacebar until video is loaded and playable
         self.mediaplayer.video_set_mouse_input(False)
 
+        # if we have any special options, like hardware acceleration, that are media specific, set them here
+        # XXX sohrt term hack here, we're only going to load these options if it is fullscreen
+        opts = get_vlc_media_options()
+        if opts and self._fullscreen :
+            self.media.add_options(opts)
+
         self._timer.start()
 
         # XXX hack to display the first few frames, which alters the bahavior of
