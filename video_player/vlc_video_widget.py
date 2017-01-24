@@ -1,3 +1,4 @@
+import threading
 import time
 import psutil
 from io import BytesIO
@@ -603,7 +604,8 @@ class VlcVideoWidget(QStackedWidget):
     def snapShotTaken(self, event):
         getLogger('finprint').info('process snaphot')
         # upload on a separate thread
-        QTimer.singleShot(50, self.process_snapshot)
+        upload_thread = threading.Thread(target=self.process_snapshot)
+        upload_thread.start()
 
     def process_snapshot(self):
         if self.curr_s3_upload is not None:
