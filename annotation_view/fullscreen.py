@@ -273,7 +273,7 @@ class FullScreen(QWidget):
         self.video_player.pause()
         self.filter_widget.hide()
         self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
-        self.small_player.set_position(self.video_player.get_position())
+        self.small_player.scrub_position(self.video_player.get_position())
         self.small_player.parent()._observation_table.refresh_model()
         QCoreApplication.instance().removeEventFilter(self)
         QCoreApplication.instance().installEventFilter(self.small_player)
