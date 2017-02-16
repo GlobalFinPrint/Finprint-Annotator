@@ -55,6 +55,7 @@ class AttributeSelector(QVBoxLayout):
         for attr in self.attributes:
             if attr['name'] == text:
                 attr['selected'] = True
+                break
         self.selected_changed.emit()
         self.empty_selected()
         self.display_selected()
@@ -95,12 +96,13 @@ class AttributeSelector(QVBoxLayout):
     def _make_attr_list(self, attributes, selected_ids):
         attr_list = []
         for attr in attributes:
-            attr_list.append({
-                'id': attr['id'],
-                'name': attr['name'],
-                'level': attr['level'],
-                'selected': attr['id'] in selected_ids
-            })
+            if not attr['not_selectable']:
+                attr_list.append({
+                    'id': attr['id'],
+                    'name': attr['verbose'],
+                    'level': attr['level'],
+                    'selected': attr['id'] in selected_ids
+                })
             if 'children' in attr:
                 attr_list += self._make_attr_list(attr['children'], selected_ids)
         return attr_list
