@@ -2,7 +2,6 @@ import threading
 import time
 import psutil
 from io import BytesIO
-import cv2
 import numpy as np
 
 from boto.s3.connection import S3Connection
@@ -271,7 +270,6 @@ class VlcVideoWidget(QStackedWidget):
         QCoreApplication.instance().installEventFilter(self)
 
         self._play_state = PlayState.Paused
-        self._aspect_ratio = self.videoframe.width() / self.videoframe.height()
 
         # wire up callbacks to VLC for snapshots and end of stream,
         # which is relative to the media being played
@@ -340,7 +338,20 @@ class VlcVideoWidget(QStackedWidget):
 
     def get_highlight_extent(self):
         ext = Extent()
-        ext.setRect(self.annotationImage.get_rect(), self.videoframe.height(), self.videoframe.width())
+        # The video may may have some padding in some cases when in fullscreen mode,
+        # so use the _target_width() and _target_height() to determine the actual video size,
+        # and offset the extent relative to account for any padding that may be there
+        if self._fullscreen:
+            # expected size of video
+            actual_width = self._target_width()
+            x_offset = (self.annotationImage.width() - actual_width)/2
+            actual_height = self._target_height()
+            y_offset = (self.annotationImage.height() - actual_height)/2
+            annotation_rect = self.annotationImage.get_rect()
+            annotation_rect.moveTo(annotation_rect.x() - x_offset, annotation_rect.y() - y_offset )
+            ext.setRect(annotation_rect, actual_height, actual_width)
+        else:
+            ext.setRect(self.annotationImage.get_rect(), self.videoframe.height(), self.videoframe.width())
         return ext
 
     def get_highlight_as_list(self):
@@ -350,7 +361,19 @@ class VlcVideoWidget(QStackedWidget):
     def display_event(self, pos, extent):
         self.pause()
         self.annotationImage.clear()
-        rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
+        if self._fullscreen:
+            # The video may may have some padding in some cases when in fullscreen mode,
+            # so use the _target_width() and _target_height() to determine the actual video size,
+            # and request an extent for that size. Once we have an extent, offset it to
+            # account for any padding that may be there
+            actual_width = self._target_width()
+            x_offset = (self.annotationImage.width() - actual_width) / 2
+            actual_height = self._target_height()
+            y_offset = (self.annotationImage.height() - actual_height) / 2
+            rect = extent.getRect(actual_height, actual_width)
+            rect.moveTo(rect.x() + x_offset, rect.y() + y_offset)
+        else:
+            rect = extent.getRect(self.videoframe.height(), self.videoframe.width())
         self._observation_rect = rect
         self.scrub_position(pos)
         QTimer.singleShot(1000, self.display_observation_snaphot)
