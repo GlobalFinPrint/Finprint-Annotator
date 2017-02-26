@@ -340,7 +340,7 @@ class VlcVideoWidget(QStackedWidget):
         ext = Extent()
         # The video may may have some padding in some cases when in fullscreen mode,
         # so use the _target_width() and _target_height() to determine the actual video size,
-        # and offset the extent relative to account for any padding that may be there
+        # and offset the extent relative to any padding that may be there
         if self._fullscreen:
             # expected size of video
             actual_width = self._target_width()
