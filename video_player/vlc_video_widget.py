@@ -2,6 +2,7 @@ import threading
 import time
 import psutil
 from io import BytesIO
+import cv2
 import numpy as np
 
 from boto.s3.connection import S3Connection
