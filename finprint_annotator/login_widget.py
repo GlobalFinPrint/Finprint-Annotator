@@ -68,9 +68,13 @@ class LoginWidget(QWidget):
                                            pwd=self.pwd_edit.text(),
                                            server=self.svr_edit.text())
             global_config.set_item('GLOBAL_FINPRINT_SERVER', 'address', self.svr_edit.text())
-        except Exception:
+        except Exception as e:
             success = False
-            data = {'msg': 'Failed to connect to Server'}
+            if "INVALID_USER_PWD" in str(e):
+                data = {'msg': "Invalid User Name or Password"}
+            else:
+                data = {'msg': 'Failed to connect to Server'}
+
 
         if success:
             dispatcher.send('LOGIN', sender=dispatcher.Anonymous, value=data['sets'])
