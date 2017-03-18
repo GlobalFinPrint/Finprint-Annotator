@@ -1,0 +1,25 @@
+Building the Annotator Installer manually
+
+Although builds are typically automated via Jenkins, it is possible to build the 
+installer on a dev machine using the windows command line (cmd.exe). Here are the steps 
+taken to do a dev build on a 64-bit Windows 10 machine image, using Anaconda to install 
+the opencv and pyqt4 dependencies:
+
+- Download and install Git for Windows (64-bit)  https://github.com/git-for-windows/git/releases/download/v2.12.0.windows.1/Git-2.12.0-64-bit.exe
+- Download and install 32bit Anaconda Installer into C:\Anaconda3 https://repo.continuum.io/archive/Anaconda3-4.3.1-Windows-x86.exe
+- Download and install Inno Setup 5.5 into C:\Inno http://www.jrsoftware.org/download.php/is.exe?site=1
+- In a command window type 'conda create --name finprint python=3.4', which creates a virtual environment with 32 bit python
+- Activate the virtual environment by typing 'activate finprint' in that same command window
+- Install opencv by typing 'conda install -c menpo opencv3' in that same command window
+- Install qt4 and the python binding by typing 'conda install pyqt=4.11'
+- install the py2exe build dependencies by typing 'pip install py2exe pypiwin32' in that same command window
+- In the same command window, cd to the directory you plan to work in, and clone the repo:
+        git clone https://github.com/GlobalFinPrint/Finprint-Annotator.git
+- cd into the source tree, and install the remaining dependencies:
+        pip install -r requirements.txt
+- manually copy the default config and credential files to their target names:  
+        'copy config.example.ini config.ini'
+        'copy credentials.example.csv credentials.csv'
+- build the installer by typing 'python setup.py py2exe clean'
+
+The build is roughly 70MB, which you should find in <Root Tree>\dist\dist
