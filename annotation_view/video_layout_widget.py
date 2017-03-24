@@ -440,8 +440,12 @@ class VideoLayoutWidget(QWidget):
             self._video_player.refresh_frame()
 
     def check_submit_button_activation_condition(self, set):
-        mark_haul_time=set.attributes[8]["name"]
-        mark_90Mins_time = set.attributes[7]["name"]
+        #instead of having constant for mark_haul_time,mark_90Mins_time
+        #we are fetcheing by row number from sets.attributes which is pulled directly from database
+        #which its always constant
+        #set.attributes = {list} <class 'list'>:
+        mark_90Mins_time = set.attributes[7]["name"]  # retrieved row is 7
+        mark_haul_time=set.attributes[8]["name"]      #retrived row is 8
         for observation in set.observations :
            for events in observation.events:
                for attribute in events.attribute :
