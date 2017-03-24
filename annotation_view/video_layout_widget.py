@@ -265,6 +265,11 @@ class VideoLayoutWidget(QWidget):
                 self._reject_button.setVisible(True)
         if GlobalFinPrintServer().is_assigned_to_self(set) and set.status_id < 3:
             self._submit_button.setVisible(True)
+
+        #change for GLOB-528
+        self.check_submit_button_activation_condition(set)
+
+
         self._toggle_play_button.setDisabled(False)
         self._step_back_button.setDisabled(False)
         self._step_forward_button.setDisabled(False)
@@ -418,6 +423,7 @@ class VideoLayoutWidget(QWidget):
 
     def onTableRefresh(self):
         self._slider.load_set(self.current_set)
+        self.check_submit_button_activation_condition(self.current_set)
 
     def on_fullscreen(self):
         self._video_player.pause()
@@ -442,3 +448,20 @@ class VideoLayoutWidget(QWidget):
         self._video_player.contrast = contrast
         if self._video_player.is_paused():
             self._video_player.refresh_frame()
+
+    def check_submit_button_activation_condition(self, set):
+        #instead of having constant for mark_haul_time,mark_90Mins_time
+        #we are fetcheing by row number from sets.attributes which is pulled directly from database
+        #which its always constant
+        #set.attributes = {list} <class 'list'>:
+        mark_90Mins_time = set.attributes[7]["name"]  # retrieved row is 7
+        mark_haul_time=set.attributes[8]["name"]      #retrived row is 8
+        for observation in set.observations :
+           for events in observation.events:
+               for attribute in events.attribute :
+                   if "name" in attribute and attribute["name"]==mark_haul_time or attribute["name"]== mark_90Mins_time :
+                        self._submit_button.setDisabled(False)
+                        return True
+
+        self._submit_button.setDisabled(True)
+        return False
