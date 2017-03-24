@@ -440,10 +440,12 @@ class VideoLayoutWidget(QWidget):
             self._video_player.refresh_frame()
 
     def check_submit_button_activation_condition(self, set):
+        mark_haul_time=set.attributes[8]["name"]
+        mark_90Mins_time = set.attributes[7]["name"]
         for observation in set.observations :
            for events in observation.events:
                for attribute in events.attribute :
-                   if "name" in attribute and attribute["name"]=="MARK HAUL TIME" or attribute["name"]=="MARK 90 MIN TIME" :
+                   if "name" in attribute and attribute["name"]==mark_haul_time or attribute["name"]== mark_90Mins_time :
                         self._submit_button.setDisabled(False)
                         return True
 
