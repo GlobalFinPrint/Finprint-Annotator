@@ -47,7 +47,7 @@ class GlobalFinPrintServer(Singleton):
             self.user_name = user_name
             self.user_id = data['user_id']
         elif r.status_code == 403:
-            raise QueryException('Unknown user or user not assigned to proper role')
+            raise QueryException('INVALID_USER_PWD')
         else:
             raise QueryException('Unknown status code ' + r.status_code)
 
