@@ -188,6 +188,8 @@ class MainWindow(QMainWindow):
         assign_layout.addWidget(AssignmentWidget(sets))
         self.assign_diag = QDialog(self)
         self.assign_diag.setLayout(assign_layout)
+        #change for increasing size of Assigned set list window : GLOB-526
+        self.assign_diag.move(50, 300)
         self.assign_diag.show()
 
     def on_login(self, signal, sender, value):
