@@ -57,8 +57,8 @@ class VideoLayoutWidget(QWidget):
         self._back15 = ClickLabel()
         self._back15.setPixmap(QPixmap('images/jump_back-15s.png'))
 
-        self._back30 = ClickLabel()
-        self._back30.setPixmap(QPixmap('images/jump_back-30s.png'))
+        self._back05 = ClickLabel()
+        self._back05.setPixmap(QPixmap('images/jump_back-5s.png'))
 
         self._ff_button = ClickLabel()
         self._ff_button.setPixmap(QPixmap('images/video_control-fast_forward.png'))
@@ -118,7 +118,7 @@ class VideoLayoutWidget(QWidget):
         self._step_back_button.clicked.connect(self.on_step_back)
         self._step_forward_button.clicked.connect(self.on_step_forward)
         self._back15.clicked.connect(self.on_back15)
-        self._back30.clicked.connect(self.on_back30)
+        self._back05.clicked.connect(self.on_back05)
 
         self._filter_widget.change.connect(self.on_filter_change)
         self._video_filter_button.clicked.connect(self.on_video_filter_button)
@@ -172,8 +172,8 @@ class VideoLayoutWidget(QWidget):
         video_controls_box.addSpacing(25)
 
         #video_controls_box.addWidget(self._rew_button)
-        video_controls_box.addWidget(self._back30)
         video_controls_box.addWidget(self._back15)
+        video_controls_box.addWidget(self._back05)
         video_controls_box.addWidget(self._step_back_button)
         video_controls_box.addWidget(self._toggle_play_button)
         video_controls_box.addWidget(self._step_forward_button)
@@ -248,7 +248,7 @@ class VideoLayoutWidget(QWidget):
 
         self._rew_button.setDisabled(False)
         self._back15.setDisabled(False)
-        self._back30.setDisabled(False)
+        self._back05.setDisabled(False)
         if GlobalFinPrintServer().is_lead():
             self._ff_button.setDisabled(False)
             self._ff_button.setVisible(True)
@@ -259,6 +259,11 @@ class VideoLayoutWidget(QWidget):
                 self._reject_button.setVisible(True)
         if GlobalFinPrintServer().is_assigned_to_self(set) and set.status_id < 3:
             self._submit_button.setVisible(True)
+
+        #change for GLOB-528
+        self.check_submit_button_activation_condition(set)
+
+
         self._toggle_play_button.setDisabled(False)
         self._step_back_button.setDisabled(False)
         self._step_forward_button.setDisabled(False)
@@ -318,7 +323,7 @@ class VideoLayoutWidget(QWidget):
         self._reject_button.setVisible(False)
         self._rew_button.setDisabled(True)
         self._back15.setDisabled(True)
-        self._back30.setDisabled(True)
+        self._back05.setDisabled(True)
         self._ff_button.setDisabled(True)
         self._step_forward_button.setDisabled(True)
         self._step_back_button.setDisabled(True)
@@ -357,8 +362,8 @@ class VideoLayoutWidget(QWidget):
     def on_back15(self):
         self._video_player.jump_back(15)
 
-    def on_back30(self):
-        self._video_player.jump_back(30)
+    def on_back05(self):
+        self._video_player.jump_back(5)
 
     def on_fast_forward(self):
         self._video_player.fast_forward()
@@ -408,6 +413,7 @@ class VideoLayoutWidget(QWidget):
 
     def onTableRefresh(self):
         self._slider.load_set(self.current_set)
+        self.check_submit_button_activation_condition(self.current_set)
 
     def on_fullscreen(self):
         self._video_player.pause()
@@ -432,3 +438,20 @@ class VideoLayoutWidget(QWidget):
         self._video_player.contrast = contrast
         if self._video_player.is_paused():
             self._video_player.refresh_frame()
+
+    def check_submit_button_activation_condition(self, set):
+        #instead of having constant for mark_haul_time,mark_90Mins_time
+        #we are fetcheing by row number from sets.attributes which is pulled directly from database
+        #which its always constant
+        #set.attributes = {list} <class 'list'>:
+        mark_90Mins_time = set.attributes[7]["name"]  # retrieved row is 7
+        mark_haul_time=set.attributes[8]["name"]      #retrived row is 8
+        for observation in set.observations :
+           for events in observation.events:
+               for attribute in events.attribute :
+                   if "name" in attribute and attribute["name"]==mark_haul_time or attribute["name"]== mark_90Mins_time :
+                        self._submit_button.setDisabled(False)
+                        return True
+
+        self._submit_button.setDisabled(True)
+        return False
