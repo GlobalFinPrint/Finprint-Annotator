@@ -120,7 +120,7 @@ class FullScreen(QWidget):
         self.back15.setPixmap(QPixmap('images/jump_back-15s.png'))
 
         self.back05 = ClickLabel()
-        self.back05.setPixmap(QPixmap('images/jump_back-05s.png'))
+        self.back05.setPixmap(QPixmap('images/jump_back-5s.png'))
 
         self.step_back_button = ClickLabel()
         self.step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
