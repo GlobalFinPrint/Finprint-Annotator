@@ -68,8 +68,8 @@ class AssignmentWidget(QWidget):
             filter_layout.addWidget(self._status_filter)
 
             #addition for GLOB-526
-            affiliation_list = [(1, 'AIMS'), (2, 'Curtin'), (3, 'University'),(4, 'FIU'),(5, 'Global'),(6, 'Finprint'),
-            (7, 'JCU'),(8, 'No affiliation'),(9, 'SBU')]
+            affiliation_list = [(3, 'AIMS'), (6, 'Curtin University'),(2, 'FIU'),(1, 'Global Finprint'),
+            (5, 'JCU'),(0, 'No affiliation'),(4, 'SBU')]
             self._affiliation_filter = QComboBox()
             self._affiliation_filter.setStyleSheet(stylesheet)
             self._affiliation_filter.setMaximumWidth(400)
@@ -78,10 +78,22 @@ class AssignmentWidget(QWidget):
                 self._affiliation_filter.addItem(af[1], af[0])
             #self._status_filter.currentIndexChanged.connect(self._filter_change)
             filter_layout.addWidget(self._affiliation_filter)
+            filter_layout.addSpacing(10)
+            styleSheetForCheckbox ='''
+                    QCheckBox::indicator
+                    {
+                        width: 20px;
+                        height: 20px;
+                    }'''
+
+            self._limit_search = QCheckBox()
+            self._limit_search.setStyleSheet(styleSheetForCheckbox)
+            self._limit_search.setText("Limit to assignments made by me")
+            self._limit_search.setCheckState(2)
+            filter_layout.addWidget(self._limit_search)
 
             self.resetSearch = QPushButton("Reset")
             self.searchWithAllFilters = QPushButton("Search")
-            filter_layout.addSpacing(150)
             filter_layout.addWidget(self.resetSearch)
             filter_layout.addWidget(self.searchWithAllFilters)
 
@@ -203,8 +215,16 @@ class AssignmentWidget(QWidget):
             params['annotator_id'] = self._anno_filter.itemData(self._anno_filter.currentIndex())
         if self._status_filter.currentIndex() > 0:
             params['status_id'] = self._status_filter.itemData(self._status_filter.currentIndex())
+        if self._affiliation_filter.currentIndex() >= 0:
+            params['affiliation_id'] = self._affiliation_filter.itemData(self._affiliation_filter.currentIndex())
+        if  self._limit_search.isChecked() :
+            params['assignment_flag'] = True
+        else :
+            params['assignment_flag'] = False
+
         self._sets = GlobalFinPrintServer().set_list(**params)['sets']
         self._populate_table()
+        self._flag = 0
 
 
     def _clear_filter(self):
@@ -213,5 +233,9 @@ class AssignmentWidget(QWidget):
         self._anno_filter.setCurrentIndex(0)
         self._status_filter.setCurrentIndex(0)
         self._affiliation_filter.setCurrentIndex(0)
+        if  self._limit_search.isChecked() :
+          self._limit_search.setCheckState(0)
+
         self._sets=GlobalFinPrintServer().set_list()['sets']
         self._populate_table()
+
