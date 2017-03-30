@@ -12,7 +12,7 @@ class AssignmentWidget(QWidget):
     ANNO_COLUMNS = ['ID', 'Set/video name',
                     'Date assigned', 'Status', 'Last Activity', 'Filename']
 
-    def __init__(self, sets, assigned=False):
+    def __init__(self, sets, assigned=False,assignedByMe=0):
         super().__init__()
 
         self._sets = sets
@@ -86,22 +86,33 @@ class AssignmentWidget(QWidget):
                         height: 20px;
                     }'''
 
+            self._another_filter_layout = QHBoxLayout();
+
             self._limit_search = QCheckBox()
             self._limit_search.setStyleSheet(styleSheetForCheckbox)
             self._limit_search.setText("Limit to assignments made by me")
-            self._limit_search.setCheckState(2)
-            filter_layout.addWidget(self._limit_search)
+            self._limit_search.setCheckState(assignedByMe)
+
+            self._another_filter_layout.addWidget(self._limit_search);
+            #filter_layout.addWidget(self._limit_search)
 
             self.resetSearch = QPushButton("Reset")
+            self.resetSearch.setMaximumWidth(100)
             self.searchWithAllFilters = QPushButton("Search")
-            filter_layout.addWidget(self.resetSearch)
-            filter_layout.addWidget(self.searchWithAllFilters)
+            self.searchWithAllFilters.setMaximumWidth(100)
 
+            #filter_layout.addWidget(self.resetSearch)
+            #filter_layout.addWidget(self.searchWithAllFilters)
             self.searchWithAllFilters.clicked.connect(self._filter_change)
             self.resetSearch.clicked.connect(self._clear_filter)
-
+            self._another_filter_layout.addSpacing(400)
+            self._another_filter_layout.addWidget(self.resetSearch);
+            self._another_filter_layout.addWidget(self.searchWithAllFilters);
             filter_layout.addStretch(1)
+
             self.layout.addLayout(filter_layout)
+            self.layout.addSpacing(20)
+            self.layout.addLayout(self._another_filter_layout)
         # blue table header
         header = QLabel()
         header.setStyleSheet('''
