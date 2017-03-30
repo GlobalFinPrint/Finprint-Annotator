@@ -181,7 +181,7 @@ class MainWindow(QMainWindow):
 
     def _launch_assign_diag(self, sets=False):
         if sets is False:
-            response = GlobalFinPrintServer().set_list(filtered=True)
+            response = GlobalFinPrintServer().set_list(filtered=True,assigned_by_me=True)
             sets = response['sets']
 
         assign_layout = QVBoxLayout()

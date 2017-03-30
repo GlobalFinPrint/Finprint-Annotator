@@ -218,9 +218,9 @@ class AssignmentWidget(QWidget):
         if self._affiliation_filter.currentIndex() >= 0:
             params['affiliation_id'] = self._affiliation_filter.itemData(self._affiliation_filter.currentIndex())
         if  self._limit_search.isChecked() :
-            params['assignment_flag'] = True
+            params['assigned_by_me'] = True
         else :
-            params['assignment_flag'] = False
+            params['assigned_by_me'] = False
 
         self._sets = GlobalFinPrintServer().set_list(**params)['sets']
         self._populate_table()
