@@ -119,8 +119,8 @@ class FullScreen(QWidget):
         self.back15 = ClickLabel()
         self.back15.setPixmap(QPixmap('images/jump_back-15s.png'))
 
-        self.back30 = ClickLabel()
-        self.back30.setPixmap(QPixmap('images/jump_back-30s.png'))
+        self.back05 = ClickLabel()
+        self.back05.setPixmap(QPixmap('images/jump_back-5s.png'))
 
         self.step_back_button = ClickLabel()
         self.step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
@@ -157,8 +157,8 @@ class FullScreen(QWidget):
         third_row.addWidget(self.video_time_label)
         third_row.addWidget(self.playback_speed_label)
         third_row.addSpacerItem(QSpacerItem(1, 1, QSizePolicy.Expanding))
-        third_row.addWidget(self.back30)
         third_row.addWidget(self.back15)
+        third_row.addWidget(self.back05)
         third_row.addWidget(self.step_back_button)
         third_row.addWidget(self.play_pause_button)
         third_row.addWidget(self.step_forward_button)
@@ -217,7 +217,7 @@ class FullScreen(QWidget):
         self.video_player.playbackSpeedChanged.connect(self.on_playback_speed_changed)
         self.filter_widget.change.connect(self.on_filter_change)
         self.back15.clicked.connect(self.on_back15)
-        self.back30.clicked.connect(self.on_back30)
+        self.back05.clicked.connect(self.on_back05)
         self.fast_forward_button.clicked.connect(self.on_fast_forward)
         self.step_back_button.clicked.connect(self.on_step_back)
         self.step_forward_button.clicked.connect(self.on_step_forward)
@@ -266,8 +266,8 @@ class FullScreen(QWidget):
     def on_back15(self):
         self.video_player.jump_back(15)
 
-    def on_back30(self):
-        self.video_player.jump_back(30)
+    def on_back05(self):
+        self.video_player.jump_back(5)
 
     def on_fullscreen_toggle(self):
         self.video_player.pause()
