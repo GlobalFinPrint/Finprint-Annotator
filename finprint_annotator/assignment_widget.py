@@ -3,7 +3,7 @@ from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from annotation_view import convert_position, VideoLayoutWidget
-
+import builtins
 
 class AssignmentWidget(QWidget):
     LEAD_COLUMNS = ['ID', 'Set/video name',
@@ -235,7 +235,6 @@ class AssignmentWidget(QWidget):
 
         self._sets = GlobalFinPrintServer().set_list(**params)['sets']
         self._populate_table()
-        self._flag = 0
 
 
     def _clear_filter(self):
@@ -244,9 +243,6 @@ class AssignmentWidget(QWidget):
         self._anno_filter.setCurrentIndex(0)
         self._status_filter.setCurrentIndex(0)
         self._affiliation_filter.setCurrentIndex(0)
-        if  self._limit_search.isChecked() :
-          self._limit_search.setCheckState(0)
+        self._limit_search.setCheckState(2)
 
-        self._sets=GlobalFinPrintServer().set_list()['sets']
-        self._populate_table()
 
