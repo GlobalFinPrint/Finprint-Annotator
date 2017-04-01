@@ -67,17 +67,17 @@ class AssignmentWidget(QWidget):
             filter_layout.addWidget(self._status_filter)
 
             #addition for GLOB-526
-            affiliation_list = [(3, 'AIMS'), (6, 'Curtin University'),(2, 'FIU'),(1, 'Global Finprint'),
-            (5, 'JCU'),(0, 'No affiliation'),(4, 'SBU')]
-            self._affiliation_filter = QComboBox()
-            self._affiliation_filter.setStyleSheet(stylesheet)
-            self._affiliation_filter.setMaximumWidth(400)
-            self._affiliation_filter.addItem('--- Affiliation ---')
-            for af in affiliation_list:
-                self._affiliation_filter.addItem(af[1], af[0])
+            #affiliation_list = [(3, 'AIMS'), (6, 'Curtin University'),(2, 'FIU'),(1, 'Global Finprint'),
+            #(5, 'JCU'),(0, 'No affiliation'),(4, 'SBU')]
+            #self._affiliation_filter = QComboBox()
+            #self._affiliation_filter.setStyleSheet(stylesheet)
+            #self._affiliation_filter.setMaximumWidth(400)
+            #self._affiliation_filter.addItem('--- Affiliation ---')
+            #for af in affiliation_list:
+             #   self._affiliation_filter.addItem(af[1], af[0])
             #self._status_filter.currentIndexChanged.connect(self._filter_change)
-            filter_layout.addWidget(self._affiliation_filter)
-            filter_layout.addSpacing(10)
+            #filter_layout.addWidget(self._affiliation_filter)
+            #filter_layout.addSpacing(10)
             styleSheetForCheckbox ='''
                     QCheckBox::indicator
                     {
@@ -225,8 +225,8 @@ class AssignmentWidget(QWidget):
             params['annotator_id'] = self._anno_filter.itemData(self._anno_filter.currentIndex())
         if self._status_filter.currentIndex() > 0:
             params['status_id'] = self._status_filter.itemData(self._status_filter.currentIndex())
-        if self._affiliation_filter.currentIndex() >= 0:
-            params['affiliation_id'] = self._affiliation_filter.itemData(self._affiliation_filter.currentIndex())
+       # if self._affiliation_filter.currentIndex() >= 0:
+        #    params['affiliation_id'] = self._affiliation_filter.itemData(self._affiliation_filter.currentIndex())
         if  self._limit_search.isChecked() :
             params['assigned_by_me'] = True
 
@@ -239,7 +239,7 @@ class AssignmentWidget(QWidget):
         self._set_filter.setCurrentIndex(0)
         self._anno_filter.setCurrentIndex(0)
         self._status_filter.setCurrentIndex(0)
-        self._affiliation_filter.setCurrentIndex(0)
+        #self._affiliation_filter.setCurrentIndex(0)
         self._limit_search.setCheckState(2)
 
 
