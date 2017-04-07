@@ -6,6 +6,4 @@ build/
 dist/
 Distribution/
 .idea/
-config.example.ini
-credentials.example.csv
 *.pyc
