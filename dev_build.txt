@@ -7,7 +7,7 @@ the opencv and pyqt4 dependencies:
 
 - Download and install Git for Windows (64-bit)  https://github.com/git-for-windows/git/releases/download/v2.12.0.windows.1/Git-2.12.0-64-bit.exe
 - Download and install 32bit Anaconda Installer into C:\Anaconda3 https://repo.continuum.io/archive/Anaconda3-4.3.1-Windows-x86.exe
-- Download and install Inno Setup 5.5 into C:\Inno http://www.jrsoftware.org/download.php/is.exe?site=1
+- Download and install Inno Setup 5.5 into C:\InnoSetup http://www.jrsoftware.org/download.php/is.exe?site=1
 - In a command window type 'conda create --name finprint python=3.4', which creates a virtual environment with 32 bit python
 - Activate the virtual environment by typing 'activate finprint' in that same command window
 - Install opencv by typing 'conda install -c menpo opencv3' in that same command window

@@ -4,3 +4,6 @@ credentials.csv
 __pycache__/
 build/
 dist/
+Distribution/
+.idea/
+*.pyc

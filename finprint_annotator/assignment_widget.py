@@ -11,7 +11,7 @@ class AssignmentWidget(QWidget):
     ANNO_COLUMNS = ['ID', 'Set/video name',
                     'Date assigned', 'Status', 'Last Activity', 'Filename']
 
-    def __init__(self, sets, assigned=False,assignedByMe=0):
+    def __init__(self, sets, assigned=False, assignedByMe=0):
         super().__init__()
 
         self._sets = sets
@@ -29,6 +29,8 @@ class AssignmentWidget(QWidget):
                 padding: 3px;
             }
             '''
+
+            # Filter By trip Dropdown
             self.trip_list = GlobalFinPrintServer().trip_list()['trips']
             self._trip_filter = QComboBox()
             self._trip_filter.setStyleSheet(stylesheet)
@@ -39,13 +41,26 @@ class AssignmentWidget(QWidget):
            # self._trip_filter.currentIndexChanged.connect(self._trip_filter_change)
             filter_layout.addWidget(self._trip_filter)
 
+            # Custom font for header row in set name filter
+            headerRowfont = QFont("Times", 9, QFont.Bold)
             self._set_filter = QComboBox()
             self._set_filter.setStyleSheet(stylesheet)
             self._set_filter.setMaximumWidth(400)
             self._set_filter.addItem('--- Filter by Set ---')
+            for t in self.trip_list:
+                # Add trip name header
+                self._set_filter.addItem(t['trip'])
+                # Disable trip name header row
+                self._set_filter.model().item(len(self._set_filter)-1).setEnabled(False)
+                # set custom font to header to have it look differently
+                self._set_filter.model().item(len(self._set_filter) - 1).setFont(headerRowfont)
+                for sn in t['sets']:
+                    # Add set names
+                    self._set_filter.addItem(sn['set'], sn['id'])
            # self._set_filter.currentIndexChanged.connect(self._filter_change)
             filter_layout.addWidget(self._set_filter)
 
+            # Filter By Annotator Dropdown
             anno_list = GlobalFinPrintServer().annotator_list()['annotators']
             self._anno_filter = QComboBox()
             self._anno_filter.setStyleSheet(stylesheet)
@@ -56,6 +71,7 @@ class AssignmentWidget(QWidget):
             #self._anno_filter.currentIndexChanged.connect(self._filter_change)
             filter_layout.addWidget(self._anno_filter)
 
+            # Filter By Status Dropdown
             status_list = [(1, 'Not started'), (2, 'In progress'), (3, 'Ready for Review')]
             self._status_filter = QComboBox()
             self._status_filter.setStyleSheet(stylesheet)
@@ -112,6 +128,7 @@ class AssignmentWidget(QWidget):
             self.layout.addLayout(filter_layout)
             self.layout.addSpacing(20)
             self.layout.addLayout(self._another_filter_layout)
+
         # blue table header
         header = QLabel()
         header.setStyleSheet('''
@@ -120,7 +137,9 @@ class AssignmentWidget(QWidget):
             color: rgb(255, 255, 255);
             font: 75 18pt "Arial";
         ''')
-        header.setText('Assignments' if self.is_lead else 'Assigned set list')
+        headerText = 'Assignments' if self.is_lead else 'Assigned set list'
+        # Adding no. of assignments to the header label for quickly knowing the count
+        header.setText(headerText + ' ('+str(len(sets))+')')
         header.setMinimumHeight(40)
         self.layout.addWidget(header)
 
