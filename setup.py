@@ -209,7 +209,7 @@ class BuildInstaller(py2exe):
             os.remove(temp_path)
 
         # copy template ini files into dist dir, make sure they're editable
-        shutil.copy('config.ini',
+        shutil.copy('config.example.ini',
                     'dist/config.ini')
         win32api.SetFileAttributes('dist/config.ini',
                                     win32con.FILE_ATTRIBUTE_NORMAL)
