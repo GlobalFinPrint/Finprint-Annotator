@@ -130,18 +130,15 @@ class AssignmentWidget(QWidget):
             self.layout.addLayout(self._another_filter_layout)
 
         # blue table header
-        header = QLabel()
-        header.setStyleSheet('''
+        self.headerLabel = QLabel()
+        self.headerLabel.setStyleSheet('''
             padding-left: 10px;
             background-color: rgb(41, 86, 109);
             color: rgb(255, 255, 255);
             font: 75 18pt "Arial";
         ''')
-        headerText = 'Assignments' if self.is_lead else 'Assigned set list'
-        # Adding no. of assignments to the header label for quickly knowing the count
-        header.setText(headerText + ' ('+str(len(sets))+')')
-        header.setMinimumHeight(40)
-        self.layout.addWidget(header)
+        self.headerLabel.setMinimumHeight(40)
+        self.layout.addWidget(self.headerLabel)
 
         # set table
         self.set_table = QTableWidget(self)
@@ -183,6 +180,11 @@ class AssignmentWidget(QWidget):
         # clear any current rows
         for row in range(self.set_table.rowCount()):
             self.set_table.removeRow(row)
+
+        # Change the header label counter
+        headerText = 'Assignments' if self.is_lead else 'Assigned set list'
+        # Adding no. of assignments to the header label for quickly knowing the count
+        self.headerLabel.setText(headerText + ' (' + str(len(self._sets)) + ')')
 
         # add sets to table
         self.set_table.setRowCount(len(self._sets))
