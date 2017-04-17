@@ -160,3 +160,7 @@ class GlobalFinPrintServer(Singleton):
     def animals(self, set_id):
         r = requests.get(self.address + '/api/set/{0}/animals'.format(set_id), params={'token': self.user_token})
         return r.json
+
+    def affiliation_list(self):
+        r = requests.get(self.address + '/api/affiliations', params={'token': self.user_token})
+        return r
