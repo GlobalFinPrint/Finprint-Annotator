@@ -3,6 +3,7 @@ from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from annotation_view import convert_position, VideoLayoutWidget
+import ast as ast
 
 class AssignmentWidget(QWidget):
     LEAD_COLUMNS = ['ID', 'Set/video name',
@@ -38,7 +39,6 @@ class AssignmentWidget(QWidget):
             self._trip_filter.addItem('--- Filter by Trip ---')
             for t in self.trip_list:
                 self._trip_filter.addItem(t['trip'], t['id'])
-           # self._trip_filter.currentIndexChanged.connect(self._trip_filter_change)
             filter_layout.addWidget(self._trip_filter)
 
             # Custom font for header row in set name filter
@@ -57,10 +57,11 @@ class AssignmentWidget(QWidget):
                 for sn in t['sets']:
                     # Add set names
                     self._set_filter.addItem(sn['set'], sn['id'])
-           # self._set_filter.currentIndexChanged.connect(self._filter_change)
+
             filter_layout.addWidget(self._set_filter)
 
             # Filter By Annotator Dropdown
+
             anno_list = GlobalFinPrintServer().annotator_list()['annotators']
             self._anno_filter = QComboBox()
             self._anno_filter.setStyleSheet(stylesheet)
@@ -68,7 +69,7 @@ class AssignmentWidget(QWidget):
             self._anno_filter.addItem('--- Filter by Annotator ---')
             for a in anno_list:
                 self._anno_filter.addItem(a['annotator'], a['id'])
-            #self._anno_filter.currentIndexChanged.connect(self._filter_change)
+
             filter_layout.addWidget(self._anno_filter)
 
             # Filter By Status Dropdown
@@ -79,21 +80,23 @@ class AssignmentWidget(QWidget):
             self._status_filter.addItem('--- Filter by Status ---')
             for s in status_list:
                 self._status_filter.addItem(s[1], s[0])
-            #self._status_filter.currentIndexChanged.connect(self._filter_change)
+
             filter_layout.addWidget(self._status_filter)
 
-            #addition for GLOB-526
+            #addition for GLOB-535
             #affiliation_list = [(3, 'AIMS'), (6, 'Curtin University'),(2, 'FIU'),(1, 'Global Finprint'),
             #(5, 'JCU'),(0, 'No affiliation'),(4, 'SBU')]
-            #self._affiliation_filter = QComboBox()
-            #self._affiliation_filter.setStyleSheet(stylesheet)
-            #self._affiliation_filter.setMaximumWidth(400)
-            #self._affiliation_filter.addItem('--- Affiliation ---')
-            #for af in affiliation_list:
-             #   self._affiliation_filter.addItem(af[1], af[0])
-            #self._status_filter.currentIndexChanged.connect(self._filter_change)
-            #filter_layout.addWidget(self._affiliation_filter)
-            #filter_layout.addSpacing(10)
+            affiliation_list = GlobalFinPrintServer().affiliation_list()
+            self._affiliation_filter = QComboBox()
+            self._affiliation_filter.setStyleSheet(stylesheet)
+            self._affiliation_filter.setMaximumWidth(400)
+            self._affiliation_filter.addItem('--- Affiliation ---')
+            for key,value in ast.literal_eval(affiliation_list.text).items():
+                print (value,"", key)
+                self._affiliation_filter.addItem(value,key)
+
+            filter_layout.addWidget(self._affiliation_filter)
+            filter_layout.addSpacing(10)
             styleSheetForCheckbox ='''
                     QCheckBox::indicator
                     {
@@ -109,15 +112,13 @@ class AssignmentWidget(QWidget):
             self._limit_search.setCheckState(assignedByMe)
 
             self._another_filter_layout.addWidget(self._limit_search);
-            #filter_layout.addWidget(self._limit_search)
+
 
             self.resetSearch = QPushButton("Reset")
             self.resetSearch.setMaximumWidth(100)
             self.searchWithAllFilters = QPushButton("Search")
             self.searchWithAllFilters.setMaximumWidth(100)
 
-            #filter_layout.addWidget(self.resetSearch)
-            #filter_layout.addWidget(self.searchWithAllFilters)
             self.searchWithAllFilters.clicked.connect(self._filter_change)
             self.resetSearch.clicked.connect(self._clear_filter)
             self._another_filter_layout.addSpacing(400)
@@ -246,8 +247,8 @@ class AssignmentWidget(QWidget):
             params['annotator_id'] = self._anno_filter.itemData(self._anno_filter.currentIndex())
         if self._status_filter.currentIndex() > 0:
             params['status_id'] = self._status_filter.itemData(self._status_filter.currentIndex())
-       # if self._affiliation_filter.currentIndex() >= 0:
-        #    params['affiliation_id'] = self._affiliation_filter.itemData(self._affiliation_filter.currentIndex())
+        if self._affiliation_filter.currentIndex() >= 0:
+            params['affiliation_id'] = self._affiliation_filter.itemData(self._affiliation_filter.currentIndex())
         if  self._limit_search.isChecked() :
             params['assigned_by_me'] = True
 
@@ -260,7 +261,7 @@ class AssignmentWidget(QWidget):
         self._set_filter.setCurrentIndex(0)
         self._anno_filter.setCurrentIndex(0)
         self._status_filter.setCurrentIndex(0)
-        #self._affiliation_filter.setCurrentIndex(0)
+        self._affiliation_filter.setCurrentIndex(0)
         self._limit_search.setCheckState(2)
 
 
