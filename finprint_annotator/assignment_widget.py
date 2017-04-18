@@ -92,7 +92,6 @@ class AssignmentWidget(QWidget):
             self._affiliation_filter.setMaximumWidth(400)
             self._affiliation_filter.addItem('--- Affiliation ---')
             for key,value in ast.literal_eval(affiliation_list.text).items():
-                print (value,"", key)
                 self._affiliation_filter.addItem(value,key)
 
             filter_layout.addWidget(self._affiliation_filter)
