@@ -77,6 +77,8 @@ class FullScreenLayout(QLayout):
 
 
 class FullScreen(QWidget):
+    FRAME_STEP = 50  # milli seconds
+
     def __init__(self, set, video_file, small_player):
         super().__init__()
         self.showFullScreen()
@@ -84,13 +86,12 @@ class FullScreen(QWidget):
         self.setStyleSheet('background-color: black;')
         self.current_set = set
         self.small_player = small_player
-
         # components
-        self.video_player = VlcVideoWidget(parent=self,
-                                          onPositionChange=self.on_position_change,
-                                          fullscreen=True)
+        self.fullscreen_video_player = VlcVideoWidget(parent=self,
+                                                      onPositionChange=self.on_position_change,
+                                                      fullscreen=True)
 
-        self.seek_bar = VideoSeekWidget(self.video_player)
+        self.seek_bar = VideoSeekWidget(self.fullscreen_video_player)
 
         self.video_length_label = QLabel()
         self.video_length_label.setStyleSheet('color: #838C9E; font-size: 13px; padding-top: 10px;')
@@ -139,6 +140,9 @@ class FullScreen(QWidget):
             self.fast_forward_button.setVisible(False)
         self.speed_buttons = list(SpeedButton(speed) for speed in [0.5, 1.5, 3])
 
+        # Initialize/Sync full screen timer with incoming small player timer
+        self.fullscreen_video_player.timer_vo.timer_duration_ms = self.small_player.get_position()
+
         # layout
         controls_layout = QVBoxLayout()
         first_row = QHBoxLayout()
@@ -175,7 +179,7 @@ class FullScreen(QWidget):
         controls.setLayout(controls_layout)
 
         self.layout = FullScreenLayout()
-        self.layout.addWidget(self.video_player)
+        self.layout.addWidget(self.fullscreen_video_player)
         self.layout.addWidget(controls)
         self.setLayout(self.layout)
 
@@ -189,32 +193,36 @@ class FullScreen(QWidget):
         set_changed = self.current_set != set
         self.current_set = set
         self.small_player = small_player
+
+        # Initialize/Sync full screen timer with incoming small player timer
+        self.fullscreen_video_player.timer_vo.timer_duration_ms = self.small_player.get_position()
+
         self.prepare(video_file, set_changed)
         self.show()
 
     def prepare(self, video_file, set_changed=False):
-        self.video_player.clear_extent()
+        self.fullscreen_video_player.clear_extent()
         if set_changed:
-            self.video_player.load_set(self.current_set)
-            self.video_player.load(video_file)
+            self.fullscreen_video_player.load_set(self.current_set)
+            self.fullscreen_video_player.load(video_file)
             self.seek_bar.load_set(self.current_set)
-            self.seek_bar.setMaximum(int(self.video_player.get_length()))
+            self.seek_bar.setMaximum(int(self.fullscreen_video_player.get_length()))
             self.seek_bar.set_allowed_progress(self.current_set.progress)
             self.seek_bar.setMaximumWidth(self.frameGeometry().width())
         else:
-            self.video_player._timer.start()
             self.seek_bar.generate_ticks()
         self.seek_bar.set_allowed_progress(self.current_set.progress)
-        self.video_length_label.setText(convert_position(int(self.video_player.get_length())))
+        self.video_length_label.setText(convert_position(int(self.fullscreen_video_player.get_length())))
         self.playback_speed_label.setText('(0x)')
-        self.video_player.set_position(self.small_player.get_position())
+        #intializing TimerVO with present time
+        self.fullscreen_video_player.set_position(self.small_player.get_position())
         QCoreApplication.instance().installEventFilter(self)
-        QCoreApplication.instance().installEventFilter(self.video_player)
+        QCoreApplication.instance().installEventFilter(self.fullscreen_video_player)
 
     def wire_events(self):
         self.play_pause_button.clicked.connect(self.on_toggle_play)
-        self.video_player.playStateChanged.connect(self.on_playstate_changed)
-        self.video_player.playbackSpeedChanged.connect(self.on_playback_speed_changed)
+        self.fullscreen_video_player.playStateChanged.connect(self.on_playstate_changed)
+        self.fullscreen_video_player.playbackSpeedChanged.connect(self.on_playback_speed_changed)
         self.filter_widget.change.connect(self.on_filter_change)
         self.back15.clicked.connect(self.on_back15)
         self.back05.clicked.connect(self.on_back05)
@@ -233,58 +241,62 @@ class FullScreen(QWidget):
 
     def on_playstate_changed(self, play_state):
         if play_state == PlayState.EndOfStream or play_state == PlayState.Paused:
-            self.on_progress_update(self.video_player.get_position())  # update position on pause
+            self.on_progress_update(self.fullscreen_video_player.get_position())  # update position on pause
             self.play_pause_button.setPixmap(self._play_pixmap)
         else:
             self.play_pause_button.setPixmap(self._pause_pixmap)
 
     def on_toggle_play(self):
-        self.video_player.toggle_play()
+        self.fullscreen_video_player.toggle_play()
 
     def on_progress_update(self, progress):
         if self.current_set is not None:
             self.current_set.update_progress(progress)
 
     def on_rewind(self):
-        self.video_player.rewind()
+        self.fullscreen_video_player.rewind()
 
     def on_fast_forward(self):
-        self.video_player.fast_forward()
+        self.fullscreen_video_player.fast_forward()
 
     def on_step_back(self):
-        self.video_player.step_back()
+        self.fullscreen_video_player.scrub_position(self.fullscreen_video_player.get_position() - self.FRAME_STEP)
 
     def on_step_forward(self):
-        self.video_player.step_forward()
+        self.fullscreen_video_player.scrub_position(self.fullscreen_video_player.get_position() + self.FRAME_STEP)
 
     def on_speed(self, speed):
-        self.video_player.set_speed(speed)
+        self.fullscreen_video_player.set_speed(speed)
 
     def on_playback_speed_changed(self, speed):
         self.playback_speed_label.setText('({}x)'.format(int(speed) if int(speed) == speed else speed))
 
+    ''' Pause the video and Go back 15 seconds '''
     def on_back15(self):
-        self.video_player.jump_back(15)
+        self.fullscreen_video_player.scrub_position(self.fullscreen_video_player.get_position() - 15000)
 
+    ''' Pause the video and Go back 5 seconds '''
     def on_back05(self):
-        self.video_player.jump_back(5)
+        self.fullscreen_video_player.scrub_position(self.fullscreen_video_player.get_position() - 5000)
+
 
     def on_fullscreen_toggle(self):
-        self.video_player.pause()
+        self.fullscreen_video_player.pause()
         self.filter_widget.hide()
         self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
-        self.small_player.scrub_position(self.video_player.get_position())
+        #setting scrub postion with new changed position of normal screen where it paused
+        self.small_player.scrub_position(self.fullscreen_video_player.get_position())
         self.small_player.parent()._observation_table.refresh_model()
         QCoreApplication.instance().removeEventFilter(self)
         QCoreApplication.instance().installEventFilter(self.small_player)
         self.hide()
-        self.video_player.clear()
+        self.fullscreen_video_player.clear()
         self.small_player.parent().is_fullscreen = False
 
     def on_slider_tick(self, _, obs):
         evt = sorted(obs.events, key=lambda e: e.create_datetime)[0]
-        self.video_player.pause()
-        self.video_player.display_event(evt.event_time, evt.extent)
+        self.fullscreen_video_player.pause()
+        self.fullscreen_video_player.display_event(evt.event_time, evt.extent)
 
     def refresh_seek_bar(self):
         self.seek_bar.load_set(self.current_set)
@@ -305,8 +317,8 @@ class FullScreen(QWidget):
         self.video_filter_button.setPixmap(QPixmap(img))
 
     def on_filter_change(self, saturation, brightness, contrast):
-        self.video_player.saturation = saturation
-        self.video_player.brightness = brightness
-        self.video_player.contrast = contrast
-        if self.video_player.is_paused():
-            self.video_player.refresh_frame()
+        self.fullscreen_video_player.saturation = saturation
+        self.fullscreen_video_player.brightness = brightness
+        self.fullscreen_video_player.contrast = contrast
+        if self.fullscreen_video_player.is_paused():
+            self.fullscreen_video_player.refresh_frame()

@@ -28,7 +28,6 @@ VIDEO_HEIGHT = 450
 DEFAULT_ASPECT_RATIO = 16.0 / 9.0
 AWS_BUCKET_NAME = 'finprint-annotator-screen-captures'
 SCREEN_CAPTURE_QUALITY = 25  # 0 to 100 (inclusive); lower is small file, higher is better quality
-FRAME_STEP = 50
 TEMP_SNAPSHOT_DIR = 'finprint-snapshot'
 
 SEEK_CLOCK_FACTOR = 30
@@ -68,11 +67,17 @@ class RepeatingTimer(QObject):
     def cancel(self):
         self.shutdown_event.set()
 
+class TimerVO :
+    def __init__(self, dur):
+        ''' Duration of current timer in seconds '''
+        self.timer_duration_ms = dur
+
 
 class AnnotationImage(QWidget):
     def __init__(self):
         QWidget.__init__(self)
         self.highlighter = Highlighter()
+        self._pressed = False
         self._dragging = False
         self.curr_image = None
         self.can_update = True
@@ -97,16 +102,18 @@ class AnnotationImage(QWidget):
 
     def mousePressEvent(self, event):
         if self.can_update:
+            self._pressed = True
             self.highlighter.start_rect(event.pos())
             self.update()
 
     def mouseMoveEvent(self, event):
         if self.can_update:
-            self._dragging = True
-            x, y = event.pos().x(), event.pos().y()
-            clamped_pos = QPoint(min(x, self.width()), min(y, self.height()))
-            self.highlighter.set_rect(clamped_pos)
-            self.update()
+            if self._pressed: # If mouse was earlier pressed, then this mouse move is actually a DRAG
+                self._dragging = True
+                x, y = event.pos().x(), event.pos().y()
+                clamped_pos = QPoint(min(x, self.width()), min(y, self.height()))
+                self.highlighter.set_rect(clamped_pos)
+                self.update()
 
     def mouseReleaseEvent(self, event):
         if self._dragging:
@@ -192,6 +199,8 @@ class VlcVideoWidget(QStackedWidget):
         self.timer_time = time.perf_counter()
         self._timer = RepeatingTimer(0.25)
         self._timer.timerElapsed.connect(self.on_timer)
+        # Initialize timer value object with 0 ms
+        self.timer_vo = TimerVO(0)
 
         self._context_menu = None
         self._current_set = None
@@ -282,15 +291,13 @@ class VlcVideoWidget(QStackedWidget):
         # mp_event_mgr.event_attach(EventType.MediaPlayerTimeChanged, self.timeChangedEvent)
 
         # don't start listening for spacebar until video is loaded and playable
-        self.mediaplayer.video_set_mouse_input(False)
+        self.mediaplayer.video_set_mouse_input(True)
 
         # if we have any special options, like hardware acceleration, that are media specific, set them here
         # XXX sohrt term hack here, we're only going to load these options if it is fullscreen
         opts = get_vlc_media_options()
         if opts and self._fullscreen :
             self.media.add_options(opts)
-
-        self._timer.start()
 
         # XXX hack to display the first few frames, which alters the bahavior of
         # VLC with respect to video scrubbing
@@ -325,15 +332,19 @@ class VlcVideoWidget(QStackedWidget):
     # Reinstate last_progress here
     def on_timer(self):
         if self._play_state is not PlayState.EndOfStream:
-            pos = self.get_position()
+            pos = self.mediaplayer.get_time()
+            #intializing/updating timeVO to use as a common timer holder
+            self.timer_vo.timer_duration_ms = pos
             if pos > (self.media.get_duration() - 2000):
                 self.streamEndEvent()
             if self._play_state is PlayState.Playing and self._last_progress > PROGRESS_UPDATE_INTERVAL:
                 self._last_progress = pos
                 self.progressUpdate.emit(pos)
-            self._onPositionChange(self.get_position())
+            print('vlc_video_widget > on_timer: pos {0},  get_position {1}'.format(pos, self.get_position()))
+            self._onPositionChange(pos)
 
     def clear(self):
+        print('vlc_video_widget > clear: get_position {0}'.format(self.get_position()))
         self._timer.cancel()
         self.update()
 
@@ -399,33 +410,23 @@ class VlcVideoWidget(QStackedWidget):
             self.annotationImage.highlighter.set_rect(self._observation_rect.bottomRight())
             self.annotationImage.repaint()
 
-    def jump_back(self, seconds):
-        self.clear_extent()
-        time_back = self.mediaplayer.get_time() - seconds * 1000
-        pos_back = time_back / self.media.get_duration()
-        if time_back < 0:
-            time_back = 0
-        # if paused, swap out the static image
-        self.mediaplayer.set_position(pos_back)
-        if self._play_state is PlayState.Paused:
-            self.setCurrentIndex(VIDEOFRAME_INDEX)
-            self._onPositionChange(self.get_position())
-
     def scrub_position(self, pos):
         # todo - just have a Seek State
-        self._play_state = PlayState.Paused
-        p = (pos) / self.media.get_duration()
-        getLogger('finprint').info('scrub_position {0}'.format(p))
-        self.setCurrentIndex(VIDEOFRAME_INDEX)
-        self.mediaplayer.set_position(p)
+        print('vlc_video_widget > scrub_position: pos {0}'.format(pos))
+        # Change the displayed still image in video player
+        self.set_position(pos)
+        self.pause()
 
     def set_position(self, pos):
         self._onPositionChange(pos)
         p = (pos) / self.media.get_duration()
         getLogger('finprint').info('set_position {0}'.format(p))
+        print('vlc_video_widget > set_position: pos {0}, media.duration {1}, mediaplayer.duration {2}, set_position {3}'
+              .format(pos, self.media.get_duration(), self.mediaplayer.get_media().get_duration(), p))
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.mediaplayer.set_position(p)
-        self.take_videoframe_snapshot()
+        self.timer_vo.timer_duration_ms = pos
+        QTimer.singleShot(500, self.take_videoframe_snapshot)
 
     def toggle_play(self):
         if self._play_state in [PlayState.Paused, PlayState.SeekForward, PlayState.SeekBack]:
@@ -434,15 +435,17 @@ class VlcVideoWidget(QStackedWidget):
         else:
             getLogger('finprint').info('toggle_play: pause')
             self.pause()
-            self.take_videoframe_snapshot()
 
     def pause(self):
         if self.mediaplayer.is_playing():
             self.mediaplayer.pause()
+        print('vlc_video_widget > pause: get_position {0}'.format(self.get_position()))
         getLogger('finprint').info('paused')
         self._play_state = PlayState.Paused
         self.playStateChanged.emit(self._play_state)
         self.playbackSpeedChanged.emit(0.0)
+        self._timer.cancel()
+        QTimer.singleShot(500, self.take_videoframe_snapshot)
 
     def save_image(self, filename):
         self.curr_s3_upload = filename
@@ -478,13 +481,16 @@ class VlcVideoWidget(QStackedWidget):
         self.set_speed(1.0)
         self.mediaplayer.play()
         self._play_state = PlayState.Playing
+        self._timer.start()
         self.playStateChanged.emit(self._play_state)
 
     def is_paused(self):
         return self._play_state == PlayState.Paused
 
+    ''' Provides duration of current video play in milli seconds '''
     def get_position(self):
-        return self.mediaplayer.get_time()
+        #return self.mediaplayer.get_time()
+        return self.timer_vo.timer_duration_ms
 
     def get_length(self):
         duration = self.media.get_duration()
@@ -509,16 +515,6 @@ class VlcVideoWidget(QStackedWidget):
     def context_menu(self):
         if self._context_menu:
             self._context_menu.display()
-
-    def step_back(self):
-        self.pause()
-        self.scrub_position(self.get_position() - FRAME_STEP)
-        QTimer.singleShot(500, self.take_videoframe_snapshot)
-
-    def step_forward(self):
-        self.pause()
-        self.scrub_position(self.get_position() + FRAME_STEP)
-        QTimer.singleShot(500, self.take_videoframe_snapshot)
 
     def is_filtered(self):
         return self.saturation > 0 or self.brightness > 0 or self.contrast
@@ -619,6 +615,7 @@ class VlcVideoWidget(QStackedWidget):
         self.playStateChanged.emit(self._play_state)
         dur = self.media.get_duration()
         self.mediaplayer.set_position((dur - 1000) / dur)
+        print('vlc_video_widget > streamEndEvent: dur {0}, mediaplayer.get_position {1}'.format(dur, self.mediaplayer.get_position()))
         self.pause()
         self.playStateChanged.emit(self._play_state)
 
