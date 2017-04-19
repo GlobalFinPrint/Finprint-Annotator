@@ -1,6 +1,6 @@
 import os
 from logging import getLogger
-from video_player import VlcVideoWidget, PlayState
+from video_player import VlcVideoWidget, PlayState, TimerVO
 from global_finprint import GlobalFinPrintServer
 from config import global_config
 from .video_seek_widget import VideoSeekWidget
@@ -12,10 +12,10 @@ from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
-
 class VideoLayoutWidget(QWidget):
     fullscreen = None
     is_fullscreen = False
+    FRAME_STEP = 50  # milli seconds
 
     def __init__(self, main_window):
         super(VideoLayoutWidget, self).__init__()
@@ -29,7 +29,7 @@ class VideoLayoutWidget(QWidget):
                                         margin-left: 25px;
                                         padding-top: 4px;
                                         padding-bottom: 4px;
-                                        padding-left: 5px;
+                                        padding-left: 5px;s
                                         padding-right: 5px; }
                                        QPushButton:hover { background: rgb(41, 86, 109, 128); }
                                        QPushButton:disabled { background: rgb(131,140,158, 128);
@@ -104,7 +104,6 @@ class VideoLayoutWidget(QWidget):
 
         # An annotation session is in the context of a set.  Track the current set we're annotating
         self.current_set = None
-
         self.setup_layout()
         self.wire_events()
 
@@ -359,20 +358,22 @@ class VideoLayoutWidget(QWidget):
     def on_rewind(self):
         self._video_player.rewind()
 
+    ''' Pause the video and Go back 15 seconds '''
     def on_back15(self):
-        self._video_player.jump_back(15)
+        self._video_player.scrub_position(self._video_player.get_position() - 15000)
 
+    ''' Pause the video and Go back 5 seconds '''
     def on_back05(self):
-        self._video_player.jump_back(5)
+        self._video_player.scrub_position(self._video_player.get_position() - 5000)
 
     def on_fast_forward(self):
         self._video_player.fast_forward()
 
     def on_step_back(self):
-        self._video_player.step_back()
+        self._video_player.scrub_position(self._video_player.get_position() - self.FRAME_STEP)
 
     def on_step_forward(self):
-        self._video_player.step_forward()
+        self._video_player.scrub_position(self._video_player.get_position() + self.FRAME_STEP)
 
     def on_speed(self, speed):
         self._video_player.set_speed(speed)
