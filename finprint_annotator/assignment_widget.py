@@ -168,14 +168,16 @@ class AssignmentWidget(QWidget):
         self.layout.addWidget(self.set_table)
         self.setLayout(self.layout)
 
-        # GLOB-544: retain filter status
-        self._prev_state_assignment_filter = assignment_filter
+        if self.is_lead and not assigned:
+          # GLOB-544: retain filter status
+          self._prev_state_assignment_filter = assignment_filter
 
-        if self._prev_state_assignment_filter:
-            self.set_prev_state_of_filters()
-        else:
+          if self._prev_state_assignment_filter:
+             self.set_prev_state_of_filters()
+          else:
             # assignement the intial value which is achieved after reset or default
-            self._prev_state_assignment_filter = AssignmentFilter()
+             self._prev_state_assignment_filter = AssignmentFilter()
+
         # populate table with current sets
         self._populate_table()
 
