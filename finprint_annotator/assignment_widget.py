@@ -3,6 +3,7 @@ from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from annotation_view import convert_position, VideoLayoutWidget
+from finprint_annotator.assignment_util import AssignmentFilter
 import ast as ast
 
 class AssignmentWidget(QWidget):
@@ -11,8 +12,7 @@ class AssignmentWidget(QWidget):
                     'Date assigned', 'Status', 'Last activity', 'Filename']
     ANNO_COLUMNS = ['ID', 'Set/video name',
                     'Date assigned', 'Status', 'Last Activity', 'Filename']
-
-    def __init__(self, sets, assigned=False, assignedByMe=0):
+    def __init__(self, sets, assigned=False, assignment_filter = None, assignedByMe=0,):
         super().__init__()
 
         self._sets = sets
@@ -30,7 +30,6 @@ class AssignmentWidget(QWidget):
                 padding: 3px;
             }
             '''
-
             # Filter By trip Dropdown
             self.trip_list = GlobalFinPrintServer().trip_list()['trips']
             self._trip_filter = QComboBox()
@@ -112,7 +111,6 @@ class AssignmentWidget(QWidget):
 
             self._another_filter_layout.addWidget(self._limit_search);
 
-
             self.resetSearch = QPushButton("Reset")
             self.resetSearch.setMaximumWidth(100)
             self.searchWithAllFilters = QPushButton("Search")
@@ -170,6 +168,14 @@ class AssignmentWidget(QWidget):
         self.layout.addWidget(self.set_table)
         self.setLayout(self.layout)
 
+        # GLOB-544: retain filter status
+        self._prev_state_assignment_filter = assignment_filter
+
+        if self._prev_state_assignment_filter:
+            self.set_prev_state_of_filters()
+        else:
+            # assignement the intial value which is achieved after reset or default
+            self._prev_state_assignment_filter = AssignmentFilter()
         # populate table with current sets
         self._populate_table()
 
@@ -253,6 +259,7 @@ class AssignmentWidget(QWidget):
 
         self._sets = GlobalFinPrintServer().set_list(**params)['sets']
         self._populate_table()
+        self.retain_filter_status()
 
 
     def _clear_filter(self):
@@ -262,5 +269,30 @@ class AssignmentWidget(QWidget):
         self._status_filter.setCurrentIndex(0)
         self._affiliation_filter.setCurrentIndex(0)
         self._limit_search.setCheckState(2)
+        self._prev_state_assignment_filter.setFilterValues()
+
+
+    def retain_filter_status(self):
+        if self._limit_search.isChecked() :
+            limit_search_index =2
+        else:
+            limit_search_index = 0
+
+        self._prev_state_assignment_filter.setFilterValues(
+        self._trip_filter.currentIndex(),
+        self._set_filter.currentIndex(),
+        self._anno_filter.currentIndex(),
+        self._status_filter.currentIndex(),
+        self._affiliation_filter.currentIndex(), limit_search_index)
+
+
+    def set_prev_state_of_filters(self):
+        self._trip_filter.setCurrentIndex(self._prev_state_assignment_filter._trip_filter_index)
+        self._set_filter.setCurrentIndex(self._prev_state_assignment_filter._set_filter_index)
+        self._anno_filter.setCurrentIndex(self._prev_state_assignment_filter._anno_filter_index)
+        self._status_filter.setCurrentIndex(self._prev_state_assignment_filter._status_filter_index)
+        self._affiliation_filter.setCurrentIndex(self._prev_state_assignment_filter._affiliation_filter_index)
+        self._limit_search.setCheckState(self._prev_state_assignment_filter._limit_search_index)
+        self._filter_change()
 
 
