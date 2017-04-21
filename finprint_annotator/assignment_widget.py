@@ -43,7 +43,6 @@ class AssignmentWidget(QWidget):
             self._trip_filter.setStyleSheet(stylesheet)
             self._trip_filter.setMaximumWidth(400)
             self._trip_filter.addItem('--- Filter by Trip ---')
-            self._trip_filter.setCurrentIndex(-1)
 
             for t in self.trip_list:
                 self._trip_filter.addItem(t['trip'], t['id'])
@@ -261,17 +260,14 @@ class AssignmentWidget(QWidget):
 
     def control_set_filter_based_on_trip_selected(self):
 
-        if self._trip_filter.currentIndex() == -1:
+        if self._trip_filter.currentIndex() == 0:
             self._set_filter.addItem('--- Filter by Set ---')
             current_trip_list = self.trip_list
             for t in current_trip_list:
                 self.fill_trip_selected(t)
-
-            self._trip_filter.setCurrentIndex(0)
         else:
             ''''filtering sets if a trip is selected'''
             self._set_filter.clear()
-            self._set_filter.setMaximumWidth(400)
             self._set_filter.addItem('--- Filter by Set ---')
             self._set_filter.setCurrentIndex(0)
             t = self.trip_list[self._trip_filter.currentIndex()-1]
