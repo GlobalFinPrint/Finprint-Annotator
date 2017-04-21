@@ -30,6 +30,12 @@ class AssignmentWidget(QWidget):
                 padding: 3px;
             }
             '''
+            # Custom font for header row in set name filter
+            self.headerRowfont = QFont("Times", 9, QFont.Bold)
+            self._set_filter = QComboBox()
+            self._set_filter.setStyleSheet(stylesheet)
+            self._set_filter.setMaximumWidth(400)
+
 
             # Filter By trip Dropdown
             self.trip_list = GlobalFinPrintServer().trip_list()['trips']
@@ -37,26 +43,16 @@ class AssignmentWidget(QWidget):
             self._trip_filter.setStyleSheet(stylesheet)
             self._trip_filter.setMaximumWidth(400)
             self._trip_filter.addItem('--- Filter by Trip ---')
+            self._trip_filter.setCurrentIndex(-1)
+
             for t in self.trip_list:
                 self._trip_filter.addItem(t['trip'], t['id'])
-            filter_layout.addWidget(self._trip_filter)
 
-            # Custom font for header row in set name filter
-            headerRowfont = QFont("Times", 9, QFont.Bold)
-            self._set_filter = QComboBox()
-            self._set_filter.setStyleSheet(stylesheet)
-            self._set_filter.setMaximumWidth(400)
-            self._set_filter.addItem('--- Filter by Set ---')
-            for t in self.trip_list:
-                # Add trip name header
-                self._set_filter.addItem(t['trip'])
-                # Disable trip name header row
-                self._set_filter.model().item(len(self._set_filter)-1).setEnabled(False)
-                # set custom font to header to have it look differently
-                self._set_filter.model().item(len(self._set_filter) - 1).setFont(headerRowfont)
-                for sn in t['sets']:
-                    # Add set names
-                    self._set_filter.addItem(sn['set'], sn['id'])
+            self._trip_filter.currentIndexChanged.connect(self.control_set_filter_based_on_trip_selected)
+            #intialising values of set_filters
+            self.control_set_filter_based_on_trip_selected()
+
+            filter_layout.addWidget(self._trip_filter)
 
             filter_layout.addWidget(self._set_filter)
 
@@ -263,4 +259,31 @@ class AssignmentWidget(QWidget):
         self._affiliation_filter.setCurrentIndex(0)
         self._limit_search.setCheckState(2)
 
+    def control_set_filter_based_on_trip_selected(self):
 
+        if self._trip_filter.currentIndex() == -1:
+            self._set_filter.addItem('--- Filter by Set ---')
+            current_trip_list = self.trip_list
+            for t in current_trip_list:
+                self.fill_trip_selected(t)
+
+            self._trip_filter.setCurrentIndex(0)
+        else:
+            ''''filtering sets if a trip is selected'''
+            self._set_filter.clear()
+            self._set_filter.setMaximumWidth(400)
+            self._set_filter.addItem('--- Filter by Set ---')
+            self._set_filter.setCurrentIndex(0)
+            t = self.trip_list[self._trip_filter.currentIndex()-1]
+            # Add trip name header
+            self.fill_trip_selected(t)
+
+    def fill_trip_selected(self, t):
+        self._set_filter.addItem(t['trip'])
+        # Disable trip name header row
+        self._set_filter.model().item(len(self._set_filter) - 1).setEnabled(False)
+        # set custom font to header to have it look differently
+        self._set_filter.model().item(len(self._set_filter) - 1).setFont(self.headerRowfont)
+        for sn in t['sets']:
+            # Add set names
+            self._set_filter.addItem(sn['set'], sn['id'])
