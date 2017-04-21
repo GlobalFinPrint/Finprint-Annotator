@@ -3,7 +3,7 @@ from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from annotation_view import convert_position, VideoLayoutWidget
-from finprint_annotator.assignment_util import AssignmentFilter
+from finprint_annotator.assignment_filter import AssignmentFilterDTO
 import ast as ast
 
 class AssignmentWidget(QWidget):
@@ -12,13 +12,13 @@ class AssignmentWidget(QWidget):
                     'Date assigned', 'Status', 'Last activity', 'Filename']
     ANNO_COLUMNS = ['ID', 'Set/video name',
                     'Date assigned', 'Status', 'Last Activity', 'Filename']
-    def __init__(self, sets, assigned=False, assignment_filter = None, assignedByMe=0,):
+    def __init__(self, sets, assigned=False, assignedByMe=0,):
         super().__init__()
 
         self._sets = sets
         self.is_lead = GlobalFinPrintServer().is_lead()
         self.layout = QVBoxLayout()
-
+        self._assignment_filter = AssignmentFilterDTO.get_instance()
         # add filter dropdowns for lead
         if self.is_lead and not assigned:
             filter_layout = QHBoxLayout()
@@ -83,8 +83,6 @@ class AssignmentWidget(QWidget):
             filter_layout.addWidget(self._status_filter)
 
             #addition for GLOB-535
-            #affiliation_list = [(3, 'AIMS'), (6, 'Curtin University'),(2, 'FIU'),(1, 'Global Finprint'),
-            #(5, 'JCU'),(0, 'No affiliation'),(4, 'SBU')]
             affiliation_list = GlobalFinPrintServer().affiliation_list()
             self._affiliation_filter = QComboBox()
             self._affiliation_filter.setStyleSheet(stylesheet)
@@ -170,13 +168,8 @@ class AssignmentWidget(QWidget):
 
         if self.is_lead and not assigned:
           # GLOB-544: retain filter status
-          self._prev_state_assignment_filter = assignment_filter
-
-          if self._prev_state_assignment_filter:
+          if self._assignment_filter :
              self.set_prev_state_of_filters()
-          else:
-            # assignement the intial value which is achieved after reset or default
-             self._prev_state_assignment_filter = AssignmentFilter()
 
         # populate table with current sets
         self._populate_table()
@@ -271,7 +264,7 @@ class AssignmentWidget(QWidget):
         self._status_filter.setCurrentIndex(0)
         self._affiliation_filter.setCurrentIndex(0)
         self._limit_search.setCheckState(2)
-        self._prev_state_assignment_filter.setFilterValues()
+        self._assignment_filter.setFilterValues()
 
 
     def retain_filter_status(self):
@@ -280,7 +273,7 @@ class AssignmentWidget(QWidget):
         else:
             limit_search_index = 0
 
-        self._prev_state_assignment_filter.setFilterValues(
+        self._assignment_filter.setFilterValues(
         self._trip_filter.currentIndex(),
         self._set_filter.currentIndex(),
         self._anno_filter.currentIndex(),
@@ -289,12 +282,12 @@ class AssignmentWidget(QWidget):
 
 
     def set_prev_state_of_filters(self):
-        self._trip_filter.setCurrentIndex(self._prev_state_assignment_filter._trip_filter_index)
-        self._set_filter.setCurrentIndex(self._prev_state_assignment_filter._set_filter_index)
-        self._anno_filter.setCurrentIndex(self._prev_state_assignment_filter._anno_filter_index)
-        self._status_filter.setCurrentIndex(self._prev_state_assignment_filter._status_filter_index)
-        self._affiliation_filter.setCurrentIndex(self._prev_state_assignment_filter._affiliation_filter_index)
-        self._limit_search.setCheckState(self._prev_state_assignment_filter._limit_search_index)
+        self._trip_filter.setCurrentIndex(self._assignment_filter.get_trip_filter_index())
+        self._set_filter.setCurrentIndex(self._assignment_filter.get_set_filter_index())
+        self._anno_filter.setCurrentIndex(self._assignment_filter.get_anno_filter_index())
+        self._status_filter.setCurrentIndex(self._assignment_filter.get_status_filter_index())
+        self._affiliation_filter.setCurrentIndex(self._assignment_filter.get_affiliation_filter_index())
+        self._limit_search.setCheckState(self._assignment_filter.get_limit_search_index())
         self._filter_change()
 
 

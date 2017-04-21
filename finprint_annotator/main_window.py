@@ -5,7 +5,7 @@ from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set, QueryException
 from .login_widget import LoginWidget
 from .assignment_widget import AssignmentWidget
-from finprint_annotator.assignment_util import AssignmentFilter
+from finprint_annotator.assignment_filter import AssignmentFilterDTO
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from sys import argv
@@ -15,7 +15,6 @@ from config import global_config
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
-        self.assignment_filter = AssignmentFilter()
         self._login_layout = None
         self._vid_layout = None
         self._set_layout = None
@@ -183,7 +182,7 @@ class MainWindow(QMainWindow):
 
     def _launch_assign_diag(self, sets=False):
         assign_layout = QVBoxLayout()
-        assign_layout.addWidget(AssignmentWidget(sets, assignment_filter= self.assignment_filter,assignedByMe=2))
+        assign_layout.addWidget(AssignmentWidget(sets,assignedByMe=2))
         self.assign_diag = QDialog(self)
         self.assign_diag.setLayout(assign_layout)
         #change for increasing size of Assigned set list window : GLOB-526
