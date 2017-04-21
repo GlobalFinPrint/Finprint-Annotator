@@ -5,6 +5,7 @@ from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set, QueryException
 from .login_widget import LoginWidget
 from .assignment_widget import AssignmentWidget
+from finprint_annotator.assignment_filter import AssignmentFilterDTO
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from sys import argv
@@ -180,10 +181,6 @@ class MainWindow(QMainWindow):
         self.assign_diag.show()
 
     def _launch_assign_diag(self, sets=False):
-        if sets is False:
-            response = GlobalFinPrintServer().set_list(filtered=True,assigned_by_me=True)
-            sets = response['sets']
-
         assign_layout = QVBoxLayout()
         assign_layout.addWidget(AssignmentWidget(sets,assignedByMe=2))
         self.assign_diag = QDialog(self)

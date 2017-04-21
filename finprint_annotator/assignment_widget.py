@@ -3,6 +3,7 @@ from global_finprint import GlobalFinPrintServer
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from annotation_view import convert_position, VideoLayoutWidget
+from finprint_annotator.assignment_filter import AssignmentFilterDTO
 import ast as ast
 
 class AssignmentWidget(QWidget):
@@ -11,14 +12,13 @@ class AssignmentWidget(QWidget):
                     'Date assigned', 'Status', 'Last activity', 'Filename']
     ANNO_COLUMNS = ['ID', 'Set/video name',
                     'Date assigned', 'Status', 'Last Activity', 'Filename']
-
-    def __init__(self, sets, assigned=False, assignedByMe=0):
+    def __init__(self, sets, assigned=False, assignedByMe=0,):
         super().__init__()
 
         self._sets = sets
         self.is_lead = GlobalFinPrintServer().is_lead()
         self.layout = QVBoxLayout()
-
+        self._assignment_filter = AssignmentFilterDTO.get_instance()
         # add filter dropdowns for lead
         if self.is_lead and not assigned:
             filter_layout = QHBoxLayout()
@@ -79,8 +79,6 @@ class AssignmentWidget(QWidget):
             filter_layout.addWidget(self._status_filter)
 
             #addition for GLOB-535
-            #affiliation_list = [(3, 'AIMS'), (6, 'Curtin University'),(2, 'FIU'),(1, 'Global Finprint'),
-            #(5, 'JCU'),(0, 'No affiliation'),(4, 'SBU')]
             affiliation_list = GlobalFinPrintServer().affiliation_list()
             self._affiliation_filter = QComboBox()
             self._affiliation_filter.setStyleSheet(stylesheet)
@@ -106,7 +104,6 @@ class AssignmentWidget(QWidget):
             self._limit_search.setCheckState(assignedByMe)
 
             self._another_filter_layout.addWidget(self._limit_search);
-
 
             self.resetSearch = QPushButton("Reset")
             self.resetSearch.setMaximumWidth(100)
@@ -164,6 +161,11 @@ class AssignmentWidget(QWidget):
 
         self.layout.addWidget(self.set_table)
         self.setLayout(self.layout)
+
+        if self.is_lead and not assigned:
+          # GLOB-544: retain filter status
+          if self._assignment_filter :
+             self.set_prev_state_of_filters()
 
         # populate table with current sets
         self._populate_table()
@@ -248,6 +250,7 @@ class AssignmentWidget(QWidget):
 
         self._sets = GlobalFinPrintServer().set_list(**params)['sets']
         self._populate_table()
+        self.retain_filter_status()
 
 
     def _clear_filter(self):
@@ -257,6 +260,31 @@ class AssignmentWidget(QWidget):
         self._status_filter.setCurrentIndex(0)
         self._affiliation_filter.setCurrentIndex(0)
         self._limit_search.setCheckState(2)
+        self._assignment_filter.setFilterValues()
+
+
+    def retain_filter_status(self):
+        if self._limit_search.isChecked() :
+            limit_search_index =2
+        else:
+            limit_search_index = 0
+
+        self._assignment_filter.setFilterValues(
+        self._trip_filter.currentIndex(),
+        self._set_filter.currentIndex(),
+        self._anno_filter.currentIndex(),
+        self._status_filter.currentIndex(),
+        self._affiliation_filter.currentIndex(), limit_search_index)
+
+
+    def set_prev_state_of_filters(self):
+        self._trip_filter.setCurrentIndex(self._assignment_filter.get_trip_filter_index())
+        self._set_filter.setCurrentIndex(self._assignment_filter.get_set_filter_index())
+        self._anno_filter.setCurrentIndex(self._assignment_filter.get_anno_filter_index())
+        self._status_filter.setCurrentIndex(self._assignment_filter.get_status_filter_index())
+        self._affiliation_filter.setCurrentIndex(self._assignment_filter.get_affiliation_filter_index())
+        self._limit_search.setCheckState(self._assignment_filter.get_limit_search_index())
+        self._filter_change()
 
     def control_set_filter_based_on_trip_selected(self):
 
