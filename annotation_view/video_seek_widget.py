@@ -111,17 +111,48 @@ class VideoSeekWidget(QSlider):
         if GlobalFinPrintServer().is_lead():
             self._player.scrub_position(v)
         else:
-            self._player.scrub_position(min(v, self._set.progress))
+            # do not allow fast forward for non-leads bob was here
+            mark_zero_pos = self.return_position_in_millisecond_for_mark_zero_time()
+            print(" video_seek_widget > scrub_position : mark_zero_pos {0} ".format(mark_zero_pos))
+            if mark_zero_pos:
+                if mark_zero_pos < self._set.progress and v > self._set.progress:
+                    self._player.set_position(min(v, self._set.progress))
+                elif mark_zero_pos > self._set.progress and v > self._set.progress:
+                    self._player.set_position(min(v, mark_zero_pos))
+                else :
+                    self._player.set_position(v)
+            elif len(self._set.observations) !=0 :
+                self._player.set_position(min(v, self._set.progress))
+                print(" video_seek_widget > len(self._set.observations)is not 0 going upto min(v, self._set.progress) ")
+                print(" video_seek_widget > v :{0} self._set.progress :{1} ".format(v, self._set.progress))
+            else :
+                self._player.set_position(v)
+                print(" video_seek_widget > scrub_position with NO Observation i.e NO_MARK_ZERO observed")
+                print(" video_seek_widget > scrub_position v: {0} progress: {1} ".format(v, self._set.progress))
+
+
 
     def set_position(self, v):
         # do not allow fast forward for non-leads bob was here
         if GlobalFinPrintServer().is_lead():
             self._player.set_position(v)
         else:
-            self._player.set_position(min(v, self._set.progress))
+            self._player.set_position(v)
 
     def set_allowed_progress(self, progress):
         self.allowed_progress = progress
+
+    def return_position_in_millisecond_for_mark_zero_time(self):
+        # GLOB-529: to bound the slider not to pass by MARK_ZERO_TIME by just sliding the marker
+        mark_zero_time = self._set.attributes[10]["name"]
+        zero_time_duration = False
+        for observation in self._set.observations:
+            for events in observation.events:
+                for attribute in events.attribute:
+                    if "name" in attribute and attribute["name"] == mark_zero_time:
+                        zero_time_duration = events.event_time
+
+        return zero_time_duration
 
     def style(self):
         return """

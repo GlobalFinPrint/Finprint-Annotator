@@ -182,7 +182,7 @@ class MainWindow(QMainWindow):
 
     def _launch_assign_diag(self, sets=False):
         assign_layout = QVBoxLayout()
-        assign_layout.addWidget(AssignmentWidget(sets,assignedByMe=2))
+        assign_layout.addWidget(AssignmentWidget(sets, assignedByMe=2))
         self.assign_diag = QDialog(self)
         self.assign_diag.setLayout(assign_layout)
         #change for increasing size of Assigned set list window : GLOB-526

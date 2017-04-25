@@ -456,3 +456,4 @@ class VideoLayoutWidget(QWidget):
 
         self._submit_button.setDisabled(True)
         return False
+
