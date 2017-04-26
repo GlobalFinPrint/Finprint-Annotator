@@ -34,9 +34,9 @@ class ObservationTableModel(QAbstractTableModel):
                         'Image notes',
                         'Tags']
         self.editable_columns = [
-            self.Columns.observation_comment,
-            self.Columns.duration,
-            self.Columns.event_notes
+            #self.Columns.observation_comment,
+            #self.Columns.duration,
+            #self.Columns.event_notes
         ]
         super(QAbstractTableModel, self).__init__(None)
 
@@ -220,11 +220,16 @@ class ObservationTable(QTableView):
         return self.source_model.rows[row]
 
     def mousePressEvent(self, evt):
+        print("observation_table > mousePressEvent", evt)
         old_index = self.currentIndex()
         index = self.indexAt(evt.pos())
         self.setCurrentIndex(index)
-        if index.column() in self.source_model.editable_columns and old_index == index:
-            self.edit(index)
+        if old_index == index:
+         self.edit(index)
+
+    def mouseDoubleClickEvent(self, *args, **kwargs):  # real signature unknown
+        print("observation_table > mouseDoubleClickEvent",args[0])
+        self.mousePressEvent(args[0])
 
     def item(self, row, col):
         return self.source_model.index(row, col).data()
@@ -281,7 +286,7 @@ class ObservationTable(QTableView):
 
     def customContextMenu(self, pos):
         row = self.indexAt(pos).row()
-
+        print("<================== custom popup ===================> ")
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         delete_menu = menu.addMenu('Delete')
@@ -319,11 +324,13 @@ class ObservationTable(QTableView):
                 if self.confirm_delete_dialog(obs):
                     self.remove_observation(obs)
             elif action == edit_evt_action:  # edit event
+                print("observation_table > edit edit_evt_action", edit_evt_action)
                 self.video_context_menu({
                     "action": DialogActions.edit_event,
                     "event": self.get_event(row)}
                 )
             elif action == edit_obs_action:  # edit observation
+                print("observation_table > edit edit_obs_action",edit_obs_action)
                 self.video_context_menu({
                     "action": DialogActions.edit_obs,
                     "obs": self.get_event(row).observation}
@@ -343,4 +350,5 @@ class ObservationTable(QTableView):
         return reply == QMessageBox.Yes
 
     def video_context_menu(self, optDict):
+        print("observation table > video_context_menu")
         self.parent()._video_player.onMenuSelect(optDict)

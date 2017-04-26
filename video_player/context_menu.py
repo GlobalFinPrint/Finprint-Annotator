@@ -97,7 +97,7 @@ class EventDialog(QDialog):
         elif kwargs['action'] == DialogActions.add_event:
             title = 'Add event'
         elif kwargs['action'] == DialogActions.edit_obs:
-            title = 'Edit observation'
+            title = 'Edit animal observation'
         elif kwargs['action'] == DialogActions.edit_event:
             title = 'Edit event'
         else:
@@ -115,6 +115,9 @@ class EventDialog(QDialog):
             if kwargs['type_choice'] == 'A':
                 kwargs['animal'] = kwargs['obs'].animal
                 self.dialog_values['animal_id'] = kwargs['animal'].id
+            if kwargs['type_choice'] == 'I' :
+                self.setWindowTitle("Edit non-animal observation")
+
         elif 'event' in kwargs:
             self.selected_event = kwargs['event']
             self.dialog_values['note'] = self.selected_event.note
@@ -132,12 +135,17 @@ class EventDialog(QDialog):
         layout = QVBoxLayout()
 
         # observation info
-        if kwargs['action'] != DialogActions.edit_event:
+        if kwargs['action'] not in [DialogActions.edit_event,DialogActions.edit_obs]:
             obs_label = QLabel('Observation: ' + (str(kwargs['obs']) if 'obs' in kwargs else 'New'))
             type_label = QLabel(
                 'Observation type: ' + ('Of interest' if kwargs['type_choice'] == 'I' else 'Animal'))
             layout.addWidget(obs_label)
             layout.addWidget(type_label)
+
+
+        if kwargs['action'] == DialogActions.edit_obs :
+            obs_time_label = QLabel('Observation Time: '+str(self.selected_obs).split(" ")[0])
+            layout.addWidget(obs_time_label)
 
         # obs animal (if applicable)
         if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs] and kwargs['type_choice'] == 'A':
@@ -157,6 +165,15 @@ class EventDialog(QDialog):
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addLayout(self.att_dropdown)
 
+            # attributes added for edit observation
+        if kwargs['action'] == DialogActions.edit_obs:
+            self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
+            if self.selected_obs.events and len(self.selected_obs.events[0].attribute)!=0:
+                self.att_dropdown.on_select(self.selected_obs.events[0].attribute[0]["verbose"], True)
+
+            self.att_dropdown.selected_changed.connect(self.attribute_select)
+            layout.addLayout(self.att_dropdown)
+
         # observation notes
         if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs]:
             obs_notes_label = QLabel('Observation Note:')
@@ -170,7 +187,7 @@ class EventDialog(QDialog):
             layout.addWidget(self.obs_text)
 
         # event notes
-        if kwargs['action'] != DialogActions.edit_obs:
+        if kwargs['action'] == DialogActions.edit_obs:
             notes_label = QLabel('Image notes:')
             self.text_area = QPlainTextEdit()
             self.text_area.setPlainText(self.dialog_values['note'])
@@ -224,6 +241,7 @@ class EventDialog(QDialog):
 
     def pushed_update(self):
         if self.action == DialogActions.edit_obs:
+            self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
             self._set.edit_observation(self.selected_obs, self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
