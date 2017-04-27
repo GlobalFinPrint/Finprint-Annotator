@@ -131,6 +131,10 @@ class EventDialog(QDialog):
             self.dialog_values['event_time'] = kwargs['event_time']
             self.dialog_values['extent'] = kwargs['extent']
 
+        if 'obs' in kwargs :
+            self.selected_event = kwargs['obs'].events
+            self.dialog_values['note'] = self.selected_event[0].note
+            self.dialog_values['attribute'] = [a['id'] for a in self.selected_event[0].attribute]
         # set up dialog view
         layout = QVBoxLayout()
 
@@ -147,13 +151,26 @@ class EventDialog(QDialog):
             obs_time_label = QLabel('Observation Time: '+str(self.selected_obs).split(" ")[0])
             layout.addWidget(obs_time_label)
 
-        # obs animal (if applicable)
-        if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs] and kwargs['type_choice'] == 'A':
+        #adding grouping of Animal functionality in drop down of organism rather than showing animal list directly-GLOB-573
+        if kwargs['action'] == DialogActions.edit_obs and kwargs['type_choice'] == 'A':
             animal_label = QLabel('Organism:')
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
             for an in self._set.animals:
                 self.animal_dropdown.addItem(str(an), an.id)
+
+            self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
+            self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
+            layout.addWidget(animal_label)
+            layout.addWidget(self.animal_dropdown)
+
+        # obs animal (if applicable)
+        if kwargs['action'] in [DialogActions.new_obs] and kwargs['type_choice'] == 'A':
+            animal_label = QLabel('Organism:')
+            self.animal_dropdown = QComboBox()
+            animal_label.setBuddy(self.animal_dropdown)
+            for an in self._set.animals:
+                self.animal_dropdown.addItem(str(an), an.id, )
             self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
             self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             layout.addWidget(animal_label)
@@ -241,8 +258,9 @@ class EventDialog(QDialog):
 
     def pushed_update(self):
         if self.action == DialogActions.edit_obs:
-            self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
+           # self.update_event_for_update()
             self._set.edit_observation(self.selected_obs, self.dialog_values)
+            self._set.edit_event(self.selected_event[0], self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
 
@@ -279,3 +297,23 @@ class EventDialog(QDialog):
             return self.parent().parent()._observation_table
         except AttributeError:
             return None
+
+    def show_nested_drop_down_for_organism(self)  :
+        change_organism_menu = QMenu(self)
+        grouping = {}
+        for animal in self._set.animals:
+            if animal.group not in grouping:
+                grouping[animal.group] = []
+            grouping[animal.group].append(animal)
+        for group in grouping.keys():
+            group_menu = change_organism_menu.addMenu(group)
+            for animal in grouping[group]:
+                act = group_menu.addAction(str(animal))
+                act.setData(animal)
+
+
+
+
+
+
+

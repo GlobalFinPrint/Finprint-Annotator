@@ -33,11 +33,7 @@ class ObservationTableModel(QAbstractTableModel):
                         'Frame capture',
                         'Image notes',
                         'Tags']
-        self.editable_columns = [
-            #self.Columns.observation_comment,
-            #self.Columns.duration,
-            #self.Columns.event_notes
-        ]
+        self.editable_columns = []
         super(QAbstractTableModel, self).__init__(None)
 
     def rowCount(self, *args, **kwargs):
@@ -212,7 +208,6 @@ class ObservationTable(QTableView):
         # set events
         self.source_model.observationUpdated.connect(self.edit_observation)
         self.source_model.eventUpdated.connect(self.edit_event)
-
         # show widget
         self.show()
 
@@ -220,7 +215,6 @@ class ObservationTable(QTableView):
         return self.source_model.rows[row]
 
     def mousePressEvent(self, evt):
-        print("observation_table > mousePressEvent", evt)
         old_index = self.currentIndex()
         index = self.indexAt(evt.pos())
         self.setCurrentIndex(index)
@@ -228,8 +222,11 @@ class ObservationTable(QTableView):
          self.edit(index)
 
     def mouseDoubleClickEvent(self, *args, **kwargs):  # real signature unknown
-        print("observation_table > mouseDoubleClickEvent",args[0])
-        self.mousePressEvent(args[0])
+        row = self.indexAt(args[0].pos()).row()
+        self.video_context_menu({
+            "action": DialogActions.edit_obs,
+            "obs": self.get_event(row).observation}
+        )
 
     def item(self, row, col):
         return self.source_model.index(row, col).data()
@@ -286,15 +283,12 @@ class ObservationTable(QTableView):
 
     def customContextMenu(self, pos):
         row = self.indexAt(pos).row()
-        print("<================== custom popup ===================> ")
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         delete_menu = menu.addMenu('Delete')
         delete_evt_action = delete_menu.addAction('Image')
         delete_obs_action = delete_menu.addAction('Observation')
-        edit_menu = menu.addMenu('Edit')
-        edit_evt_action = edit_menu.addAction('Image')
-        edit_obs_action = edit_menu.addAction('Observation')
+        menu.addAction('Edit',lambda: self.edit_obs_action(row))
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
         if self.get_event(row).observation.type_choice == 'A':
@@ -323,18 +317,6 @@ class ObservationTable(QTableView):
                 obs = self.get_event(row).observation
                 if self.confirm_delete_dialog(obs):
                     self.remove_observation(obs)
-            elif action == edit_evt_action:  # edit event
-                print("observation_table > edit edit_evt_action", edit_evt_action)
-                self.video_context_menu({
-                    "action": DialogActions.edit_event,
-                    "event": self.get_event(row)}
-                )
-            elif action == edit_obs_action:  # edit observation
-                print("observation_table > edit edit_obs_action",edit_obs_action)
-                self.video_context_menu({
-                    "action": DialogActions.edit_obs,
-                    "obs": self.get_event(row).observation}
-                )
             elif set_duration_action and action == set_duration_action:  # set duration
                 self.durationClicked.emit(self.get_event(row).observation)
             elif action == go_to_event_action:  # go to event
@@ -352,3 +334,9 @@ class ObservationTable(QTableView):
     def video_context_menu(self, optDict):
         print("observation table > video_context_menu")
         self.parent()._video_player.onMenuSelect(optDict)
+
+    def edit_obs_action(self, row):  # edit observation
+        self.video_context_menu({
+                "action": DialogActions.edit_obs,
+                "obs": self.get_event(row).observation}
+        )

@@ -111,3 +111,5 @@ class AttributeSelector(QVBoxLayout):
             if 'children' in attr:
                 attr_list += self._make_attr_list(attr['children'], selected_ids)
         return attr_list
+
+
