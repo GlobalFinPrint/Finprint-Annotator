@@ -3,6 +3,7 @@ from annotation_view import TypeAndReduce
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
+from annotation_view.util import ObservationColumn
 from logging import getLogger
 
 
@@ -87,6 +88,7 @@ class EventDialog(QDialog):
         self.selected_obs = None
         self.selected_event = None
         self.action = None
+        self.column_name = None
         self._set = None
 
     def launch(self, kwargs):
@@ -137,6 +139,14 @@ class EventDialog(QDialog):
             self.dialog_values['attribute'] = [a['id'] for a in self.selected_event[0].attribute]
         # set up dialog view
         layout = QVBoxLayout()
+
+        # adding highlight on the coloum on which it clicked
+        if kwargs['action'] == DialogActions.edit_obs:
+            column_details = ObservationColumn.return_observation_table_coloumn_details()
+            if kwargs["column_number"] is not None :
+              self.column_name = column_details[kwargs["column_number"]]
+
+            print("column name ", self.column_name)
 
         # observation info
         if kwargs['action'] not in [DialogActions.edit_event,DialogActions.edit_obs]:
@@ -194,9 +204,14 @@ class EventDialog(QDialog):
         # observation notes
         if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs]:
             obs_notes_label = QLabel('Observation Note:')
-            self.obs_text = QPlainTextEdit()
+            self.obs_text = QTextEdit()
+
             if 'obs' in kwargs:
-                self.obs_text.setPlainText(kwargs['obs'].comment)
+                if kwargs['action'] == DialogActions.edit_obs and  self.column_name is not None and self.column_name == 'Observation Note' :
+                    self.obs_text.setTextColor(QColor(Qt.red))
+                    self.obs_text.setText(kwargs['obs'].comment)
+                else :
+                    self.obs_text.setPlainText(kwargs['obs'].comment)
             obs_notes_label.setBuddy(self.obs_text)
             self.obs_text.setFixedHeight(50)
             self.obs_text.textChanged.connect(self.obs_note_change)
@@ -206,8 +221,12 @@ class EventDialog(QDialog):
         # event notes
         if kwargs['action'] == DialogActions.edit_obs:
             notes_label = QLabel('Image notes:')
-            self.text_area = QPlainTextEdit()
-            self.text_area.setPlainText(self.dialog_values['note'])
+            self.text_area = QTextEdit()
+            if self.column_name is not None and self.column_name == 'Image notes':
+                self.text_area.setTextColor(QColor(Qt.red))
+                self.text_area.setText(self.dialog_values['note'])
+            else :
+                self.text_area.setText(self.dialog_values['note'])
             notes_label.setBuddy(self.text_area)
             self.text_area.setFixedHeight(50)
             self.text_area.textChanged.connect(self.note_change)

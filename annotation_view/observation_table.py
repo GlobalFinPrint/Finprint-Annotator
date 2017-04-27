@@ -3,6 +3,7 @@ from enum import IntEnum
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from video_player import DialogActions
+from annotation_view.util import ObservationColumn,ColumnsEnum
 
 
 class ObservationTableModel(QAbstractTableModel):
@@ -23,16 +24,7 @@ class ObservationTableModel(QAbstractTableModel):
 
     def __init__(self):
         self.rows = []
-        self.columns = ['Time',
-                        'ID',
-                        'Type',
-                        'Annotator',
-                        'Organism',
-                        'Observation Note',
-                        'Duration',
-                        'Frame capture',
-                        'Image notes',
-                        'Tags']
+        self.columns = ObservationColumn.return_observation_table_coloumn_details()
         self.editable_columns = []
         super(QAbstractTableModel, self).__init__(None)
 
@@ -98,6 +90,9 @@ class ObservationTableModel(QAbstractTableModel):
     def empty(self):
         self.removeRows(0, self.rowCount())
         self.reset()
+
+    def get_coulmn_details(self):
+        return self.columns
 
 
 class ObservationTableCell(QStyledItemDelegate):
@@ -225,7 +220,8 @@ class ObservationTable(QTableView):
         row = self.indexAt(args[0].pos()).row()
         self.video_context_menu({
             "action": DialogActions.edit_obs,
-            "obs": self.get_event(row).observation}
+            "obs": self.get_event(row).observation,
+            "column_number": self.indexAt(args[0].pos()).column()},
         )
 
     def item(self, row, col):
@@ -338,5 +334,6 @@ class ObservationTable(QTableView):
     def edit_obs_action(self, row):  # edit observation
         self.video_context_menu({
                 "action": DialogActions.edit_obs,
-                "obs": self.get_event(row).observation}
+                "obs": self.get_event(row).observation,
+                "column_number": None},
         )
