@@ -3,6 +3,7 @@ from annotation_view import TypeAndReduce
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
+from annotation_view.util import ObservationColumn
 from logging import getLogger
 
 
@@ -87,6 +88,7 @@ class EventDialog(QDialog):
         self.selected_obs = None
         self.selected_event = None
         self.action = None
+        self.column_name = None
         self._set = None
 
     def launch(self, kwargs):
@@ -97,7 +99,7 @@ class EventDialog(QDialog):
         elif kwargs['action'] == DialogActions.add_event:
             title = 'Add event'
         elif kwargs['action'] == DialogActions.edit_obs:
-            title = 'Edit observation'
+            title = 'Edit animal observation'
         elif kwargs['action'] == DialogActions.edit_event:
             title = 'Edit event'
         else:
@@ -115,6 +117,9 @@ class EventDialog(QDialog):
             if kwargs['type_choice'] == 'A':
                 kwargs['animal'] = kwargs['obs'].animal
                 self.dialog_values['animal_id'] = kwargs['animal'].id
+            if kwargs['type_choice'] == 'I' :
+                self.setWindowTitle("Edit non-animal observation")
+
         elif 'event' in kwargs:
             self.selected_event = kwargs['event']
             self.dialog_values['note'] = self.selected_event.note
@@ -128,26 +133,56 @@ class EventDialog(QDialog):
             self.dialog_values['event_time'] = kwargs['event_time']
             self.dialog_values['extent'] = kwargs['extent']
 
+        if 'obs' in kwargs :
+            self.selected_event = kwargs['obs'].events
+            self.dialog_values['note'] = self.selected_event[0].note
+            self.dialog_values['attribute'] = [a['id'] for a in self.selected_event[0].attribute]
         # set up dialog view
         layout = QVBoxLayout()
 
+        # adding highlight on the coloum on which it clicked
+        if kwargs['action'] == DialogActions.edit_obs:
+            column_details = ObservationColumn.return_observation_table_coloumn_details()
+            if kwargs["column_number"] is not None :
+              self.column_name = column_details[kwargs["column_number"]]
+
+            print("column name ", self.column_name)
+
         # observation info
-        if kwargs['action'] != DialogActions.edit_event:
+        if kwargs['action'] not in [DialogActions.edit_event,DialogActions.edit_obs]:
             obs_label = QLabel('Observation: ' + (str(kwargs['obs']) if 'obs' in kwargs else 'New'))
             type_label = QLabel(
                 'Observation type: ' + ('Of interest' if kwargs['type_choice'] == 'I' else 'Animal'))
             layout.addWidget(obs_label)
             layout.addWidget(type_label)
 
-        # obs animal (if applicable)
-        if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs] and kwargs['type_choice'] == 'A':
+
+        if kwargs['action'] == DialogActions.edit_obs :
+            obs_time_label = QLabel('Observation Time: '+str(self.selected_obs).split(" ")[0])
+            layout.addWidget(obs_time_label)
+
+        #adding grouping of Animal functionality in drop down of organism rather than showing animal list directly-GLOB-573
+        if kwargs['action'] == DialogActions.edit_obs and kwargs['type_choice'] == 'A':
             animal_label = QLabel('Organism:')
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
-            self.animal_dropdown.addItem("--- select an organism ---")
             for an in self._set.animals:
                 self.animal_dropdown.addItem(str(an), an.id)
+            self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
+            self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
+            layout.addWidget(animal_label)
+            layout.addWidget(self.animal_dropdown)
 
+        # obs animal (if applicable)
+        if kwargs['action'] in [DialogActions.new_obs] and kwargs['type_choice'] == 'A':
+            animal_label = QLabel('Organism:')
+            self.animal_dropdown = QComboBox()
+            self.animal_dropdown.addItem("--- select an organism ---")
+            animal_label.setBuddy(self.animal_dropdown)
+            for an in self._set.animals:
+                self.animal_dropdown.addItem(str(an), an.id, )
+
+            self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
             self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             layout.addWidget(animal_label)
             layout.addWidget(self.animal_dropdown)
@@ -158,12 +193,26 @@ class EventDialog(QDialog):
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addLayout(self.att_dropdown)
 
+            # attributes added for edit observation
+        if kwargs['action'] == DialogActions.edit_obs:
+            self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
+            if self.selected_obs.events and len(self.selected_obs.events[0].attribute)!=0:
+                self.att_dropdown.on_select(self.selected_obs.events[0].attribute[0]["verbose"], True)
+
+            self.att_dropdown.selected_changed.connect(self.attribute_select)
+            layout.addLayout(self.att_dropdown)
+
         # observation notes
         if kwargs['action'] in [DialogActions.new_obs, DialogActions.edit_obs]:
             obs_notes_label = QLabel('Observation Note:')
-            self.obs_text = QPlainTextEdit()
+            self.obs_text = QTextEdit()
+
             if 'obs' in kwargs:
-                self.obs_text.setPlainText(kwargs['obs'].comment)
+                if kwargs['action'] == DialogActions.edit_obs and  self.column_name is not None and self.column_name == 'Observation Note' :
+                    self.obs_text.setTextColor(QColor(Qt.red))
+                    self.obs_text.setText(kwargs['obs'].comment)
+                else :
+                    self.obs_text.setPlainText(kwargs['obs'].comment)
             obs_notes_label.setBuddy(self.obs_text)
             self.obs_text.setFixedHeight(50)
             self.obs_text.textChanged.connect(self.obs_note_change)
@@ -171,10 +220,14 @@ class EventDialog(QDialog):
             layout.addWidget(self.obs_text)
 
         # event notes
-        if kwargs['action'] != DialogActions.edit_obs:
+        if kwargs['action'] == DialogActions.edit_obs:
             notes_label = QLabel('Image notes:')
-            self.text_area = QPlainTextEdit()
-            self.text_area.setPlainText(self.dialog_values['note'])
+            self.text_area = QTextEdit()
+            if self.column_name is not None and self.column_name == 'Image notes':
+                self.text_area.setTextColor(QColor(Qt.red))
+                self.text_area.setText(self.dialog_values['note'])
+            else :
+                self.text_area.setText(self.dialog_values['note'])
             notes_label.setBuddy(self.text_area)
             self.text_area.setFixedHeight(50)
             self.text_area.textChanged.connect(self.note_change)
@@ -225,7 +278,9 @@ class EventDialog(QDialog):
 
     def pushed_update(self):
         if self.action == DialogActions.edit_obs:
+           # self.update_event_for_update()
             self._set.edit_observation(self.selected_obs, self.dialog_values)
+            self._set.edit_event(self.selected_event[0], self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
 
@@ -249,7 +304,6 @@ class EventDialog(QDialog):
         self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
 
     def animal_select(self):
-        if self.animal_dropdown.currentIndex() > 0 :
          self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
 
     def note_change(self):
@@ -263,3 +317,23 @@ class EventDialog(QDialog):
             return self.parent().parent()._observation_table
         except AttributeError:
             return None
+
+    def show_nested_drop_down_for_organism(self)  :
+        change_organism_menu = QMenu(self)
+        grouping = {}
+        for animal in self._set.animals:
+            if animal.group not in grouping:
+                grouping[animal.group] = []
+            grouping[animal.group].append(animal)
+        for group in grouping.keys():
+            group_menu = change_organism_menu.addMenu(group)
+            for animal in grouping[group]:
+                act = group_menu.addAction(str(animal))
+                act.setData(animal)
+
+
+
+
+
+
+
