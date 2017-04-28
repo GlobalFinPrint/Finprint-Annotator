@@ -4,6 +4,7 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
 from annotation_view.util import ObservationColumn
+import re
 from logging import getLogger
 
 
@@ -23,22 +24,10 @@ class ContextMenu(QMenu):
         super(ContextMenu, self).__init__(parent)
 
         self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
-
         # set
         self._set = current_set
-
-        # animals
-       # self._grouping = {}
-       # for animal in self._set.animals:
-        #    if animal.group not in self._grouping:
-         #       self._grouping[animal.group] = []
-         #   self._grouping[animal.group].append(animal)
-
         # actions
         self._animal_observation_act = self.addAction('Create animal observation')
-     #   for group in sorted(self._grouping.keys()):
-      #      group_menu = self._animal_group_menu.addMenu(group)
-      #      group_menu.addAction(TypeAndReduce(group, self._grouping[group], self._debug, group_menu))
         self._interest_act = self.addAction('Create non-animal observation')
         self._observations_menu = self.addMenu('Add to existing observation')
         self._cancel_act = self.addAction('Cancel')
@@ -61,6 +50,9 @@ class ContextMenu(QMenu):
         elif action == self._animal_observation_act :
             self.itemSelected.emit({"action": DialogActions.new_obs,
                                     "type_choice": 'A'})
+        elif type(action.data()).__name__ == 'Observation':
+            self.itemSelected.emit({"action": DialogActions.add_event,
+                                    "obs": action.data()})
 
     def _debug(self, item):
         self.itemSelected.emit({"action": DialogActions.new_obs,
@@ -93,11 +85,16 @@ class EventDialog(QDialog):
 
     def launch(self, kwargs):
         self.action = kwargs['action']
-
         if kwargs['action'] == DialogActions.new_obs:
-            title = 'New observation'
+            if  kwargs['type_choice']=='A':
+               title = 'New observation'
+            else:
+               title = 'New non-animal observation'
         elif kwargs['action'] == DialogActions.add_event:
-            title = 'Add event'
+            if kwargs['obs'].type_choice == 'A':
+                title ='Add event to animal observation'
+            else :
+                title = 'Add event to non-animal observation'
         elif kwargs['action'] == DialogActions.edit_obs:
             title = 'Edit animal observation'
         elif kwargs['action'] == DialogActions.edit_event:
@@ -146,18 +143,7 @@ class EventDialog(QDialog):
             if kwargs["column_number"] is not None :
               self.column_name = column_details[kwargs["column_number"]]
 
-            print("column name ", self.column_name)
-
-        # observation info
-        if kwargs['action'] not in [DialogActions.edit_event,DialogActions.edit_obs]:
-            obs_label = QLabel('Observation: ' + (str(kwargs['obs']) if 'obs' in kwargs else 'New'))
-            type_label = QLabel(
-                'Observation type: ' + ('Of interest' if kwargs['type_choice'] == 'I' else 'Animal'))
-            layout.addWidget(obs_label)
-            layout.addWidget(type_label)
-
-
-        if kwargs['action'] == DialogActions.edit_obs :
+        if kwargs['action'] in [DialogActions.edit_obs, DialogActions.add_event]:
             obs_time_label = QLabel('Observation Time: '+str(self.selected_obs).split(" ")[0])
             layout.addWidget(obs_time_label)
 
@@ -177,12 +163,10 @@ class EventDialog(QDialog):
         if kwargs['action'] in [DialogActions.new_obs] and kwargs['type_choice'] == 'A':
             animal_label = QLabel('Organism:')
             self.animal_dropdown = QComboBox()
-            self.animal_dropdown.addItem("--- select an organism ---")
             animal_label.setBuddy(self.animal_dropdown)
             for an in self._set.animals:
                 self.animal_dropdown.addItem(str(an), an.id, )
 
-            self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
             self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             layout.addWidget(animal_label)
             layout.addWidget(self.animal_dropdown)
@@ -220,7 +204,7 @@ class EventDialog(QDialog):
             layout.addWidget(self.obs_text)
 
         # event notes
-        if kwargs['action'] == DialogActions.edit_obs:
+        if kwargs['action'] in [DialogActions.edit_obs,DialogActions.new_obs, DialogActions.add_event] :
             notes_label = QLabel('Image notes:')
             self.text_area = QTextEdit()
             if self.column_name is not None and self.column_name == 'Image notes':
@@ -269,24 +253,19 @@ class EventDialog(QDialog):
             self.observation_table().refresh_model()
         else:
             self.parent().parent().refresh_seek_bar()
-
         # save frame
         self.parent().save_image(filename)
-
         # close and clean up
         self.cleanup()
 
     def pushed_update(self):
         if self.action == DialogActions.edit_obs:
-           # self.update_event_for_update()
             self._set.edit_observation(self.selected_obs, self.dialog_values)
             self._set.edit_event(self.selected_event[0], self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
-
         # update observation_table
         self.observation_table().refresh_model()
-
         # close and clean up
         self.cleanup()
 
@@ -330,10 +309,3 @@ class EventDialog(QDialog):
             for animal in grouping[group]:
                 act = group_menu.addAction(str(animal))
                 act.setData(animal)
-
-
-
-
-
-
-
