@@ -27,18 +27,18 @@ class ContextMenu(QMenu):
         self._set = current_set
 
         # animals
-        self._grouping = {}
-        for animal in self._set.animals:
-            if animal.group not in self._grouping:
-                self._grouping[animal.group] = []
-            self._grouping[animal.group].append(animal)
+       # self._grouping = {}
+       # for animal in self._set.animals:
+        #    if animal.group not in self._grouping:
+         #       self._grouping[animal.group] = []
+         #   self._grouping[animal.group].append(animal)
 
         # actions
-        self._animal_group_menu = self.addMenu('Organism')
-        for group in sorted(self._grouping.keys()):
-            group_menu = self._animal_group_menu.addMenu(group)
-            group_menu.addAction(TypeAndReduce(group, self._grouping[group], self._debug, group_menu))
-        self._interest_act = self.addAction('Of interest')
+        self._animal_observation_act = self.addAction('Create animal observation')
+     #   for group in sorted(self._grouping.keys()):
+      #      group_menu = self._animal_group_menu.addMenu(group)
+      #      group_menu.addAction(TypeAndReduce(group, self._grouping[group], self._debug, group_menu))
+        self._interest_act = self.addAction('Create non-animal observation')
         self._observations_menu = self.addMenu('Add to existing observation')
         self._cancel_act = self.addAction('Cancel')
 
@@ -57,9 +57,9 @@ class ContextMenu(QMenu):
         elif action == self._interest_act:
             self.itemSelected.emit({"action": DialogActions.new_obs,
                                     "type_choice": 'I'})
-        elif type(action.data()).__name__ == 'Observation':
-            self.itemSelected.emit({"action": DialogActions.add_event,
-                                    "obs": action.data()})
+        elif action == self._animal_observation_act :
+            self.itemSelected.emit({"action": DialogActions.new_obs,
+                                    "type_choice": 'A'})
 
     def _debug(self, item):
         self.itemSelected.emit({"action": DialogActions.new_obs,
@@ -144,9 +144,10 @@ class EventDialog(QDialog):
             animal_label = QLabel('Organism:')
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
+            self.animal_dropdown.addItem("--- select an organism ---")
             for an in self._set.animals:
                 self.animal_dropdown.addItem(str(an), an.id)
-            self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
+
             self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             layout.addWidget(animal_label)
             layout.addWidget(self.animal_dropdown)
@@ -248,7 +249,8 @@ class EventDialog(QDialog):
         self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
 
     def animal_select(self):
-        self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
+        if self.animal_dropdown.currentIndex() > 0 :
+         self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
 
     def note_change(self):
         self.dialog_values['note'] = self.text_area.toPlainText()
