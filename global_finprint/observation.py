@@ -114,5 +114,5 @@ class Observation(object):
 
     def __str__(self):
         return '{0} {1} ({2} events)'.format(convert_position(self.initial_time()),
-                                             'Of interest' if self.type_choice == 'I' else str(self.animal),
+                                             'Non-animal observation' if self.type_choice == 'I' else str(self.animal),
                                              len(self.events))
