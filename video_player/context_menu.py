@@ -261,3 +261,15 @@ class EventDialog(QDialog):
             return self.parent().parent()._observation_table
         except AttributeError:
             return None
+
+    def return_position_in_millisecond_for_mark_zero_time(self):
+        # GLOB-529: to bound the slider not to pass by MARK_ZERO_TIME by just sliding the marker
+        mark_zero_time = self._set.attributes[10]["name"]
+        zero_time_duration = False
+        for observation in self._set.observations:
+            for events in observation.events:
+                for attribute in events.attribute:
+                    if "name" in attribute and attribute["name"] == mark_zero_time:
+                        zero_time_duration = events.event_time
+
+        return zero_time_duration
