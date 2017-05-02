@@ -51,15 +51,20 @@ class AttributeSelector(QVBoxLayout):
     def get_selected_ids(self):
         return [attr['id'] for attr in self.attributes if attr['selected']]
 
-    def on_select(self, text):
+    def on_select(self, text, showCurrent = False):
         for attr in self.attributes:
             if attr['name'] == text:
+                flag = 1
                 attr['selected'] = True
                 break
         self.selected_changed.emit()
         self.empty_selected()
         self.display_selected()
-        self.input_line.setText('')
+        if flag == 1 and showCurrent :
+         self.input_line.setText(text)
+        else :
+            self.input_line.setText('')
+
 
     def empty_selected(self):
         for i in reversed(range(self.selected_layout.count())):
@@ -106,3 +111,5 @@ class AttributeSelector(QVBoxLayout):
             if 'children' in attr:
                 attr_list += self._make_attr_list(attr['children'], selected_ids)
         return attr_list
+
+

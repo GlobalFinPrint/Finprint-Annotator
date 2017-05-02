@@ -233,6 +233,7 @@ class VlcVideoWidget(QStackedWidget):
 
     def onMenuSelect(self, optDict):
         if optDict is not None:
+            print("vlc_video_widget > onMenuSelect")
             optDict['event_time'] = int(self.get_position())
             optDict['extent'] = self.get_highlight_extent().to_wkt()
             optDict['set'] = self._current_set
