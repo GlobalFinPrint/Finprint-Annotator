@@ -22,15 +22,22 @@ class ContextMenu(QMenu):
 
     def __init__(self, current_set, parent):
         super(ContextMenu, self).__init__(parent)
-
-        self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         # set
         self._set = current_set
-        # actions
-        self._animal_observation_act = self.addAction('Create animal observation')
-        self._interest_act = self.addAction('Create non-animal observation')
-        self._observations_menu = self.addMenu('Add to existing observation')
-        self._cancel_act = self.addAction('Cancel')
+
+        if self._set is not None :
+           if len(self._set.observations) > 0:
+                # actions
+                self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
+                self._animal_observation_act = self.addAction('Create animal observation')
+                self._interest_act = self.addAction('Create non-animal observation')
+                self._observations_menu = self.addMenu('Add to existing observation')
+                self._cancel_act = self.addAction('Cancel')
+           else :
+               self.setStyleSheet('QMenu::item:selected { background-color: red; }')
+               self._observations_menu = self.addMenu('MARK ZERO TIME observation is not present')
+               getLogger('finprint').error('ContextMenu : Mark Zero TIme is not created')
+
 
     def _populate_obs_menu(self):
         self._observations_menu.clear()
@@ -53,12 +60,6 @@ class ContextMenu(QMenu):
         elif type(action.data()).__name__ == 'Observation':
             self.itemSelected.emit({"action": DialogActions.add_event,
                                     "obs": action.data()})
-
-    def _debug(self, item):
-        self.itemSelected.emit({"action": DialogActions.new_obs,
-                                "type_choice": 'A',
-                                "animal": item.choice})
-
 
 class EventDialog(QDialog):
     def __init__(self, parent=None, flags=Qt.WindowTitleHint):
@@ -165,8 +166,9 @@ class EventDialog(QDialog):
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
             for an in self._set.animals:
-                self.animal_dropdown.addItem(str(an), an.id, )
+                self.animal_dropdown.addItem(str(an), an.id)
 
+            self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
             self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             layout.addWidget(animal_label)
             layout.addWidget(self.animal_dropdown)
@@ -296,18 +298,6 @@ class EventDialog(QDialog):
             return self.parent().parent()._observation_table
         except AttributeError:
             return None
-
-    def return_position_in_millisecond_for_mark_zero_time(self):
-        # GLOB-529: to bound the slider not to pass by MARK_ZERO_TIME by just sliding the marker
-        mark_zero_time = self._set.attributes[10]["name"]
-        zero_time_duration = False
-        for observation in self._set.observations:
-            for events in observation.events:
-                for attribute in events.attribute:
-                    if "name" in attribute and attribute["name"] == mark_zero_time:
-                        zero_time_duration = events.event_time
-
-        return zero_time_duration
 
     def show_nested_drop_down_for_organism(self)  :
         change_organism_menu = QMenu(self)
