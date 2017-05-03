@@ -271,7 +271,7 @@ class ObservationTable(QTableView):
         self.clearSelection()
         # TODO busy cursor
         if obs.events[0].attribute[0]['id'] == MARK_ZERO_TIME_ID :
-            msg = 'Mark Zero Observation delete not allowed!!'
+            msg = 'You must create a MARK ZERO TIME observation first'
             QMessageBox.question(self, 'Delete confirmation', msg, QMessageBox.Close)
             self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
         else :
