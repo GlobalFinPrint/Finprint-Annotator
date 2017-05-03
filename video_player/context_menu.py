@@ -200,6 +200,11 @@ class EventDialog(QDialog):
                 self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
 
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
+            #changes for MARK ZERO TIME observation
+            if len(self._set.observations) == 0:
+                name_of_Mark_zero_time = [attr['verbose'] for attr in self._set.attributes if attr['id'] == MARK_ZERO_TIME_ID][0]
+                self.att_dropdown.input_line.setText(name_of_Mark_zero_time)
+
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addLayout(self.att_dropdown)
 

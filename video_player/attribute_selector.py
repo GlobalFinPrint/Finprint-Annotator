@@ -65,7 +65,7 @@ class AttributeSelector(QVBoxLayout):
             self.display_selected()
             if flag == 1 and showCurrent :
              self.input_line.setText(text)
-            elif text == self.return_mark_zero_attr()['name'] :
+            else:
                 self.input_line.setText('')
         else :
            attr = self.return_mark_zero_attr()
@@ -119,6 +119,7 @@ class AttributeSelector(QVBoxLayout):
                 })
             if 'children' in attr:
                 attr_list += self._make_attr_list(attr['children'], selected_ids)
+
         return attr_list
 
     def return_mark_zero_attr(self):
