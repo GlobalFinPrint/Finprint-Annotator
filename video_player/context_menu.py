@@ -7,7 +7,7 @@ from annotation_view.util import ObservationColumn
 import re
 from logging import getLogger
 
-
+MARK_ZERO_TIME_ID = 16
 class DialogActions(IntEnum):
     new_obs = 1
     add_event = 2
@@ -24,23 +24,28 @@ class ContextMenu(QMenu):
         super(ContextMenu, self).__init__(parent)
         # set
         self._set = current_set
+        if self._set is not None:
+            self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
+            self._animal_observation_act = self.addAction('Create animal observation')
+            self._interest_act = self.addAction('Create non-animal observation')
+            self._observations_menu = self.addMenu('Add to existing observation')
+            self._cancel_act = self.addAction('Cancel')
 
-        if self._set is not None :
-           if len(self._set.observations) > 0:
-                # actions
-                self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
-                self._animal_observation_act = self.addAction('Create animal observation')
-                self._interest_act = self.addAction('Create non-animal observation')
-                self._observations_menu = self.addMenu('Add to existing observation')
-                self._cancel_act = self.addAction('Cancel')
-           else :
-               self.setStyleSheet('QMenu::item:selected { background-color: red; }')
-               self._observations_menu = self.addMenu('MARK ZERO TIME observation is not present')
-               getLogger('finprint').error('ContextMenu : Mark Zero TIme is not created')
+            if len(self._set.observations) == 0:
+                self._observations_menu.menuAction().setVisible(False)
+                self._animal_observation_act.setVisible(False)
+                self._interest_act.setVisible(True)
+                self._cancel_act.setVisible(False)
+                getLogger('finprint').debug('ContextMenu : Mark Zero TIme is not created')
+            else :
+                self._observations_menu.menuAction().setVisible(True)
+                self._animal_observation_act.setVisible(True)
+                self._interest_act.setVisible(True)
+                self._cancel_act.setVisible(True)
 
 
     def _populate_obs_menu(self):
-        self._observations_menu.clear()
+        self.handle_annotator_event()
         self._set.observations.sort(key=lambda o: o.initial_time(), reverse=True)
         for obs in self._set.observations:
             act = self._observations_menu.addAction(str(obs))
@@ -60,6 +65,22 @@ class ContextMenu(QMenu):
         elif type(action.data()).__name__ == 'Observation':
             self.itemSelected.emit({"action": DialogActions.add_event,
                                     "obs": action.data()})
+
+
+    def handle_annotator_event(self):
+        if self._set is not None:
+            if len(self._set.observations) > 0 :
+                self._animal_observation_act.setVisible(True)
+                self._interest_act.setVisible(True)
+                self._observations_menu.menuAction().setVisible(True)
+                self._cancel_act.setVisible(True)
+            else :
+                self._interest_act.setVisible(True)
+                self._observations_menu.menuAction().setVisible(False)
+                self._animal_observation_act.setVisible(False)
+                self._cancel_act.setVisible(False)
+
+
 
 class EventDialog(QDialog):
     def __init__(self, parent=None, flags=Qt.WindowTitleHint):
@@ -88,7 +109,7 @@ class EventDialog(QDialog):
         self.action = kwargs['action']
         if kwargs['action'] == DialogActions.new_obs:
             if  kwargs['type_choice']=='A':
-               title = 'New observation'
+               title = 'New animal observation'
             else:
                title = 'New non-animal observation'
         elif kwargs['action'] == DialogActions.add_event:
@@ -175,6 +196,9 @@ class EventDialog(QDialog):
 
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
+            if len(self._set.observations) == 0 :
+                self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
+
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addLayout(self.att_dropdown)
@@ -282,7 +306,12 @@ class EventDialog(QDialog):
 
     def attribute_select(self):
         # note that API is expecting singular "attribute" here, no "attributes"
-        self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
+        if len(self._set.observations) > 0:
+            self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
+        else :
+            msg = 'Create Mark Zero Observation first!!'
+            QMessageBox.question(self, 'Delete confirmation', msg, QMessageBox.Close)
+            self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
 
     def animal_select(self):
          self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
@@ -311,4 +340,3 @@ class EventDialog(QDialog):
             for animal in grouping[group]:
                 act = group_menu.addAction(str(animal))
                 act.setData(animal)
-

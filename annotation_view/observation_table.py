@@ -5,7 +5,7 @@ from PyQt4.QtGui import *
 from video_player import DialogActions
 from annotation_view.util import ObservationColumn,ColumnsEnum
 
-
+MARK_ZERO_TIME_ID = 16
 class ObservationTableModel(QAbstractTableModel):
     observationUpdated = pyqtSignal(Observation)
     eventUpdated = pyqtSignal(Event)
@@ -270,7 +270,13 @@ class ObservationTable(QTableView):
     def remove_observation(self, obs):
         self.clearSelection()
         # TODO busy cursor
-        self.current_set.delete_observation(obs)
+        if obs.events[0].attribute[0]['id'] == MARK_ZERO_TIME_ID :
+            msg = 'Mark Zero Observation delete not allowed!!'
+            QMessageBox.question(self, 'Delete confirmation', msg, QMessageBox.Close)
+            self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
+        else :
+           self.current_set.delete_observation(obs)
+
         self.refresh_model()
 
     def empty(self):

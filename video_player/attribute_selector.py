@@ -3,6 +3,7 @@ from PyQt4.QtGui import *
 
 
 BUTTONS_PER_ROW = 2
+MARK_ZERO_TIME_ID = 16
 
 
 class SelectedButton(QPushButton):
@@ -52,19 +53,26 @@ class AttributeSelector(QVBoxLayout):
         return [attr['id'] for attr in self.attributes if attr['selected']]
 
     def on_select(self, text, showCurrent = False):
-        for attr in self.attributes:
-            if attr['name'] == text:
-                flag = 1
-                attr['selected'] = True
-                break
-        self.selected_changed.emit()
-        self.empty_selected()
-        self.display_selected()
-        if flag == 1 and showCurrent :
-         self.input_line.setText(text)
+        markZero_present = MARK_ZERO_TIME_ID in self.get_selected_ids()
+        if markZero_present == False:
+            for attr in self.attributes:
+                if attr['name'] == text:
+                    flag = 1
+                    attr['selected'] = True
+                    break
+            self.selected_changed.emit()
+            self.empty_selected()
+            self.display_selected()
+            if flag == 1 and showCurrent :
+             self.input_line.setText(text)
+            elif text == self.return_mark_zero_attr()['name'] :
+                self.input_line.setText('')
         else :
-            self.input_line.setText('')
-
+           attr = self.return_mark_zero_attr()
+           self.selected_changed.emit()
+           self.empty_selected()
+           self.display_selected()
+           self.input_line.setText(attr['name'])
 
     def empty_selected(self):
         for i in reversed(range(self.selected_layout.count())):
@@ -84,6 +92,7 @@ class AttributeSelector(QVBoxLayout):
                 spot += 1
 
     def _unselect_tag(self, id):
+     if  id != MARK_ZERO_TIME_ID  :
         for attr in self.attributes:
             if attr['id'] == id:
                 attr['selected'] = False
@@ -111,5 +120,10 @@ class AttributeSelector(QVBoxLayout):
             if 'children' in attr:
                 attr_list += self._make_attr_list(attr['children'], selected_ids)
         return attr_list
+
+    def return_mark_zero_attr(self):
+        for attr in self.attributes  :
+           if attr['id'] == MARK_ZERO_TIME_ID:
+               return attr
 
 
