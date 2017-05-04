@@ -22,7 +22,7 @@ class SelectedButton(QPushButton):
 class AttributeSelector(QVBoxLayout):
     selected_changed = pyqtSignal()
 
-    def __init__(self, attributes, selected_ids):
+    def __init__(self, attributes, selected_ids, observation_list = None):
         super().__init__()
         self.label = QLabel('Tags:')
         self.input_line = QLineEdit()
@@ -31,6 +31,7 @@ class AttributeSelector(QVBoxLayout):
         self.completer = QCompleter(self)
         self.selected_items = QButtonGroup(self)
         self.selected_layout = QGridLayout()
+        self.observation_list = observation_list
 
         self._refresh_list()
 
@@ -87,13 +88,14 @@ class AttributeSelector(QVBoxLayout):
                 spot += 1
 
     def _unselect_tag(self, id):
+      if self.observation_list is None or  id !=MARK_ZERO_TIME_ID or self.observation_list is not None and len(self.observation_list) > 0:
         for attr in self.attributes:
             if attr['id'] == id:
                 attr['selected'] = False
         self.selected_changed.emit()
         self.empty_selected()
         self.display_selected()
-
+        self.input_line.setText('')
     def _refresh_list(self):
         for attr in self.attributes:
             self._add_item(attr['name'], attr['id'], attr['selected'])

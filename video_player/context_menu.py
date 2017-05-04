@@ -45,6 +45,7 @@ class ContextMenu(QMenu):
 
 
     def _populate_obs_menu(self):
+        self._observations_menu.clear()
         self.handle_annotator_event()
         self._set.observations.sort(key=lambda o: o.initial_time(), reverse=True)
         for obs in self._set.observations:
@@ -199,7 +200,7 @@ class EventDialog(QDialog):
             if len(self._set.observations) == 0 :
                 self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
 
-            self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
+            self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'], self._set.observations)
             #changes for MARK ZERO TIME observation
             if len(self._set.observations) == 0:
                 name_of_Mark_zero_time = [attr['verbose'] for attr in self._set.attributes if attr['id'] == MARK_ZERO_TIME_ID][0]
@@ -210,7 +211,7 @@ class EventDialog(QDialog):
 
             # attributes added for edit observation
         if kwargs['action'] == DialogActions.edit_obs:
-            self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'])
+            self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'], self._set.observations)
             if self.selected_obs.events and len(self.selected_obs.events[0].attribute)!=0:
                 self.att_dropdown.on_select(self.selected_obs.events[0].attribute[0]["verbose"], True)
 
