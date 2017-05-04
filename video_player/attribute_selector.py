@@ -53,8 +53,7 @@ class AttributeSelector(QVBoxLayout):
         return [attr['id'] for attr in self.attributes if attr['selected']]
 
     def on_select(self, text, showCurrent = False):
-        markZero_present = MARK_ZERO_TIME_ID in self.get_selected_ids()
-        if markZero_present == False:
+            #markZero_present = MARK_ZERO_TIME_ID in self.get_selected_ids()
             for attr in self.attributes:
                 if attr['name'] == text:
                     flag = 1
@@ -66,13 +65,9 @@ class AttributeSelector(QVBoxLayout):
             if flag == 1 and showCurrent :
              self.input_line.setText(text)
             else:
-                self.input_line.setText('')
-        else :
-           attr = self.return_mark_zero_attr()
-           self.selected_changed.emit()
-           self.empty_selected()
-           self.display_selected()
-           self.input_line.setText(attr['name'])
+                self.input_line.setText(text)
+
+
 
     def empty_selected(self):
         for i in reversed(range(self.selected_layout.count())):
@@ -92,7 +87,6 @@ class AttributeSelector(QVBoxLayout):
                 spot += 1
 
     def _unselect_tag(self, id):
-     if  id != MARK_ZERO_TIME_ID  :
         for attr in self.attributes:
             if attr['id'] == id:
                 attr['selected'] = False

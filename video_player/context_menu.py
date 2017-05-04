@@ -310,12 +310,13 @@ class EventDialog(QDialog):
         # self.parent().clear_extent()
 
     def attribute_select(self):
-        if MARK_ZERO_TIME_ID in self.dialog_values['attribute'] and len(self._set.observations)==0:
+        self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
+        if MARK_ZERO_TIME_ID not in self.dialog_values['attribute'] and len(self._set.observations)==0:
             msg = 'You must create a MARK ZERO TIME observation first'
-            QMessageBox.question(self, 'Delete confirmation', msg, QMessageBox.Close)
+            QMessageBox.question(self, 'MARK ZERO OBSERVATION', msg, QMessageBox.Close)
             self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
-        else :
-            self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
+
+
 
     def animal_select(self):
          self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
