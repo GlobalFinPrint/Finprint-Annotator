@@ -235,6 +235,7 @@ class EventDialog(QDialog):
             layout.addWidget(obs_notes_label)
             layout.addWidget(self.obs_text)
 
+
         # event notes
         if kwargs['action'] in [DialogActions.edit_obs,DialogActions.new_obs, DialogActions.add_event] :
             notes_label = QLabel('Image notes:')
@@ -272,6 +273,11 @@ class EventDialog(QDialog):
         layout.addWidget(buttons)
 
         self.setLayout(layout)
+        if self.column_name is not None and self.column_name == 'Image notes':
+            self.text_area.setFocus()
+        if self.column_name is not None and self.column_name == 'Observation Note':
+            self.obs_text.setFocus()
+
         self.show()
 
     def pushed_save(self):
@@ -346,3 +352,5 @@ class EventDialog(QDialog):
             for animal in grouping[group]:
                 act = group_menu.addAction(str(animal))
                 act.setData(animal)
+
+
