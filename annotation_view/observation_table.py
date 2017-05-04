@@ -270,13 +270,7 @@ class ObservationTable(QTableView):
     def remove_observation(self, obs):
         self.clearSelection()
         # TODO busy cursor
-        if obs.events[0].attribute[0]['id'] == MARK_ZERO_TIME_ID :
-            msg = 'You must create a MARK ZERO TIME observation first'
-            QMessageBox.question(self, 'Delete confirmation', msg, QMessageBox.Close)
-            self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
-        else :
-           self.current_set.delete_observation(obs)
-
+        self.current_set.delete_observation(obs)
         self.refresh_model()
 
     def empty(self):
