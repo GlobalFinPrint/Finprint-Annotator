@@ -63,7 +63,7 @@ class AttributeSelector(QVBoxLayout):
                     break
             # Added for DEFAULT_ATTRIBUTE_TAG
             if DEFAULT_ATTRIBUTE_TAG == text or flag == 0:
-                default_att_list = [att['id'] for att in self.attributes if att['name']==DEFAULT_ATTRIBUTE_TAG]
+                default_att_list = [att for att in self.attributes if att['name']==DEFAULT_ATTRIBUTE_TAG]
                 if len(default_att_list) == 0 :
                     self.attributes.append({
                         'id': -1 ,
@@ -113,7 +113,7 @@ class AttributeSelector(QVBoxLayout):
         self.display_selected()
         self.input_line.setText('')
         #added for default tag
-        default_att_list = [att['id'] for att in self.attributes if att['name'] == DEFAULT_ATTRIBUTE_TAG]
+        default_att_list = [att for att in self.attributes if att['name'] == DEFAULT_ATTRIBUTE_TAG]
         if len(default_att_list) == 0:
             self.attributes.append({
                 'id': -1,
