@@ -1,10 +1,11 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from global_finprint import GlobalFinPrintServer
 
 
 BUTTONS_PER_ROW = 2
 MARK_ZERO_TIME_ID = 16
-
+DEFAULT_ATTRIBUTE_TAG = '--- select one or more tags ---'
 
 class SelectedButton(QPushButton):
     clicked = pyqtSignal(int)
@@ -54,19 +55,44 @@ class AttributeSelector(QVBoxLayout):
         return [attr['id'] for attr in self.attributes if attr['selected']]
 
     def on_select(self, text, showCurrent = False):
-            #markZero_present = MARK_ZERO_TIME_ID in self.get_selected_ids()
-            for attr in self.attributes:
-                if attr['name'] == text:
+            flag = 0
+            # Added for DEFAULT_ATTRIBUTE_TAG
+            if DEFAULT_ATTRIBUTE_TAG == text :
+                default_att_list = [att['id'] for att in self.attributes if att['name']==DEFAULT_ATTRIBUTE_TAG]
+                if len(default_att_list) == 0 :
+                    self.attributes.append({
+                        'id': -1 ,
+                        'name': DEFAULT_ATTRIBUTE_TAG,
+                        'level': -1,
+                        'selected': True
+                    })
+                else :
+                    default_att_list[0]['selected'] = True
                     flag = 1
-                    attr['selected'] = True
-                    break
+            elif flag == 0 :
+                for attr in self.attributes:
+                    if attr['name'] == text:
+                        flag = 1
+                        attr['selected'] = True
+                        break
+            else :#Added for DEFAULT_ATTRIBUTE_TAG
+                default_att_list = [att['id'] for att in self.attributes if att['name'] == DEFAULT_ATTRIBUTE_TAG]
+                if len(default_att_list) == 0:
+                    self.attributes.append({
+                        'id': -1,
+                        'name': DEFAULT_ATTRIBUTE_TAG,
+                        'level': -1,
+                        'selected': True
+                    })
+
             self.selected_changed.emit()
             self.empty_selected()
             self.display_selected()
             if flag == 1 and showCurrent :
              self.input_line.setText(text)
-            else:
+            else :
                 self.input_line.setText(text)
+
 
 
 
@@ -83,12 +109,13 @@ class AttributeSelector(QVBoxLayout):
             if attr['selected']:
                 button = SelectedButton(attr['name'] + '  (X)', attr['id'])
                 button.clicked.connect(self._unselect_tag)
-                self.selected_items.addButton(button)
-                self.selected_layout.addWidget(button, *divmod(spot, BUTTONS_PER_ROW))
-                spot += 1
+                if attr['id'] != -1 :
+                 self.selected_items.addButton(button)
+                 self.selected_layout.addWidget(button, *divmod(spot, BUTTONS_PER_ROW))
+                 spot += 1
 
     def _unselect_tag(self, id):
-      if self.observation_list is None or  id !=MARK_ZERO_TIME_ID or self.observation_list is not None and len(self.observation_list) > 0:
+      if self.observation_list is None or  id !=MARK_ZERO_TIME_ID or self.observation_list is not None and len(self.observation_list) > 0 or GlobalFinPrintServer().is_lead():
         for attr in self.attributes:
             if attr['id'] == id:
                 attr['selected'] = False
@@ -96,6 +123,7 @@ class AttributeSelector(QVBoxLayout):
         self.empty_selected()
         self.display_selected()
         self.input_line.setText('')
+
     def _refresh_list(self):
         for attr in self.attributes:
             self._add_item(attr['name'], attr['id'], attr['selected'])

@@ -4,10 +4,13 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from enum import IntEnum
 from annotation_view.util import ObservationColumn
+from global_finprint.global_finprint_server import GlobalFinPrintServer
 import re
 from logging import getLogger
 
+DEFAULT_ATTRIBUTE_TAG = '--- select one or more tags ---'
 MARK_ZERO_TIME_ID = 16
+
 class DialogActions(IntEnum):
     new_obs = 1
     add_event = 2
@@ -31,7 +34,7 @@ class ContextMenu(QMenu):
             self._observations_menu = self.addMenu('Add to existing observation')
             self._cancel_act = self.addAction('Cancel')
 
-            if len(self._set.observations) == 0:
+            if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
                 self._observations_menu.menuAction().setVisible(False)
                 self._animal_observation_act.setVisible(False)
                 self._interest_act.setVisible(True)
@@ -70,7 +73,7 @@ class ContextMenu(QMenu):
 
     def handle_annotator_event(self):
         if self._set is not None:
-            if len(self._set.observations) > 0 :
+            if len(self._set.observations) > 0 or GlobalFinPrintServer().is_lead():
                 self._animal_observation_act.setVisible(True)
                 self._interest_act.setVisible(True)
                 self._observations_menu.menuAction().setVisible(True)
@@ -172,7 +175,7 @@ class EventDialog(QDialog):
 
         #adding grouping of Animal functionality in drop down of organism rather than showing animal list directly-GLOB-573
         if kwargs['action'] == DialogActions.edit_obs and kwargs['type_choice'] == 'A':
-            animal_label = QLabel('Organism:')
+            animal_label = QLabel('Organism:*')
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
             for an in self._set.animals:
@@ -184,7 +187,7 @@ class EventDialog(QDialog):
 
         # obs animal (if applicable)
         if kwargs['action'] in [DialogActions.new_obs] and kwargs['type_choice'] == 'A':
-            animal_label = QLabel('Organism:')
+            animal_label = QLabel('Organism:*')
             self.animal_dropdown = QComboBox()
             animal_label.setBuddy(self.animal_dropdown)
             for an in self._set.animals:
@@ -197,14 +200,16 @@ class EventDialog(QDialog):
 
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
-            if len(self._set.observations) == 0 :
+            if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
                 self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
 
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'], self._set.observations)
             #changes for MARK ZERO TIME observation
-            if len(self._set.observations) == 0:
+            if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
                 name_of_Mark_zero_time = [attr['verbose'] for attr in self._set.attributes if attr['id'] == MARK_ZERO_TIME_ID][0]
                 self.att_dropdown.input_line.setText(name_of_Mark_zero_time)
+            else :
+                self.att_dropdown.on_select(DEFAULT_ATTRIBUTE_TAG)
 
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addLayout(self.att_dropdown)
@@ -214,6 +219,9 @@ class EventDialog(QDialog):
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'], self._set.observations)
             if self.selected_obs.events and len(self.selected_obs.events[0].attribute)!=0:
                 self.att_dropdown.on_select(self.selected_obs.events[0].attribute[0]["verbose"], True)
+
+            if self.dialog_values['attribute'] is None or len(self.dialog_values['attribute']) == 0:
+                self.att_dropdown.on_select(DEFAULT_ATTRIBUTE_TAG)
 
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addLayout(self.att_dropdown)
@@ -251,6 +259,10 @@ class EventDialog(QDialog):
             layout.addWidget(notes_label)
             layout.addWidget(self.text_area)
 
+        #*required field note
+        asterick_note = QLabel('* Required field')
+        layout.addWidget(asterick_note)
+
         # save/update/cancel buttons
         buttons = QDialogButtonBox()  # TODO style the buttons
         save_but = QPushButton('Save')
@@ -271,8 +283,8 @@ class EventDialog(QDialog):
             buttons.addButton(update_but, QDialogButtonBox.ActionRole)
         buttons.addButton(cancel_but, QDialogButtonBox.ActionRole)
         layout.addWidget(buttons)
-
         self.setLayout(layout)
+
         if self.column_name is not None and self.column_name == 'Image notes':
             self.text_area.setFocus()
         if self.column_name is not None and self.column_name == 'Observation Note':
@@ -281,6 +293,8 @@ class EventDialog(QDialog):
         self.show()
 
     def pushed_save(self):
+        if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute'] :
+            self.dialog_values['attribute'].remove(-1)
         if self.action == DialogActions.new_obs:  # new obs
             filename = self._set.add_observation(self.dialog_values)
         else:  # add event to obs
@@ -297,6 +311,9 @@ class EventDialog(QDialog):
         self.cleanup()
 
     def pushed_update(self):
+        #added for default tag
+        if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute'] :
+            self.dialog_values['attribute'].remove(-1)
         if self.action == DialogActions.edit_obs:
             self._set.edit_observation(self.selected_obs, self.dialog_values)
             self._set.edit_event(self.selected_event[0], self.dialog_values)
@@ -318,12 +335,10 @@ class EventDialog(QDialog):
 
     def attribute_select(self):
         self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
-        if MARK_ZERO_TIME_ID not in self.dialog_values['attribute'] and len(self._set.observations)==0:
+        if MARK_ZERO_TIME_ID not in self.dialog_values['attribute'] and len(self._set.observations)==0 and not GlobalFinPrintServer().is_lead():
             msg = 'You must create a MARK ZERO TIME observation first'
             QMessageBox.question(self, 'MARK ZERO OBSERVATION', msg, QMessageBox.Close)
             self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
-
-
 
     def animal_select(self):
          self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
