@@ -165,7 +165,7 @@ class AssignmentWidget(QWidget):
         if self.is_lead and not assigned:
           # GLOB-544: retain filter status
           if self._assignment_filter :
-             self.set_prev_state_of_filters()
+            self.set_prev_state_of_filters()
 
         # populate table with current sets
         self._populate_table()
@@ -234,23 +234,24 @@ class AssignmentWidget(QWidget):
         self._filter_change()
 
     def _filter_change(self):
+        self.persist_filter_status()
         params = {'filtered': True}
         if self._trip_filter.currentIndex() > 0:
-            params['trip_id'] = self._trip_filter.itemData(self._trip_filter.currentIndex())
+            params['trip_id'] = self._assignment_filter.get_trip_filter()["id"]
         if self._set_filter.currentIndex() > 0:
-            params['set_id'] = self._set_filter.itemData(self._set_filter.currentIndex())
+            params['set_id'] = self._assignment_filter.get_set_filter()["id"]
         if self._anno_filter.currentIndex() > 0:
-            params['annotator_id'] = self._anno_filter.itemData(self._anno_filter.currentIndex())
+            params['annotator_id'] = self._assignment_filter.get_anno_filter()["id"]
         if self._status_filter.currentIndex() > 0:
-            params['status_id'] = self._status_filter.itemData(self._status_filter.currentIndex())
-        if self._affiliation_filter.currentIndex() >= 0:
-            params['affiliation_id'] = self._affiliation_filter.itemData(self._affiliation_filter.currentIndex())
-        if  self._limit_search.isChecked() :
+            params['status_id'] = self._assignment_filter.get_status_filter()["id"]
+        if self._affiliation_filter.currentIndex() > 0:
+            params['affiliation_id'] = self._assignment_filter.get_affiliation_filter()["id"]
+        if  self._assignment_filter.get_limit_search()["id"] == 2:
             params['assigned_by_me'] = True
 
         self._sets = GlobalFinPrintServer().set_list(**params)['sets']
         self._populate_table()
-        self.retain_filter_status()
+
 
 
     def _clear_filter(self):
@@ -263,27 +264,61 @@ class AssignmentWidget(QWidget):
         self._assignment_filter.setFilterValues()
 
 
-    def retain_filter_status(self):
+    def persist_filter_status(self):
+        ''' persisting data in ""AssignmentFilterVO"" data model for using
+         when filter list button is pressed again in same user session'''
         if self._limit_search.isChecked() :
-            limit_search_index =2
+            _limit_search ={"id":2}
         else:
-            limit_search_index = 0
+            _limit_search = {"id":0}
 
-        self._assignment_filter.setFilterValues(
-        self._trip_filter.currentIndex(),
-        self._set_filter.currentIndex(),
-        self._anno_filter.currentIndex(),
-        self._status_filter.currentIndex(),
-        self._affiliation_filter.currentIndex(), limit_search_index)
+        if self._trip_filter.currentIndex() == 0 :
+            _trip_filter = {"id": -1 ,"name": self._trip_filter.itemText(self._trip_filter.currentIndex())}
+        else:
+            _trip_filter = {"id": self._trip_filter.itemData(self._trip_filter.currentIndex()),
+                            "name": self._trip_filter.itemText(self._trip_filter.currentIndex())}
+
+        if self._set_filter.currentIndex() == 0:
+            _set_filter = {"id": -1 ,"name": self._set_filter.itemText(self._set_filter.currentIndex())}
+        else:
+            _set_filter = {"id": self._set_filter.itemData(self._set_filter.currentIndex()),
+                           "name": self._set_filter.itemText(self._set_filter.currentIndex())}
+
+        if self._anno_filter.currentIndex() == 0:
+            _anno_filter = {"id": -1 ,"name": self._anno_filter.itemText(self._anno_filter.currentIndex())}
+        else:
+            _anno_filter = {"id": self._anno_filter.itemData(self._anno_filter.currentIndex()),
+                            "name": self._anno_filter.itemText(self._anno_filter.currentIndex())}
+
+        if self._status_filter.currentIndex() == 0:
+            _status_filter = {"id": -1 ,"name": self._status_filter.itemText(self._status_filter.currentIndex())}
+        else :
+            _status_filter = {"id": self._status_filter.itemData(self._status_filter.currentIndex()),
+                              "name": self._status_filter.itemText(self._status_filter.currentIndex())}
+
+        if self._affiliation_filter.currentIndex() == 0:
+            _affiliation_filter = {"id": -1 ,"name": self._affiliation_filter.itemText(self._affiliation_filter.currentIndex())}
+        else:
+            _affiliation_filter = {"id": self._affiliation_filter.itemData(self._affiliation_filter.currentIndex()),
+                                   "name": self._affiliation_filter.itemText(self._affiliation_filter.currentIndex())}
+
+
+        self._assignment_filter.setFilterValues( _trip_filter,  _set_filter, _anno_filter,
+                                                 _status_filter,_affiliation_filter, _limit_search)
 
 
     def set_prev_state_of_filters(self):
-        self._trip_filter.setCurrentIndex(self._assignment_filter.get_trip_filter_index())
-        self._set_filter.setCurrentIndex(self._assignment_filter.get_set_filter_index())
-        self._anno_filter.setCurrentIndex(self._assignment_filter.get_anno_filter_index())
-        self._status_filter.setCurrentIndex(self._assignment_filter.get_status_filter_index())
-        self._affiliation_filter.setCurrentIndex(self._assignment_filter.get_affiliation_filter_index())
-        self._limit_search.setCheckState(self._assignment_filter.get_limit_search_index())
+        self._trip_filter.setCurrentIndex( self.returnZeroIndexIfFilterIsNotApplied(
+            self._trip_filter.findData(self._assignment_filter.get_trip_filter()["id"])))
+        self._set_filter.setCurrentIndex( self.returnZeroIndexIfFilterIsNotApplied(
+                self._set_filter.findData( self._assignment_filter.get_set_filter()["id"])))
+        self._anno_filter.setCurrentIndex(self.returnZeroIndexIfFilterIsNotApplied(
+            self._anno_filter.findData(self._assignment_filter.get_anno_filter()["id"])))
+        self._status_filter.setCurrentIndex(self.returnZeroIndexIfFilterIsNotApplied(
+            self._status_filter.findData(self._assignment_filter.get_status_filter()["id"])))
+        self._affiliation_filter.setCurrentIndex(self.returnZeroIndexIfFilterIsNotApplied(
+            self._affiliation_filter.findData(self._assignment_filter.get_affiliation_filter()["id"])))
+        self._limit_search.setCheckState(self._assignment_filter.get_limit_search()["id"])
         self._filter_change()
 
     def control_set_filter_based_on_trip_selected(self):
@@ -311,3 +346,9 @@ class AssignmentWidget(QWidget):
         for sn in t['sets']:
             # Add set names
             self._set_filter.addItem(sn['set'], sn['id'])
+
+    def returnZeroIndexIfFilterIsNotApplied(self,filterIndex):
+        if filterIndex == -1 :
+            return 0
+        else :
+           return filterIndex

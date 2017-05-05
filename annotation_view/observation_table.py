@@ -3,8 +3,9 @@ from enum import IntEnum
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from video_player import DialogActions
+from annotation_view.util import ObservationColumn,ColumnsEnum
 
-
+MARK_ZERO_TIME_ID = 16
 class ObservationTableModel(QAbstractTableModel):
     observationUpdated = pyqtSignal(Observation)
     eventUpdated = pyqtSignal(Event)
@@ -23,21 +24,8 @@ class ObservationTableModel(QAbstractTableModel):
 
     def __init__(self):
         self.rows = []
-        self.columns = ['Time',
-                        'ID',
-                        'Type',
-                        'Annotator',
-                        'Organism',
-                        'Observation Note',
-                        'Duration',
-                        'Frame capture',
-                        'Image notes',
-                        'Tags']
-        self.editable_columns = [
-            self.Columns.observation_comment,
-            self.Columns.duration,
-            self.Columns.event_notes
-        ]
+        self.columns = ObservationColumn.return_observation_table_coloumn_details()
+        self.editable_columns = []
         super(QAbstractTableModel, self).__init__(None)
 
     def rowCount(self, *args, **kwargs):
@@ -102,6 +90,9 @@ class ObservationTableModel(QAbstractTableModel):
     def empty(self):
         self.removeRows(0, self.rowCount())
         self.reset()
+
+    def get_coulmn_details(self):
+        return self.columns
 
 
 class ObservationTableCell(QStyledItemDelegate):
@@ -212,7 +203,6 @@ class ObservationTable(QTableView):
         # set events
         self.source_model.observationUpdated.connect(self.edit_observation)
         self.source_model.eventUpdated.connect(self.edit_event)
-
         # show widget
         self.show()
 
@@ -223,8 +213,16 @@ class ObservationTable(QTableView):
         old_index = self.currentIndex()
         index = self.indexAt(evt.pos())
         self.setCurrentIndex(index)
-        if index.column() in self.source_model.editable_columns and old_index == index:
-            self.edit(index)
+        if old_index == index:
+         self.edit(index)
+
+    def mouseDoubleClickEvent(self, *args, **kwargs):  # real signature unknown
+        row = self.indexAt(args[0].pos()).row()
+        self.video_context_menu({
+            "action": DialogActions.edit_obs,
+            "obs": self.get_event(row).observation,
+            "column_number": self.indexAt(args[0].pos()).column()},
+        )
 
     def item(self, row, col):
         return self.source_model.index(row, col).data()
@@ -281,15 +279,12 @@ class ObservationTable(QTableView):
 
     def customContextMenu(self, pos):
         row = self.indexAt(pos).row()
-
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         delete_menu = menu.addMenu('Delete')
         delete_evt_action = delete_menu.addAction('Image')
         delete_obs_action = delete_menu.addAction('Observation')
-        edit_menu = menu.addMenu('Edit')
-        edit_evt_action = edit_menu.addAction('Image')
-        edit_obs_action = edit_menu.addAction('Observation')
+        menu.addAction('Edit',lambda: self.edit_obs_action(row))
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
         if self.get_event(row).observation.type_choice == 'A':
@@ -318,16 +313,6 @@ class ObservationTable(QTableView):
                 obs = self.get_event(row).observation
                 if self.confirm_delete_dialog(obs):
                     self.remove_observation(obs)
-            elif action == edit_evt_action:  # edit event
-                self.video_context_menu({
-                    "action": DialogActions.edit_event,
-                    "event": self.get_event(row)}
-                )
-            elif action == edit_obs_action:  # edit observation
-                self.video_context_menu({
-                    "action": DialogActions.edit_obs,
-                    "obs": self.get_event(row).observation}
-                )
             elif set_duration_action and action == set_duration_action:  # set duration
                 self.durationClicked.emit(self.get_event(row).observation)
             elif action == go_to_event_action:  # go to event
@@ -343,4 +328,12 @@ class ObservationTable(QTableView):
         return reply == QMessageBox.Yes
 
     def video_context_menu(self, optDict):
+        print("observation table > video_context_menu")
         self.parent()._video_player.onMenuSelect(optDict)
+
+    def edit_obs_action(self, row):  # edit observation
+        self.video_context_menu({
+                "action": DialogActions.edit_obs,
+                "obs": self.get_event(row).observation,
+                "column_number": None},
+        )

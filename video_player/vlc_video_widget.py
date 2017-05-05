@@ -233,6 +233,7 @@ class VlcVideoWidget(QStackedWidget):
 
     def onMenuSelect(self, optDict):
         if optDict is not None:
+            print("vlc_video_widget > onMenuSelect")
             optDict['event_time'] = int(self.get_position())
             optDict['extent'] = self.get_highlight_extent().to_wkt()
             optDict['set'] = self._current_set
@@ -412,9 +413,8 @@ class VlcVideoWidget(QStackedWidget):
 
     def scrub_position(self, pos):
         # todo - just have a Seek State
-        print('vlc_video_widget > scrub_position: pos {0}'.format(pos))
-        # Change the displayed still image in video player
         self.set_position(pos)
+        print("vlc_video_widget > scrub_position ", pos)
         self.pause()
 
     def set_position(self, pos):
@@ -649,3 +649,4 @@ class VlcVideoWidget(QStackedWidget):
     def timeChangedEvent(self, event):
         pos = self.mediaplayer.get_time()
         getLogger('finprint').info('Time changed: {0}'.format(pos))
+
