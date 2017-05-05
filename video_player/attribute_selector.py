@@ -56,8 +56,13 @@ class AttributeSelector(QVBoxLayout):
 
     def on_select(self, text, showCurrent = False):
             flag = 0
+            for attr in self.attributes:
+                if attr['name'] == text:
+                    flag = 1
+                    attr['selected'] = True
+                    break
             # Added for DEFAULT_ATTRIBUTE_TAG
-            if DEFAULT_ATTRIBUTE_TAG == text :
+            if DEFAULT_ATTRIBUTE_TAG == text or flag == 0:
                 default_att_list = [att['id'] for att in self.attributes if att['name']==DEFAULT_ATTRIBUTE_TAG]
                 if len(default_att_list) == 0 :
                     self.attributes.append({
@@ -68,22 +73,6 @@ class AttributeSelector(QVBoxLayout):
                     })
                 else :
                     default_att_list[0]['selected'] = True
-                    flag = 1
-            elif flag == 0 :
-                for attr in self.attributes:
-                    if attr['name'] == text:
-                        flag = 1
-                        attr['selected'] = True
-                        break
-            else :#Added for DEFAULT_ATTRIBUTE_TAG
-                default_att_list = [att['id'] for att in self.attributes if att['name'] == DEFAULT_ATTRIBUTE_TAG]
-                if len(default_att_list) == 0:
-                    self.attributes.append({
-                        'id': -1,
-                        'name': DEFAULT_ATTRIBUTE_TAG,
-                        'level': -1,
-                        'selected': True
-                    })
 
             self.selected_changed.emit()
             self.empty_selected()
@@ -166,5 +155,3 @@ class AttributeSelector(QVBoxLayout):
         for attr in self.attributes  :
            if attr['id'] == MARK_ZERO_TIME_ID:
                return attr
-
-
