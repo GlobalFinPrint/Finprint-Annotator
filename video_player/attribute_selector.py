@@ -123,6 +123,22 @@ class AttributeSelector(QVBoxLayout):
         self.empty_selected()
         self.display_selected()
         self.input_line.setText('')
+        #added for default tag
+        default_att_list = [att['id'] for att in self.attributes if att['name'] == DEFAULT_ATTRIBUTE_TAG]
+        if len(default_att_list) == 0:
+            self.attributes.append({
+                'id': -1,
+                'name': DEFAULT_ATTRIBUTE_TAG,
+                'level': -1,
+                'selected': True
+            })
+        else :
+            default_att_list[0]['selected'] = True
+      self.selected_changed.emit()
+      self.empty_selected()
+      self.display_selected()
+      self.input_line.setText(DEFAULT_ATTRIBUTE_TAG)
+
 
     def _refresh_list(self):
         for attr in self.attributes:
