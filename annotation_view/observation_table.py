@@ -45,7 +45,8 @@ class ObservationTableModel(QAbstractTableModel):
             columns = row.to_table_columns()
             return columns[model_index.column()]
         else:
-            return None
+            if role == Qt.TextAlignmentRole :
+                return Qt.AlignCenter
 
     def setData(self, model_index, value, role=None):
         if role == Qt.EditRole and model_index.column() in self.editable_columns:
@@ -112,12 +113,13 @@ class ObservationTableCell(QStyledItemDelegate):
         self.obs_dupe_color = QColor(Qt.white)
 
     def drawBorder(self, painter, rect, no_top):
-        #pen = QPen(QColor('#cccccc'), 1, Qt.SolidLine)
-        pen = QPen(QColor('white'), 1, Qt.SolidLine)
-        painter.setPen(pen)
+        pen = QPen(QColor('white'), 2, Qt.SolidLine)
+        pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
+        painter.setPen(pen1)
         if not no_top:
             painter.drawLine(rect.topLeft(), rect.topRight())
-        #painter.drawLine(rect.bottomLeft(), rect.bottomRight())
+
+        painter.setPen(pen)
         painter.drawLine(rect.topLeft(), rect.bottomLeft())
 
     def paint(self, painter, style, model_index):
@@ -199,6 +201,7 @@ class ObservationTable(QTableView):
 
         # set cells
         self.setItemDelegate(ObservationTableCell(self))
+
 
         # set events
         self.source_model.observationUpdated.connect(self.edit_observation)
