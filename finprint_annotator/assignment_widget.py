@@ -151,9 +151,10 @@ class AssignmentWidget(QWidget):
         self.set_table.setSelectionBehavior(QAbstractItemView.SelectRows)
 
         # first column takes up extra space then fit rest of columns
-        self.set_table.horizontalHeader().setResizeMode(1, QHeaderView.Stretch)
-        for col in range(2, self.set_table.columnCount() - 2):
+       # self.set_table.horizontalHeader().setResizeMode(1, QHeaderView.Stretch)
+        for col in range(1, self.set_table.columnCount() - 1):
             self.set_table.horizontalHeader().setResizeMode(col, QHeaderView.ResizeToContents)
+            self.set_table.horizontalHeader().setResizeMode(col, QHeaderView.Stretch)
 
         # hide ID and filename columns
         self.set_table.setColumnHidden(0, True)
