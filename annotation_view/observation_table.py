@@ -203,6 +203,8 @@ class ObservationTable(QTableView):
         # set events
         self.source_model.observationUpdated.connect(self.edit_observation)
         self.source_model.eventUpdated.connect(self.edit_event)
+
+        self.setMinimumHeight(100)
         # show widget
         self.show()
 
@@ -282,8 +284,13 @@ class ObservationTable(QTableView):
         menu = QMenu(self)
         menu.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
         delete_menu = menu.addMenu('Delete')
-        delete_evt_action = delete_menu.addAction('Image')
-        delete_obs_action = delete_menu.addAction('Observation')
+        #GLOB-568: If events in an observations is > 1 add delete_evet_action else delete_obs_action
+        if row >= 0 and self.get_event(row) is not None and self.get_event(row).observation is not None:
+            numbers_of_events = len(self.get_event(row).observation.events)
+            if numbers_of_events > 1:
+                delete_evt_action = delete_menu.addAction('This event within the observation')
+            delete_obs_action = delete_menu.addAction('This entire observation')
+
         menu.addAction('Edit',lambda: self.edit_obs_action(row))
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
@@ -305,11 +312,11 @@ class ObservationTable(QTableView):
             action = menu.exec_(self.mapToGlobal(pos))
             if action is None or action == cancel_action:  # menu cancelled
                 pass
-            elif action == delete_evt_action:  # delete event
+            elif numbers_of_events > 1 and action == delete_evt_action:  # delete event
                 evt = self.get_event(row)
-                if self.confirm_delete_dialog(evt):
+                if self.confirm_delete_dialog(evt) :
                     self.remove_event(evt)
-            elif action == delete_obs_action:  # delete observation
+            elif action == delete_obs_action :  # delete observation
                 obs = self.get_event(row).observation
                 if self.confirm_delete_dialog(obs):
                     self.remove_observation(obs)
