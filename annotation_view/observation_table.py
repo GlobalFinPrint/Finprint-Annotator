@@ -95,6 +95,9 @@ class ObservationTableModel(QAbstractTableModel):
     def get_coulmn_details(self):
         return self.columns
 
+    def get_rows_details(self):
+        return self.rows
+
 
 class ObservationTableCell(QStyledItemDelegate):
     disabled_color = None
@@ -112,15 +115,25 @@ class ObservationTableCell(QStyledItemDelegate):
         self.disabled_color.setAlphaF(0.5)
         self.obs_dupe_color = QColor(Qt.white)
 
-    def drawBorder(self, painter, rect, no_top):
-        pen = QPen(QColor('white'), 2, Qt.SolidLine)
+    def drawBorder(self, painter, rect, no_top, column_id = False):
+
         pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
         painter.setPen(pen1)
         if not no_top:
             painter.drawLine(rect.topLeft(), rect.topRight())
 
+        pen1 = QPen(QColor('white'), 10, Qt.SolidLine)
+        painter.setPen(pen1)
+        if column_id == 0:
+            painter.drawLine(rect.topLeft(), rect.bottomLeft())
+
+        elif column_id == 9:
+            painter.drawLine(rect.topRight(), rect.bottomRight())
+
+        pen = QPen(QColor('white'), 2, Qt.SolidLine)
         painter.setPen(pen)
         painter.drawLine(rect.topLeft(), rect.bottomLeft())
+
 
     def paint(self, painter, style, model_index):
         row, col = model_index.row(), model_index.column()
@@ -130,14 +143,14 @@ class ObservationTableCell(QStyledItemDelegate):
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
             painter.fillRect(style.rect, self.disabled_color)
-            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'))
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'), col)
             painter.restore()
 
         # zebra striping table by observation
         else:
             painter.save()
             painter.fillRect(style.rect, event.obs_color)
-            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'))
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'),  col)
             painter.restore()
             if col not in self.observation_columns or hasattr(event, 'first_flag'):
                 super().paint(painter, style, model_index)
@@ -157,7 +170,7 @@ class ObservationTable(QTableView):
         super().__init__(*args, **kwargs)
         stylesheet = """QTableView { gridline-color: #cccccc; border: 1px solid #cccccc;}
                         QHeaderView::section { height: 35px; background-color: rgb(131,140,158,51); color: rgb(41,86,109); padding-bottom:5px}
-                        QScrollBar::vertical { border: 1px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
+                        QScrollBar::vertical { border: 5px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
                         QScrollBar::handle:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
                             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); min-height: 0px;}
                         QScrollBar::add-line:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
@@ -171,7 +184,6 @@ class ObservationTable(QTableView):
                             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); width: 0px; subcontrol-position: right; subcontrol-origin: margin;}
                         QScrollBar::sub-line:horizontal { background: qlineargradient(x1:0, y1:0, x2:1, y2:0," stop: 0  rgb(131,140,158),
                             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); width: 0px;subcontrol-position: left; subcontrol-origin:margin}
-
                             """
 
         self.setStyleSheet(stylesheet)
@@ -194,15 +206,11 @@ class ObservationTable(QTableView):
         self.setColumnWidth(self.Columns.observation_comment, 600)
         self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
         self.setColumnWidth(self.Columns.event_notes, 600)
-
         # set rows
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.verticalHeader().setVisible(False)
-
         # set cells
         self.setItemDelegate(ObservationTableCell(self))
-
-
         # set events
         self.source_model.observationUpdated.connect(self.edit_observation)
         self.source_model.eventUpdated.connect(self.edit_event)
