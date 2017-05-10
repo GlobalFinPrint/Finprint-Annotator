@@ -204,7 +204,7 @@ class ObservationTable(QTableView):
         self.source_model.observationUpdated.connect(self.edit_observation)
         self.source_model.eventUpdated.connect(self.edit_event)
 
-        self.setMinimumHeight(100)
+        self.setMinimumHeight(120)
         # show widget
         self.show()
 
