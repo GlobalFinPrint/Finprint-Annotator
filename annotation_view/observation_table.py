@@ -138,7 +138,6 @@ class ObservationTableCell(QStyledItemDelegate):
     def paint(self, painter, style, model_index):
         row, col = model_index.row(), model_index.column()
         event = self.parent().get_event(row)
-
         # disabled color for of interest
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
@@ -196,16 +195,16 @@ class ObservationTable(QTableView):
         # set model
         self.source_model = ObservationTableModel()
         self.setModel(self.source_model)
-
+        self.windows_size = self.window().width()
         # set columns
         self.setColumnHidden(self.Columns.id, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.type, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.annotator, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.frame_capture, True)  # hide for now
         self.setColumnWidth(self.Columns.organism, 250)
-        self.setColumnWidth(self.Columns.observation_comment, 600)
+        self.setColumnWidth(self.Columns.observation_comment, (self.windows_size-250)/2)
         self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
-        self.setColumnWidth(self.Columns.event_notes, 600)
+        self.setColumnWidth(self.Columns.event_notes, (self.windows_size-250)/2)
         # set rows
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.verticalHeader().setVisible(False)
