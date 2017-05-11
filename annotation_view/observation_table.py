@@ -6,6 +6,7 @@ from video_player import DialogActions
 from annotation_view.util import ObservationColumn,ColumnsEnum
 
 MARK_ZERO_TIME_ID = 16
+
 class ObservationTableModel(QAbstractTableModel):
     observationUpdated = pyqtSignal(Observation)
     eventUpdated = pyqtSignal(Event)
@@ -85,6 +86,7 @@ class ObservationTableModel(QAbstractTableModel):
     def append_row(self, row):
         self.insertRows(self.rowCount(), 1, new_rows=[row])
 
+
     def remove_row(self, row):
         self.removeRows(row, 1)
 
@@ -115,45 +117,59 @@ class ObservationTableCell(QStyledItemDelegate):
         self.disabled_color.setAlphaF(0.5)
         self.obs_dupe_color = QColor(Qt.white)
 
-    def drawBorder(self, painter, rect, no_top, column_id = False):
-
+    def drawBorder(self, painter, rect, no_top, column_id = False, row_number = False, last_event = False):
         pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
         painter.setPen(pen1)
         if not no_top:
             painter.drawLine(rect.topLeft(), rect.topRight())
 
-        pen1 = QPen(QColor('white'), 10, Qt.SolidLine)
+        pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
         painter.setPen(pen1)
-        if column_id == 0:
+       # if row_number == 0 :
+        #    painter.drawLine(rect.topLeft(), rect.topRight())
+
+        if column_id == 0: #space after first coloumn of each row
             painter.drawLine(rect.topLeft(), rect.bottomLeft())
 
-        elif column_id == 9:
+        elif column_id == 9: #space after last coloumn of each row
             painter.drawLine(rect.topRight(), rect.bottomRight())
+
+        if last_event:
+           painter.drawLine(rect.bottomLeft(), rect.bottomRight())
 
         pen = QPen(QColor('white'), 2, Qt.SolidLine)
         painter.setPen(pen)
+
         painter.drawLine(rect.topLeft(), rect.bottomLeft())
+
 
 
     def paint(self, painter, style, model_index):
         row, col = model_index.row(), model_index.column()
         event = self.parent().get_event(row)
+        last_event = self.verify_last_event(event)
         # disabled color for of interest
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
             painter.fillRect(style.rect, self.disabled_color)
-            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'), col)
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'), col, row, last_event)
             painter.restore()
 
         # zebra striping table by observation
         else:
             painter.save()
             painter.fillRect(style.rect, event.obs_color)
-            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'),  col)
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'),  col, row, last_event)
             painter.restore()
             if col not in self.observation_columns or hasattr(event, 'first_flag'):
                 super().paint(painter, style, model_index)
 
+    def verify_last_event(self, event) :
+        last_event = self.parent().last_event_name()
+        if str(event.attribute) == str(last_event.attribute) and str(event)==  str(last_event):
+            return True
+        else :
+            return False
 
 class ObservationTable(QTableView):
     source_model = None
@@ -354,3 +370,12 @@ class ObservationTable(QTableView):
                 "obs": self.get_event(row).observation,
                 "column_number": None},
         )
+
+    def last_event_name(self):
+        last_event_name = ''
+        if self.current_set.observations is not None :
+            last_event_name = self.current_set.observations[0].events[0]
+
+
+        return last_event_name
+
