@@ -75,9 +75,6 @@ class ContextMenu(QMenu):
         elif action == self._interest_act:
             self.itemSelected.emit({"action": DialogActions.new_obs,
                                     "type_choice": 'I'})
-        elif action == self._animal_observation_act :
-            self.itemSelected.emit({"action": DialogActions.new_obs,
-                                    "type_choice": 'A'})
         elif type(action.data()).__name__ == 'Observation':
             self.itemSelected.emit({"action": DialogActions.add_event,
                                     "obs": action.data()})
@@ -98,6 +95,7 @@ class ContextMenu(QMenu):
                                 "animal": item.choice})
 
 class EventDialog(QDialog):
+    itemSelected = pyqtSignal(dict)
     def __init__(self, parent=None, flags=Qt.WindowTitleHint):
         super(EventDialog, self).__init__(parent=parent, flags=flags)
 
@@ -105,9 +103,11 @@ class EventDialog(QDialog):
         self.setModal(True)
         self.setStyleSheet('background:#fff;')
         self.finished.connect(self.cleanup)
+        self.cascaded_menu = None
 
         # event params
         self.dialog_values = {}
+        self.cursor_click_pos = None
 
         # dialog controls
         self.att_dropdown = None
@@ -187,12 +187,14 @@ class EventDialog(QDialog):
         #adding grouping of Animal functionality in drop down of organism rather than showing animal list directly-GLOB-573
         if kwargs['action'] == DialogActions.edit_obs and kwargs['type_choice'] == 'A':
             animal_label = QLabel('Organism:*')
-            self.animal_dropdown = QComboBox()
+            self.animal_dropdown = ComboBox(self)
             animal_label.setBuddy(self.animal_dropdown)
             for an in self._set.animals:
                 self.animal_dropdown.addItem(str(an), an.id)
             self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
-            self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
+            #self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
+            self.animal_dropdown.popupAboutToBeShown.connect(self.cascaded_drop_down)
+
             layout.addWidget(animal_label)
             layout.addWidget(self.animal_dropdown)
 
@@ -301,6 +303,8 @@ class EventDialog(QDialog):
         if self.column_name is not None and self.column_name == 'Observation Note':
             self.obs_text.setFocus()
 
+       # self._layout = layout
+
         self.show()
 
     def pushed_save(self):
@@ -366,17 +370,39 @@ class EventDialog(QDialog):
         except AttributeError:
             return None
 
-    def show_nested_drop_down_for_organism(self)  :
-        change_organism_menu = QMenu(self)
-        grouping = {}
+
+    def cascaded_drop_down(self):
+        stylesheet = self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
+        self.cascaded_menu = QMenu(self)
+        self.cascaded_menu.setStyleSheet(stylesheet)
+        self.cascaded_menu.setFixedWidth(300)
+        self._grouping = {}
         for animal in self._set.animals:
-            if animal.group not in grouping:
-                grouping[animal.group] = []
-            grouping[animal.group].append(animal)
-        for group in grouping.keys():
-            group_menu = change_organism_menu.addMenu(group)
-            for animal in grouping[group]:
-                act = group_menu.addAction(str(animal))
-                act.setData(animal)
+            if animal.group not in self._grouping:
+                self._grouping[animal.group] = []
+            self._grouping[animal.group].append(animal)
+
+            # actions
+        #self._animal_group_menu = menu.addMenu('Create animal observation')
+        for group in sorted(self._grouping.keys()):
+            group_menu = self.cascaded_menu.addMenu(group)
+            group_menu.addAction(TypeAndReduce(group, self._grouping[group], self._debug, group_menu, False))
+
+       # self.display()
+        x = self.pos().x() + self.animal_dropdown.x()
+        y = self.pos().y() + self.animal_dropdown.y() + 28 # adjustment might change if more Qwidgets are added in layout
+
+        self.cascaded_menu.move(x,y)
+        self.cascaded_menu.show()
 
 
+    def _debug(self, item):
+        self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(item.choice.id))
+        self.dialog_values['animal_id']= item.choice.id
+        self.cascaded_menu.hide()
+
+class ComboBox(QComboBox):
+     popupAboutToBeShown = pyqtSignal()
+
+     def showPopup(self):
+         self.popupAboutToBeShown.emit()

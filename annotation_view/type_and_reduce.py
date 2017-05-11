@@ -12,12 +12,12 @@ class TypeAndReduceChoice(QListWidgetItem):
 
 
 class TypeAndReduce(QWidgetAction):
-    def __init__(self, title, choices, on_choice, parent):
+    def __init__(self, title, choices, on_choice, parent, hide_parent = True):
         super().__init__(parent)
         self.title = title
         self.choices = choices
         self.on_choice = on_choice
-
+        self.hide_parent = hide_parent
         default_widget = QWidget()
         default_widget.setFixedWidth(300)  # TODO update with toggle_view
         default_widget.setStyleSheet('background-color: white;')
@@ -79,5 +79,8 @@ class TypeAndReduce(QWidgetAction):
 
     def _selected_choice(self, item):
         getLogger('finprint').debug('item chosen: {}'.format(str(item.choice)))
-        self.on_choice(item)  # workaround because documented methods for doing (trigger, events) do not work
-        self.parent().parent().parent().close()
+        self.on_choice(item)
+        if self.hide_parent:
+            # workaround because documented methods for doing (trigger, events) do not work
+            self.parent().parent().parent().close()
+
