@@ -35,16 +35,12 @@ class ContextMenu(QMenu):
             self._cancel_act = self.addAction('Cancel')
 
             if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
-                self._observations_menu.menuAction().setVisible(False)
-                self._animal_observation_act.setVisible(False)
-                self._interest_act.setVisible(True)
-                self._cancel_act.setVisible(False)
-                getLogger('finprint').debug('ContextMenu : Mark Zero TIme is not created')
+               self._observations_menu.menuAction().setEnabled(False)
+               self._animal_observation_act.setEnabled(False)
+               getLogger('finprint').debug('ContextMenu : Mark Zero TIme is not created')
             else :
-                self._observations_menu.menuAction().setVisible(True)
-                self._animal_observation_act.setVisible(True)
-                self._interest_act.setVisible(True)
-                self._cancel_act.setVisible(True)
+                self._observations_menu.menuAction().setEnabled(True)
+                self._animal_observation_act.setEnabled(True)
 
 
     def _populate_obs_menu(self):
@@ -74,15 +70,12 @@ class ContextMenu(QMenu):
     def handle_annotator_event(self):
         if self._set is not None:
             if len(self._set.observations) > 0 or GlobalFinPrintServer().is_lead():
-                self._animal_observation_act.setVisible(True)
-                self._interest_act.setVisible(True)
-                self._observations_menu.menuAction().setVisible(True)
-                self._cancel_act.setVisible(True)
+                self._animal_observation_act.setEnabled(True)
+                self._observations_menu.menuAction().setEnabled(True)
             else :
-                self._interest_act.setVisible(True)
-                self._observations_menu.menuAction().setVisible(False)
-                self._animal_observation_act.setVisible(False)
-                self._cancel_act.setVisible(False)
+                self._observations_menu.menuAction().setEnabled(False)
+                self._animal_observation_act.setEnabled(False)
+
 
 
 
