@@ -115,17 +115,15 @@ class VideoSeekWidget(QSlider):
             mark_zero_pos = self.return_position_in_millisecond_for_mark_zero_time()
             if mark_zero_pos:
                 if mark_zero_pos < self._set.progress:
-                    if v > self._set.progress:
+                    if v >= self._set.progress:
                         self._player.set_position(min(v, self._set.progress))
                     else:
                         self._player.set_position(v)
-                elif mark_zero_pos > self._set.progress:
-                    if v > self._set.progress:
+                elif mark_zero_pos >= self._set.progress:
+                    if  v <= mark_zero_pos :
                         self._player.set_position(v)
-                    elif v > mark_zero_pos:
-                        self._player.set_position(min(mark_zero_pos, v))
                     else:
-                        self._player.set_position(min(v, self._set.progress))
+                        self._player.set_position(min(v, mark_zero_pos))
             elif len(self._set.observations) > 0:
                 self._player.set_position(min(v, self._set.progress))
             else:
