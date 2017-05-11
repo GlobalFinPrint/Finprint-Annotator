@@ -27,20 +27,36 @@ class ContextMenu(QMenu):
         super(ContextMenu, self).__init__(parent)
         # set
         self._set = current_set
+        # animals
+
+
         if self._set is not None:
             self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
-            self._animal_observation_act = self.addAction('Create animal observation')
+
+            self._grouping = {}
+            for animal in self._set.animals:
+                if animal.group not in self._grouping:
+                    self._grouping[animal.group] = []
+                self._grouping[animal.group].append(animal)
+
+                    # actions
+            self._animal_group_menu = self.addMenu('Create animal observation')
+            for group in sorted(self._grouping.keys()):
+                group_menu = self._animal_group_menu.addMenu(group)
+                group_menu.addAction(TypeAndReduce(group, self._grouping[group], self._debug, group_menu))
+
+
             self._interest_act = self.addAction('Create non-animal observation')
             self._observations_menu = self.addMenu('Add to existing observation')
             self._cancel_act = self.addAction('Cancel')
 
             if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
                self._observations_menu.menuAction().setEnabled(False)
-               self._animal_observation_act.setEnabled(False)
+               self._animal_group_menu.menuAction().setEnabled(False)
                getLogger('finprint').debug('ContextMenu : Mark Zero TIme is not created')
             else :
                 self._observations_menu.menuAction().setEnabled(True)
-                self._animal_observation_act.setEnabled(True)
+                self._animal_group_menu.menuAction().setEnabled(True)
 
 
     def _populate_obs_menu(self):
@@ -70,14 +86,16 @@ class ContextMenu(QMenu):
     def handle_annotator_event(self):
         if self._set is not None:
             if len(self._set.observations) > 0 or GlobalFinPrintServer().is_lead():
-                self._animal_observation_act.setEnabled(True)
+                self._animal_group_menu.menuAction().setEnabled(True)
                 self._observations_menu.menuAction().setEnabled(True)
             else :
                 self._observations_menu.menuAction().setEnabled(False)
-                self._animal_observation_act.setEnabled(False)
+                self._animal_group_menu.menuAction().setEnabled(False)
 
-
-
+    def _debug(self, item):
+        self.itemSelected.emit({"action": DialogActions.new_obs,
+                                "type_choice": 'A',
+                                "animal": item.choice})
 
 class EventDialog(QDialog):
     def __init__(self, parent=None, flags=Qt.WindowTitleHint):
@@ -186,7 +204,7 @@ class EventDialog(QDialog):
             for an in self._set.animals:
                 self.animal_dropdown.addItem(str(an), an.id)
 
-            self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
+            self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
             self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             layout.addWidget(animal_label)
             layout.addWidget(self.animal_dropdown)
