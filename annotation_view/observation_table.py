@@ -117,7 +117,7 @@ class ObservationTableCell(QStyledItemDelegate):
         self.disabled_color.setAlphaF(0.5)
         self.obs_dupe_color = QColor(Qt.white)
 
-    def drawBorder(self, painter, rect, no_top, column_id = False, row_number = False, last_event = False):
+    def drawBorder(self, painter, rect, no_top, column_id = False, row_number = False):
         pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
         painter.setPen(pen1)
         if not no_top:
@@ -125,17 +125,14 @@ class ObservationTableCell(QStyledItemDelegate):
 
         pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
         painter.setPen(pen1)
-       # if row_number == 0 :
-        #    painter.drawLine(rect.topLeft(), rect.topRight())
+        if row_number == 0 :
+           painter.drawLine(rect.topLeft(), rect.topRight())
 
         if column_id == 0: #space after first coloumn of each row
             painter.drawLine(rect.topLeft(), rect.bottomLeft())
 
         elif column_id == 9: #space after last coloumn of each row
             painter.drawLine(rect.topRight(), rect.bottomRight())
-
-        if last_event:
-           painter.drawLine(rect.bottomLeft(), rect.bottomRight())
 
         pen = QPen(QColor('white'), 2, Qt.SolidLine)
         painter.setPen(pen)
@@ -147,29 +144,21 @@ class ObservationTableCell(QStyledItemDelegate):
     def paint(self, painter, style, model_index):
         row, col = model_index.row(), model_index.column()
         event = self.parent().get_event(row)
-        last_event = self.verify_last_event(event)
         # disabled color for of interest
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
             painter.fillRect(style.rect, self.disabled_color)
-            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'), col, row, last_event)
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'), col, row)
             painter.restore()
 
         # zebra striping table by observation
         else:
             painter.save()
             painter.fillRect(style.rect, event.obs_color)
-            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'),  col, row, last_event)
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'),  col, row)
             painter.restore()
             if col not in self.observation_columns or hasattr(event, 'first_flag'):
                 super().paint(painter, style, model_index)
-
-    def verify_last_event(self, event) :
-        last_event = self.parent().last_event_name()
-        if str(event.attribute) == str(last_event.attribute) and str(event)==  str(last_event):
-            return True
-        else :
-            return False
 
 class ObservationTable(QTableView):
     source_model = None
