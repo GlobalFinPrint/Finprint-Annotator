@@ -302,6 +302,10 @@ class EventDialog(QDialog):
             self.text_area.setFocus()
         if self.column_name is not None and self.column_name == 'Observation Note':
             self.obs_text.setFocus()
+        if self.column_name is not None and self.column_name == 'Organism':
+            self.animal_dropdown.setStyleSheet("QComboBox { background-color: #ff4c00; }")
+
+
 
        # self._layout = layout
 
@@ -393,6 +397,7 @@ class EventDialog(QDialog):
         y = self.pos().y() + self.animal_dropdown.y() + 28 # adjustment might change if more Qwidgets are added in layout
 
         self.cascaded_menu.move(x,y)
+        self.animal_dropdown.setStyleSheet("QComboBox { background-color: white; }")
         self.cascaded_menu.show()
 
 
