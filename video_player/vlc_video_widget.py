@@ -514,7 +514,10 @@ class VlcVideoWidget(QStackedWidget):
 
     def context_menu(self):
         if self._context_menu:
-            self._context_menu.display()
+            if self._context_menu.display() is None :
+                self._highlighter.clear()
+                self.annotationImage.clearExtent()
+                self.annotationImage.update()
 
     def is_filtered(self):
         return self.saturation > 0 or self.brightness > 0 or self.contrast
