@@ -12,6 +12,11 @@ from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+#taking id of both attribute as constant in all database
+MARK_90_MIN_ID = 24
+MARK_HAUL_TIME_ID = 23
+
+
 class VideoLayoutWidget(QWidget):
     fullscreen = None
     is_fullscreen = False
@@ -444,16 +449,24 @@ class VideoLayoutWidget(QWidget):
         #instead of having constant for mark_haul_time,mark_90Mins_time
         #we are fetcheing by row number from sets.attributes which is pulled directly from database
         #which its always constant
+        #taking id or MARK_HAUL_TIME=23 and MARK_90_MIN = 24
         #set.attributes = {list} <class 'list'>:
-        mark_90Mins_time = set.attributes[7]["name"]  # retrieved row is 7
-        mark_haul_time=set.attributes[8]["name"]      #retrived row is 8
+        mark_90Mins_time = self.find_verbose_based_on_id(MARK_90_MIN_ID)  # retrieved row is 7
+        mark_haul_time = self.find_verbose_based_on_id(MARK_HAUL_TIME_ID)     #retrived row is 8
         for observation in set.observations :
            for events in observation.events:
                for attribute in events.attribute :
-                   if "name" in attribute and attribute["name"]==mark_haul_time or attribute["name"]== mark_90Mins_time :
+                   if "verbose" in attribute and attribute["verbose"]== mark_haul_time or attribute["verbose"]== mark_90Mins_time :
                         self._submit_button.setDisabled(False)
                         return True
 
         self._submit_button.setDisabled(True)
+        return False
+
+    def find_verbose_based_on_id(self,id):
+        for attribute in self.current_set.attributes :
+            if attribute['id']==id :
+                return attribute['verbose']
+
         return False
 
