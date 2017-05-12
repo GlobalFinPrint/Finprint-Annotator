@@ -6,6 +6,7 @@ from video_player import DialogActions
 from annotation_view.util import ObservationColumn,ColumnsEnum
 
 MARK_ZERO_TIME_ID = 16
+
 class ObservationTableModel(QAbstractTableModel):
     observationUpdated = pyqtSignal(Observation)
     eventUpdated = pyqtSignal(Event)
@@ -45,7 +46,8 @@ class ObservationTableModel(QAbstractTableModel):
             columns = row.to_table_columns()
             return columns[model_index.column()]
         else:
-            return None
+            if role == Qt.TextAlignmentRole :
+                return Qt.AlignCenter
 
     def setData(self, model_index, value, role=None):
         if role == Qt.EditRole and model_index.column() in self.editable_columns:
@@ -84,6 +86,7 @@ class ObservationTableModel(QAbstractTableModel):
     def append_row(self, row):
         self.insertRows(self.rowCount(), 1, new_rows=[row])
 
+
     def remove_row(self, row):
         self.removeRows(row, 1)
 
@@ -93,6 +96,9 @@ class ObservationTableModel(QAbstractTableModel):
 
     def get_coulmn_details(self):
         return self.columns
+
+    def get_rows_details(self):
+        return self.rows
 
 
 class ObservationTableCell(QStyledItemDelegate):
@@ -111,35 +117,48 @@ class ObservationTableCell(QStyledItemDelegate):
         self.disabled_color.setAlphaF(0.5)
         self.obs_dupe_color = QColor(Qt.white)
 
-    def drawBorder(self, painter, rect, no_top):
-        #pen = QPen(QColor('#cccccc'), 1, Qt.SolidLine)
-        pen = QPen(QColor('white'), 1, Qt.SolidLine)
-        painter.setPen(pen)
+    def drawBorder(self, painter, rect, no_top, column_id = False, row_number = False):
+        pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
+        painter.setPen(pen1)
         if not no_top:
             painter.drawLine(rect.topLeft(), rect.topRight())
-        #painter.drawLine(rect.bottomLeft(), rect.bottomRight())
+
+        pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
+        painter.setPen(pen1)
+        if row_number == 0 :
+           painter.drawLine(rect.topLeft(), rect.topRight())
+
+        if column_id == 0: #space after first coloumn of each row
+            painter.drawLine(rect.topLeft(), rect.bottomLeft())
+
+        elif column_id == 9: #space after last coloumn of each row
+            painter.drawLine(rect.topRight(), rect.bottomRight())
+
+        pen = QPen(QColor('white'), 2, Qt.SolidLine)
+        painter.setPen(pen)
+
         painter.drawLine(rect.topLeft(), rect.bottomLeft())
+
+
 
     def paint(self, painter, style, model_index):
         row, col = model_index.row(), model_index.column()
         event = self.parent().get_event(row)
-
         # disabled color for of interest
         if col == self.Columns.organism and self.parent().item(row, self.Columns.type) == 'I':
             painter.save()
             painter.fillRect(style.rect, self.disabled_color)
-            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'))
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'), col, row)
             painter.restore()
 
         # zebra striping table by observation
         else:
             painter.save()
             painter.fillRect(style.rect, event.obs_color)
-            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'))
+            self.drawBorder(painter, style.rect, col in self.observation_columns and not hasattr(event, 'first_flag'),  col, row)
             painter.restore()
             if col not in self.observation_columns or hasattr(event, 'first_flag'):
                 super().paint(painter, style, model_index)
-
 
 class ObservationTable(QTableView):
     source_model = None
@@ -155,7 +174,7 @@ class ObservationTable(QTableView):
         super().__init__(*args, **kwargs)
         stylesheet = """QTableView { gridline-color: #cccccc; border: 1px solid #cccccc;}
                         QHeaderView::section { height: 35px; background-color: rgb(131,140,158,51); color: rgb(41,86,109); padding-bottom:5px}
-                        QScrollBar::vertical { border: 1px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
+                        QScrollBar::vertical { border: 5px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
                         QScrollBar::handle:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
                             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); min-height: 0px;}
                         QScrollBar::add-line:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
@@ -169,7 +188,6 @@ class ObservationTable(QTableView):
                             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); width: 0px; subcontrol-position: right; subcontrol-origin: margin;}
                         QScrollBar::sub-line:horizontal { background: qlineargradient(x1:0, y1:0, x2:1, y2:0," stop: 0  rgb(131,140,158),
                             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); width: 0px;subcontrol-position: left; subcontrol-origin:margin}
-
                             """
 
         self.setStyleSheet(stylesheet)
@@ -182,24 +200,21 @@ class ObservationTable(QTableView):
         # set model
         self.source_model = ObservationTableModel()
         self.setModel(self.source_model)
-
+        self.windows_size = self.window().width()
         # set columns
         self.setColumnHidden(self.Columns.id, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.type, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.annotator, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.frame_capture, True)  # hide for now
         self.setColumnWidth(self.Columns.organism, 250)
-        self.setColumnWidth(self.Columns.observation_comment, 600)
+        self.setColumnWidth(self.Columns.observation_comment, (self.windows_size-250)/2)
         self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
-        self.setColumnWidth(self.Columns.event_notes, 600)
-
+        self.setColumnWidth(self.Columns.event_notes, (self.windows_size-250)/2)
         # set rows
         self.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.verticalHeader().setVisible(False)
-
         # set cells
         self.setItemDelegate(ObservationTableCell(self))
-
         # set events
         self.source_model.observationUpdated.connect(self.edit_observation)
         self.source_model.eventUpdated.connect(self.edit_event)
@@ -344,3 +359,12 @@ class ObservationTable(QTableView):
                 "obs": self.get_event(row).observation,
                 "column_number": None},
         )
+
+    def last_event_name(self):
+        last_event_name = ''
+        if self.current_set.observations is not None :
+            last_event_name = self.current_set.observations[0].events[0]
+
+
+        return last_event_name
+
