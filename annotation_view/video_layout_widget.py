@@ -451,22 +451,15 @@ class VideoLayoutWidget(QWidget):
         #which its always constant
         #taking id or MARK_HAUL_TIME=23 and MARK_90_MIN = 24
         #set.attributes = {list} <class 'list'>:
-        mark_90Mins_time = self.find_verbose_based_on_id(MARK_90_MIN_ID)  # retrieved row is 7
-        mark_haul_time = self.find_verbose_based_on_id(MARK_HAUL_TIME_ID)     #retrived row is 8
         for observation in set.observations :
            for events in observation.events:
                for attribute in events.attribute :
-                   if "verbose" in attribute and attribute["verbose"]== mark_haul_time or attribute["verbose"]== mark_90Mins_time :
+                   if "id" in attribute and attribute["id"] in [MARK_HAUL_TIME_ID, MARK_90_MIN_ID] :
                         self._submit_button.setDisabled(False)
                         return True
 
         self._submit_button.setDisabled(True)
         return False
 
-    def find_verbose_based_on_id(self,id):
-        for attribute in self.current_set.attributes :
-            if attribute['id']==id :
-                return attribute['verbose']
 
-        return False
 
