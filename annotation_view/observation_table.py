@@ -3,7 +3,8 @@ from enum import IntEnum
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from video_player import DialogActions
-from annotation_view.util import ObservationColumn,ColumnsEnum
+from annotation_view.util import ObservationColumn
+from win32api import GetSystemMetrics
 
 MARK_ZERO_TIME_ID = 16
 
@@ -218,8 +219,10 @@ class ObservationTable(QTableView):
         # set events
         self.source_model.observationUpdated.connect(self.edit_observation)
         self.source_model.eventUpdated.connect(self.edit_event)
-
-        self.setMinimumHeight(120)
+        if GetSystemMetrics(1) < 800 :
+            self.setMinimumHeight(80)
+        else :
+            self.setMinimumHeight(120)
         # show widget
         self.show()
 
