@@ -219,10 +219,8 @@ class ObservationTable(QTableView):
         # set events
         self.source_model.observationUpdated.connect(self.edit_observation)
         self.source_model.eventUpdated.connect(self.edit_event)
-        if GetSystemMetrics(1) < 800 :
-            self.setMinimumHeight(80)
-        else :
-            self.setMinimumHeight(120)
+
+        self.setMinimumHeight(120)
         # show widget
         self.show()
 
