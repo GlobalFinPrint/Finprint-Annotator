@@ -318,6 +318,11 @@ class EventDialog(QDialog):
     def pushed_save(self):
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute'] :
             self.dialog_values['attribute'].remove(-1)
+
+        if len(self._set.observations) ==0 and not GlobalFinPrintServer().is_lead():
+            self._set.progress = self.dialog_values['event_time']
+            GlobalFinPrintServer().update_progress(self._set.id, self.dialog_values['event_time'])
+
         if self.action == DialogActions.new_obs:  # new obs
             filename = self._set.add_observation(self.dialog_values)
         else:  # add event to obs
