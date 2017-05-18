@@ -307,7 +307,7 @@ class ObservationTable(QTableView):
                 delete_evt_action = delete_menu.addAction('This event within the observation')
             delete_obs_action = delete_menu.addAction('This entire observation')
 
-        menu.addAction('Edit',lambda: self.edit_obs_action(row))
+        menu.addAction('Edit',lambda: self.edit_obs_action(pos))
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
         if self.get_event(row).observation.type_choice == 'A':
@@ -354,18 +354,17 @@ class ObservationTable(QTableView):
         print("observation table > video_context_menu")
         self.parent()._video_player.onMenuSelect(optDict)
 
-    def edit_obs_action(self, row):  # edit observation
+    def edit_obs_action(self, pos):  # edit observation
         self.video_context_menu({
                 "action": DialogActions.edit_obs,
-                "obs": self.get_event(row).observation,
-                "column_number": None},
+                "obs": self.get_event(self.indexAt(pos).row()).observation,
+                "column_number":self.indexAt(pos).column()}
         )
 
     def last_event_name(self):
         last_event_name = ''
         if self.current_set.observations is not None :
             last_event_name = self.current_set.observations[0].events[0]
-
 
         return last_event_name
 
