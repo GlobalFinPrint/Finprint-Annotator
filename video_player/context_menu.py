@@ -302,10 +302,10 @@ class EventDialog(QDialog):
             self.text_area.setFocus()
         if self.column_name is not None and self.column_name == 'Observation Note':
             self.obs_text.setFocus()
-        if self.column_name is not None and self.column_name == 'Organism':
+        if self.column_name is not None and self.column_name == 'Organism' and kwargs['type_choice'] == 'A':
             self.animal_dropdown.setStyleSheet("QComboBox { border: 2px solid #72aaff; } ")
             self.animal_dropdown.setFocus()
-        if self.column_name is not None and self.column_name == 'Tags':
+        if self.column_name is not None and self.column_name == 'Tags' or kwargs['action'] == DialogActions.new_obs:
             self.att_dropdown.input_line.setFocus()
 
         #      #4876FF

@@ -48,7 +48,7 @@ class ObservationTableModel(QAbstractTableModel):
             return columns[model_index.column()]
         else:
             if role == Qt.TextAlignmentRole :
-                return Qt.AlignCenter
+                return Qt.AlignVCenter
 
     def setData(self, model_index, value, role=None):
         if role == Qt.EditRole and model_index.column() in self.editable_columns:
