@@ -132,8 +132,11 @@ class EventDialog(QDialog):
                 title ='Add event to animal observation'
             else :
                 title = 'Add event to non-animal observation'
-        elif kwargs['action'] == DialogActions.edit_obs:
-            title = 'Edit animal observation'
+        elif kwargs['action'] == DialogActions.edit_obs :
+            if kwargs['obs'].type_choice == 'A' :
+              title = 'Edit animal observation'
+            else :
+                title = 'Edit non-animal observation'
         elif kwargs['action'] == DialogActions.edit_event:
             title = 'Edit event'
         else:
@@ -151,8 +154,6 @@ class EventDialog(QDialog):
             if kwargs['type_choice'] == 'A':
                 kwargs['animal'] = kwargs['obs'].animal
                 self.dialog_values['animal_id'] = kwargs['animal'].id
-            if kwargs['type_choice'] == 'I' :
-                self.setWindowTitle("Add event to non-animal observation")
 
         elif 'event' in kwargs:
             self.selected_event = kwargs['event']
