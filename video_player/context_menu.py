@@ -302,9 +302,13 @@ class EventDialog(QDialog):
             self.text_area.setFocus()
         if self.column_name is not None and self.column_name == 'Observation Note':
             self.obs_text.setFocus()
-        if self.column_name is not None and self.column_name == 'Organism':
-            self.animal_dropdown.setStyleSheet("QComboBox { background-color: #ff4c00; }")
+        if self.column_name is not None and self.column_name == 'Organism' and kwargs['type_choice'] == 'A':
+            self.animal_dropdown.setStyleSheet("QComboBox { border: 2px solid #72aaff; } ")
+            self.animal_dropdown.setFocus()
+        if self.column_name is not None and self.column_name == 'Tags' or kwargs['action'] == DialogActions.new_obs:
+            self.att_dropdown.input_line.setFocus()
 
+        #      #4876FF
 
 
        # self._layout = layout
@@ -314,6 +318,11 @@ class EventDialog(QDialog):
     def pushed_save(self):
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute'] :
             self.dialog_values['attribute'].remove(-1)
+
+        if len(self._set.observations) ==0 and not GlobalFinPrintServer().is_lead():
+            self._set.progress = self.dialog_values['event_time']
+            GlobalFinPrintServer().update_progress(self._set.id, self.dialog_values['event_time'])
+
         if self.action == DialogActions.new_obs:  # new obs
             filename = self._set.add_observation(self.dialog_values)
         else:  # add event to obs

@@ -155,3 +155,4 @@ class AttributeSelector(QVBoxLayout):
         for attr in self.attributes  :
            if attr['id'] == MARK_ZERO_TIME_ID:
                return attr
+

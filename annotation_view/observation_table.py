@@ -48,7 +48,7 @@ class ObservationTableModel(QAbstractTableModel):
             return columns[model_index.column()]
         else:
             if role == Qt.TextAlignmentRole :
-                return Qt.AlignCenter
+                return Qt.AlignVCenter
 
     def setData(self, model_index, value, role=None):
         if role == Qt.EditRole and model_index.column() in self.editable_columns:
@@ -175,7 +175,7 @@ class ObservationTable(QTableView):
         super().__init__(*args, **kwargs)
         stylesheet = """QTableView { gridline-color: #cccccc; border: 1px solid #cccccc;}
                         QHeaderView::section { height: 35px; background-color: rgb(131,140,158,51); color: rgb(41,86,109); padding-bottom:5px}
-                        QScrollBar::vertical { border: 5px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
+                        QScrollBar::vertical { border: 1px solid #999999; background:white; width:10px; margin: 0px 0px 0px 0px;}
                         QScrollBar::handle:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
                             stop: 0.5 rgb(131,140,158),  stop:1 rgb(131,140,158)); min-height: 0px;}
                         QScrollBar::add-line:vertical { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop: 0  rgb(131,140,158),
@@ -307,7 +307,7 @@ class ObservationTable(QTableView):
                 delete_evt_action = delete_menu.addAction('This event within the observation')
             delete_obs_action = delete_menu.addAction('This entire observation')
 
-        menu.addAction('Edit',lambda: self.edit_obs_action(row))
+        menu.addAction('Edit',lambda: self.edit_obs_action(pos))
         set_duration_action = menu.addAction('Set Duration') if GlobalFinPrintServer().is_lead() else -1
         go_to_event_action = menu.addAction('Go To Event')
         if self.get_event(row).observation.type_choice == 'A':
@@ -354,18 +354,17 @@ class ObservationTable(QTableView):
         print("observation table > video_context_menu")
         self.parent()._video_player.onMenuSelect(optDict)
 
-    def edit_obs_action(self, row):  # edit observation
+    def edit_obs_action(self, pos):  # edit observation
         self.video_context_menu({
                 "action": DialogActions.edit_obs,
-                "obs": self.get_event(row).observation,
-                "column_number": None},
+                "obs": self.get_event(self.indexAt(pos).row()).observation,
+                "column_number":self.indexAt(pos).column()}
         )
 
     def last_event_name(self):
         last_event_name = ''
         if self.current_set.observations is not None :
             last_event_name = self.current_set.observations[0].events[0]
-
 
         return last_event_name
 
