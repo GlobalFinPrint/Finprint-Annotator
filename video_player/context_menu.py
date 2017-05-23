@@ -258,7 +258,7 @@ class EventDialog(QDialog):
 
 
         # event notes
-        if kwargs['action'] in [DialogActions.edit_obs,DialogActions.new_obs, DialogActions.add_event] :
+        if kwargs['action'] in [DialogActions.edit_obs, DialogActions.new_obs, DialogActions.add_event] :
             notes_label = QLabel('Image notes:')
             self.text_area = QTextEdit()
             if self.column_name is not None and self.column_name == 'Image notes':
@@ -272,9 +272,14 @@ class EventDialog(QDialog):
             layout.addWidget(notes_label)
             layout.addWidget(self.text_area)
 
+        if kwargs['action'] in [DialogActions.edit_obs, DialogActions.new_obs]:
+            capture_video_check = QCheckBox("Capture video")
+            layout.addWidget(capture_video_check)
+
+        last_row = QHBoxLayout()
         #*required field note
         asterick_note = QLabel('* Required field')
-        layout.addWidget(asterick_note)
+        last_row.addWidget(asterick_note)
 
         # save/update/cancel buttons
         buttons = QDialogButtonBox()  # TODO style the buttons
@@ -295,7 +300,8 @@ class EventDialog(QDialog):
         else:
             buttons.addButton(update_but, QDialogButtonBox.ActionRole)
         buttons.addButton(cancel_but, QDialogButtonBox.ActionRole)
-        layout.addWidget(buttons)
+        last_row.addWidget(buttons)
+        layout.addLayout(last_row)
         self.setLayout(layout)
 
         if self.column_name is not None and self.column_name == 'Image notes':
