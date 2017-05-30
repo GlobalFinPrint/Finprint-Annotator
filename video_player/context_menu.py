@@ -351,12 +351,18 @@ class EventDialog(QDialog):
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute'] :
             self.dialog_values['attribute'].remove(-1)
         if self.action == DialogActions.edit_obs:
-            self._set.edit_observation(self.selected_obs, self.dialog_values)
+            filename = self._set.edit_observation(self.selected_obs, self.dialog_values)
             self._set.edit_event(self.selected_event[0], self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
         # update observation_table
         self.observation_table().refresh_model()
+
+        # save 8_sec_clip
+        if self.capture_video_check.isChecked() == True:
+            file_name = re.split(".png", filename)[0] + ".mp4"
+            thread = Thread(target=self.upload_8sec_clip, args=(file_name,))
+            thread.start()
         # close and clean up
         self.cleanup()
 
