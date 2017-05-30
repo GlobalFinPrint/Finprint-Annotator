@@ -5,6 +5,7 @@ from PyQt4.QtGui import *
 from enum import IntEnum
 from annotation_view.util import ObservationColumn
 from global_finprint.global_finprint_server import GlobalFinPrintServer
+from threading import Thread
 import re
 from logging import getLogger
 
@@ -273,8 +274,8 @@ class EventDialog(QDialog):
             layout.addWidget(self.text_area)
 
         if kwargs['action'] in [DialogActions.edit_obs, DialogActions.new_obs]:
-            capture_video_check = QCheckBox("Capture video")
-            layout.addWidget(capture_video_check)
+            self.capture_video_check = QCheckBox("Capture video")
+            layout.addWidget(self.capture_video_check)
 
         last_row = QHBoxLayout()
         #*required field note
@@ -314,11 +315,6 @@ class EventDialog(QDialog):
         if self.column_name is not None and self.column_name == 'Tags' or kwargs['action'] == DialogActions.new_obs:
             self.att_dropdown.input_line.setFocus()
 
-        #      #4876FF
-
-
-       # self._layout = layout
-
         self.show()
 
     def pushed_save(self):
@@ -341,6 +337,12 @@ class EventDialog(QDialog):
             self.parent().parent().refresh_seek_bar()
         # save frame
         self.parent().save_image(filename)
+
+        #save 8_sec_clip
+        if self.capture_video_check.isChecked() == True:
+            file_name = re.split(".png",filename)[0]+".mp4"
+            thread = Thread(target=self.upload_8sec_clip, args=(file_name,))
+            thread.start()
         # close and clean up
         self.cleanup()
 
@@ -420,6 +422,9 @@ class EventDialog(QDialog):
         self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(item.choice.id))
         self.dialog_values['animal_id']= item.choice.id
         self.cascaded_menu.hide()
+
+    def upload_8sec_clip(self, file_name):
+        self.parent().generate_8sec_clip(file_name)
 
 class ComboBox(QComboBox):
      popupAboutToBeShown = pyqtSignal()
