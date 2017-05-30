@@ -1,12 +1,10 @@
 import threading
 import time
-import datetime
 import psutil
 from io import BytesIO
 import cv2
 import numpy as np
 from moviepy.editor import VideoFileClip
-import imageio as imageIo
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
