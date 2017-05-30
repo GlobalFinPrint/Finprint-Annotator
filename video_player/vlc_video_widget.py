@@ -1,10 +1,12 @@
 import threading
 import time
+import datetime
 import psutil
 from io import BytesIO
 import cv2
 import numpy as np
-
+from moviepy.editor import VideoFileClip
+import imageio as imageIo
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
@@ -22,6 +24,7 @@ from tempfile import gettempdir
 from .vlc import *
 from .vlc_utils import *
 from win32api import GetSystemMetrics
+
 
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
@@ -189,6 +192,7 @@ class VlcVideoWidget(QStackedWidget):
 
         # temporary storage for vlc snapshots
         self.temp_snapshot_dir = os.path.join(gettempdir(), TEMP_SNAPSHOT_DIR)
+
         if not os.path.exists(self.temp_snapshot_dir):
             os.makedirs(self.temp_snapshot_dir)
 
@@ -496,7 +500,6 @@ class VlcVideoWidget(QStackedWidget):
 
     ''' Provides duration of current video play in milli seconds '''
     def get_position(self):
-        #return self.mediaplayer.get_time()
         return self.timer_vo.timer_duration_ms
 
     def get_length(self):
@@ -660,3 +663,49 @@ class VlcVideoWidget(QStackedWidget):
         pos = self.mediaplayer.get_time()
         getLogger('finprint').info('Time changed: {0}'.format(pos))
 
+
+    def generate_8sec_clip(self, filename) :
+       """
+       upload a clip playing the content of the current clip
+       between times ``t_start`` and ``t_end``, which can be expressed
+       in seconds (15.35), in (min, sec), in (hour, min, sec), or as a
+       string: '01:03:05.35'.
+       """
+       curr_snapshot = os.path.basename(filename)
+       clip_path = os.path.join(self.temp_snapshot_dir, curr_snapshot)
+       # vlc calls need a C style string
+       t_start = self.get_position()/1000
+       if self.get_position() + 8000 > self.get_length() :
+           t_end = self.get_length()/1000
+       else :
+           t_end = self.get_position()/1000 + 8
+
+       VideoFileClip(self._file_name) \
+           .subclip(t_start, t_end) \
+           .resize(width=800) \
+           .write_videofile(clip_path, codec='libx264', audio=False)
+
+       if filename is not None:
+           s3_filename = os.path.basename(filename)
+           getLogger('finprint').info('Searching for {0}'.format(s3_filename))
+           expected_file = os.path.join(self.temp_snapshot_dir, s3_filename)
+           if os.path.isfile(expected_file):
+               getLogger('finprint').info('Found {0}'.format(expected_file))
+               self.upload_8sec_clip(filename, clip_path)
+               os.remove(clip_path)
+
+
+    def upload_8sec_clip(self, filename, clip_path):
+        getLogger('finprint').info('Uploading {0}'.format(filename))
+        try:
+            conn = S3Connection(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+            bucket = conn.get_bucket(AWS_BUCKET_NAME)
+            if not bucket.get_key(filename):
+                key = bucket.new_key(filename)
+                key.set_contents_from_filename(clip_path, headers={'Content-Type': 'video/mp4'})
+                key.set_acl('public-read')
+            else:
+                getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
+
+        except S3ResponseError as e:
+            getLogger('finprint').error(str(e))
