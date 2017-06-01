@@ -4,11 +4,10 @@ import psutil
 from io import BytesIO
 import cv2
 import numpy as np
-from moviepy.editor import VideoFileClip
+from moviepy.editor import *
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
-
 from global_finprint import Extent
 from .play_state import PlayState
 from .highlighter import Highlighter
@@ -677,7 +676,11 @@ class VlcVideoWidget(QStackedWidget):
            t_end = self.get_length()/1000
        else :
            t_end = self.get_position()/1000 + 8
-
+       print(" t_start ", t_start)
+       print(" t_end ", t_end)
+       print(" clip_path i.e local storage", clip_path)
+       print(" filename ", filename)
+       print("local path self._file_name ",self._file_name)
        VideoFileClip(self._file_name) \
            .subclip(t_start, t_end) \
            .resize(width=800) \
