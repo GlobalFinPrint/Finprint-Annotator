@@ -118,7 +118,10 @@ class EventDialog(QDialog):
         self.selected_event = None
         self.action = None
         self.column_name = None
+        self.row_number = None
+        self.selected_evt = None
         self._set = None
+        self.capture_video_check =  None
 
     def launch(self, kwargs):
         self.action = kwargs['action']
@@ -146,6 +149,9 @@ class EventDialog(QDialog):
         self.dialog_values['note'] = ''
         self.dialog_values['attribute'] = None
         self._set = kwargs['set']
+
+        if  'row_number' in kwargs :
+            self.row_number = kwargs['row_number']
 
         # set dialog data for submit
         if 'obs' in kwargs:
@@ -180,6 +186,7 @@ class EventDialog(QDialog):
             column_details = ObservationColumn.return_observation_table_coloumn_details()
             if kwargs["column_number"] is not None :
               self.column_name = column_details[kwargs["column_number"]]
+              self.selected_evt = self.find_event_to_update()
 
         if kwargs['action'] in [DialogActions.edit_obs, DialogActions.add_event]:
             obs_time_label = QLabel('Observation Time: '+str(self.selected_obs).split(" ")[0])
@@ -228,11 +235,17 @@ class EventDialog(QDialog):
             self.att_dropdown.selected_changed.connect(self.attribute_select)
             layout.addLayout(self.att_dropdown)
 
-            # attributes added for edit observation
+        # attributes added for edit observation
         if kwargs['action'] == DialogActions.edit_obs:
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'], self._set.observations)
-            if self.selected_obs.events and len(self.selected_obs.events[0].attribute)!=0:
-                self.att_dropdown.on_select(self.selected_obs.events[0].attribute[0]["verbose"], True)
+            if len(self.dialog_values['attribute']) != 0:
+                for attr in self._set.attributes :
+                    if attr['id'] in self.dialog_values['attribute'] :
+                       self.att_dropdown.on_select(attr['verbose'], True)
+                    elif 'children' in attr :
+                        for child in attr['children']  :
+                            if child['id'] in self.dialog_values['attribute']:
+                                self.att_dropdown.on_select(child['verbose'], True)
 
             if self.dialog_values['attribute'] is None or len(self.dialog_values['attribute']) == 0:
                 self.att_dropdown.on_select(DEFAULT_ATTRIBUTE_TAG)
@@ -345,7 +358,9 @@ class EventDialog(QDialog):
             self.dialog_values['attribute'].remove(-1)
         if self.action == DialogActions.edit_obs:
             self._set.edit_observation(self.selected_obs, self.dialog_values)
-            self._set.edit_event(self.selected_event[0], self.dialog_values)
+            if self.selected_evt is not None :
+               selected_evt = [child_event for child_event in self.selected_obs.events if child_event.id == self.selected_evt['event_id']][0]
+               self._set.edit_event(selected_evt, self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
         # update observation_table
@@ -415,6 +430,26 @@ class EventDialog(QDialog):
         self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(item.choice.id))
         self.dialog_values['animal_id']= item.choice.id
         self.cascaded_menu.hide()
+
+    def find_event_to_update(self):
+        obs = sorted(self._set.observations, key=lambda o: o.initial_time())
+        count = -1
+        for o in reversed(obs):
+            events = sorted(o.events, key=lambda e: e.event_time)
+            for e in reversed(events):
+                if count + 1 == self.row_number :
+                    self.dialog_values['note'] = e.note
+                    if e.observation.comment != None :
+                      self.dialog_values['comment'] = e.observation.comment
+                    else :
+                      self.dialog_values['comment'] = ""
+
+                    if self.dialog_values['attribute'] :
+                        self.dialog_values['attribute'] = [attr['id'] for attr in e.attribute]
+
+                    return {"event_id":e.id, "obs_id":o.id}
+                else :
+                    count = count + 1
 
 class ComboBox(QComboBox):
      popupAboutToBeShown = pyqtSignal()
