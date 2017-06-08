@@ -121,11 +121,9 @@ class ObservationTableCell(QStyledItemDelegate):
     def drawBorder(self, painter, rect, no_top, column_id = False, row_number = False):
         pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
         painter.setPen(pen1)
-        if not no_top:
+        if not no_top :
             painter.drawLine(rect.topLeft(), rect.topRight())
 
-        pen1 = QPen(QColor('white'), 5, Qt.SolidLine)
-        painter.setPen(pen1)
         if row_number == 0 :
            painter.drawLine(rect.topLeft(), rect.topRight())
 
@@ -259,9 +257,12 @@ class ObservationTable(QTableView):
         # TODO note current row
         self.empty()
         obs = sorted(self.current_set.observations, key=lambda o: o.initial_time())
+        row_space_list = []
+
         for o in obs:
             events = sorted(o.events, key=lambda e: e.event_time)
             events[-1].first_flag = True
+
             for e in events:
                 e.obs_color = rotate_colors[rotate_index]
                 self.add_row(e)
@@ -369,4 +370,3 @@ class ObservationTable(QTableView):
             last_event_name = self.current_set.observations[0].events[0]
 
         return last_event_name
-
