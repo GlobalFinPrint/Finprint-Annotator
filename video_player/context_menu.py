@@ -444,8 +444,8 @@ class EventDialog(QDialog):
                     else :
                       self.dialog_values['comment'] = ""
 
-                    if self.dialog_values['attribute'] :
-                        self.dialog_values['attribute'] = [attr['id'] for attr in e.attribute]
+
+                    self.dialog_values['attribute'] = [attr['id'] for attr in e.attribute]
 
                     return {"event_id":e.id, "obs_id":o.id}
                 else :
