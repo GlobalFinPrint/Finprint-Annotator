@@ -3,8 +3,9 @@ import time
 import psutil
 from io import BytesIO
 import cv2
+import subprocess
 import numpy as np
-from moviepy.editor import *
+from  imageio.core import util
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
@@ -648,6 +649,9 @@ class VlcVideoWidget(QStackedWidget):
                 upload_img = QImage(expected_file)
                 self.upload_image(self.curr_s3_upload, upload_img)
                 self.curr_s3_upload = None
+                print(" expected_file ", expected_file)
+                print(" self.curr_s3_upload ", self.curr_s3_upload)
+                print(" s3_filename ", s3_filename)
                 os.remove(expected_file)
 
     # callback for 'MediaPlayerPositionChanged'
@@ -662,29 +666,10 @@ class VlcVideoWidget(QStackedWidget):
 
 
     def generate_8sec_clip(self, filename) :
-       """
-       upload a clip playing the content of the current clip
-       between times ``t_start`` and ``t_end``, which can be expressed
-       in seconds (15.35), in (min, sec), in (hour, min, sec), or as a
-       string: '01:03:05.35'.
-       """
-       curr_snapshot = os.path.basename(filename)
-       clip_path = os.path.join(self.temp_snapshot_dir, curr_snapshot)
-       # vlc calls need a C style string
-       t_start = self.get_position()/1000
-       if self.get_position() + 8000 > self.get_length() :
-           t_end = self.get_length()/1000
+       if os.path.exists(self._file_name) :
+           clip_path = self.generate_8sec_video_clip_wid_ffpmpeg(filename)
        else :
-           t_end = self.get_position()/1000 + 8
-       print(" t_start ", t_start)
-       print(" t_end ", t_end)
-       print(" clip_path i.e local storage", clip_path)
-       print(" filename ", filename)
-       print("local path self._file_name ",self._file_name)
-       VideoFileClip(self._file_name) \
-           .subclip(t_start, t_end) \
-           .resize(width=800) \
-           .write_videofile(clip_path, codec='libx264', audio=False)
+           getLogger('finprint').info('file path doesnt exist'.format(self._file_name))
 
        if filename is not None:
            s3_filename = os.path.basename(filename)
@@ -705,8 +690,49 @@ class VlcVideoWidget(QStackedWidget):
                 key = bucket.new_key(filename)
                 key.set_contents_from_filename(clip_path, headers={'Content-Type': 'video/mp4'})
                 key.set_acl('public-read')
+                print('File successfully uploaded on S3: {0}'.format(filename))
+                getLogger('finprint').info('File successfully uploaded on S3: {0}'.format(filename))
             else:
                 getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
 
         except S3ResponseError as e:
             getLogger('finprint').error(str(e))
+
+    def generate_8sec_video_clip_wid_ffpmpeg(self, filename):
+        curr_snapshot = os.path.basename(filename)
+        clip_path = os.path.join(self.temp_snapshot_dir, curr_snapshot)
+        # vlc calls need a C style string
+        t_start = self.get_position() / 1000
+        if self.get_position() + 8000 > self.get_length():
+            t_end = (self.get_length() - self.get_position()) / 1000
+        else:
+            t_end = 8
+
+        print(" t_start ", t_start)
+        print(" t_end ", t_end)
+        print(" clip_path i.e local storage", clip_path)
+        print(" filename ", filename)
+        print("local path self._file_name ", self._file_name)
+        intial_path = str(util.appdata_dir()) + "\\" + "imageio"
+        ffpmge_exe_path = self.get_path_of_ffmpeg_after_download(intial_path)
+        getLogger('finprint').info('ffpmge_exe_path {0}'.format(ffpmge_exe_path))
+        print(ffpmge_exe_path)
+        execute_command = ffpmge_exe_path+' -i '+self._file_name+ ' -vf scale=-1:800 -c:v libx264  -ss '+ str(t_start) +' -c:a copy -t '+ \
+                          str(t_end) +' -an ' +clip_path
+        try :
+         subprocess.call(execute_command)
+        except Exception as e :
+            getLogger('finprint').error(' error in generating video clip {0}'.format(e))
+        return clip_path
+
+    def get_path_of_ffmpeg_after_download(self, spath):
+        for dir in os.listdir(spath):
+            sChildPath = os.path.join(spath, dir)
+            if str(dir) == "ffmpeg":
+                if os.path.isdir(sChildPath):
+                   return self.get_path_of_ffmpeg_after_download(sChildPath)
+            elif "ffmpeg" in str(dir) and ".exe" in str(dir):
+                getLogger('finprint').info('ffpmpeg.exe file path: {0}'.format(sChildPath))
+                sChildPath = sChildPath[:len(str(sChildPath))]
+                return sChildPath
+

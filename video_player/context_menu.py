@@ -373,6 +373,7 @@ class EventDialog(QDialog):
             file_name = re.split(".png", filename)[0] + ".mp4"
             thread = Thread(target=self.upload_8sec_clip, args=(file_name,))
             thread.start()
+            thread.join()
         # close and clean up
         self.cleanup()
 
