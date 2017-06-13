@@ -9,7 +9,6 @@ class Config():
 
     def __init__(self):
         self._configdict = None
-        self.install_ffmpeg_if_not()
 
     def __contains__(self, item):
         return item in self._configdict
@@ -60,13 +59,6 @@ class Config():
         self.load_config()
         if section:
             return self._configdict.items(section)
-
-    def install_ffmpeg_if_not(self):
-            download_ffpmpeg = 'print("starting download of ffmpeg if not....");' + \
-                               "import imageio; imageio.plugins.ffmpeg.download(); " + \
-                               'print("download of ffmpeg completed")'
-
-            exec(download_ffpmpeg)
 
 
 global_config = Config()

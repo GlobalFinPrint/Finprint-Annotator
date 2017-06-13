@@ -5,7 +5,6 @@ from io import BytesIO
 import cv2
 import subprocess
 import numpy as np
-from  imageio.core import util
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
@@ -707,32 +706,13 @@ class VlcVideoWidget(QStackedWidget):
             t_end = (self.get_length() - self.get_position()) / 1000
         else:
             t_end = 8
-
-        print(" t_start ", t_start)
-        print(" t_end ", t_end)
-        print(" clip_path i.e local storage", clip_path)
-        print(" filename ", filename)
-        print("local path self._file_name ", self._file_name)
-        intial_path = str(util.appdata_dir()) + "\\" + "imageio"
-        ffpmge_exe_path = self.get_path_of_ffmpeg_after_download(intial_path)
-        getLogger('finprint').info('ffpmge_exe_path {0}'.format(ffpmge_exe_path))
-        print(ffpmge_exe_path)
-        execute_command = ffpmge_exe_path+' -i '+self._file_name+ ' -vf scale=-1:800 -c:v libx264  -ss '+ str(t_start) +' -c:a copy -t '+ \
-                          str(t_end) +' -an ' +clip_path
+        ffmpeg_exe_path = "ffmpeg_executable/ffmpeg.exe"
+        getLogger('finprint').info('ffpmge_exe_path {0}'.format(ffmpeg_exe_path))
+        print(ffmpeg_exe_path)
+        execute_command = ffmpeg_exe_path+' -i '+self._file_name+ ' -vf scale=800:-1 -c:v libx264  -ss '+ str(t_start) +' -c:a copy -t '+ \
+                          str(t_end) +' -an '+clip_path
         try :
          subprocess.call(execute_command)
         except Exception as e :
             getLogger('finprint').error(' error in generating video clip {0}'.format(e))
         return clip_path
-
-    def get_path_of_ffmpeg_after_download(self, spath):
-        for dir in os.listdir(spath):
-            sChildPath = os.path.join(spath, dir)
-            if str(dir) == "ffmpeg":
-                if os.path.isdir(sChildPath):
-                   return self.get_path_of_ffmpeg_after_download(sChildPath)
-            elif "ffmpeg" in str(dir) and ".exe" in str(dir):
-                getLogger('finprint').info('ffpmpeg.exe file path: {0}'.format(sChildPath))
-                sChildPath = sChildPath[:len(str(sChildPath))]
-                return sChildPath
-
