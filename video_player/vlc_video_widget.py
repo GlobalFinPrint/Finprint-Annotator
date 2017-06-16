@@ -3,12 +3,11 @@ import time
 import psutil
 from io import BytesIO
 import cv2
+import subprocess
 import numpy as np
-
 from boto.s3.connection import S3Connection
 from boto.exception import S3ResponseError
 from logging import getLogger
-
 from global_finprint import Extent
 from .play_state import PlayState
 from .highlighter import Highlighter
@@ -22,6 +21,7 @@ from tempfile import gettempdir
 from .vlc import *
 from .vlc_utils import *
 from win32api import GetSystemMetrics
+
 
 PROGRESS_UPDATE_INTERVAL = 30000
 VIDEO_WIDTH = 800  # make this more adjustable
@@ -189,6 +189,7 @@ class VlcVideoWidget(QStackedWidget):
 
         # temporary storage for vlc snapshots
         self.temp_snapshot_dir = os.path.join(gettempdir(), TEMP_SNAPSHOT_DIR)
+
         if not os.path.exists(self.temp_snapshot_dir):
             os.makedirs(self.temp_snapshot_dir)
 
@@ -496,7 +497,6 @@ class VlcVideoWidget(QStackedWidget):
 
     ''' Provides duration of current video play in milli seconds '''
     def get_position(self):
-        #return self.mediaplayer.get_time()
         return self.timer_vo.timer_duration_ms
 
     def get_length(self):
@@ -648,6 +648,9 @@ class VlcVideoWidget(QStackedWidget):
                 upload_img = QImage(expected_file)
                 self.upload_image(self.curr_s3_upload, upload_img)
                 self.curr_s3_upload = None
+                print(" expected_file ", expected_file)
+                print(" self.curr_s3_upload ", self.curr_s3_upload)
+                print(" s3_filename ", s3_filename)
                 os.remove(expected_file)
 
     # callback for 'MediaPlayerPositionChanged'
@@ -660,3 +663,56 @@ class VlcVideoWidget(QStackedWidget):
         pos = self.mediaplayer.get_time()
         getLogger('finprint').info('Time changed: {0}'.format(pos))
 
+
+    def generate_8sec_clip(self, filename) :
+       if os.path.exists(self._file_name) :
+           clip_path = self.generate_8sec_video_clip_wid_ffpmpeg(filename)
+       else :
+           getLogger('finprint').info('file path doesnt exist'.format(self._file_name))
+
+       if filename is not None:
+           s3_filename = os.path.basename(filename)
+           getLogger('finprint').info('Searching for {0}'.format(s3_filename))
+           expected_file = os.path.join(self.temp_snapshot_dir, s3_filename)
+           if os.path.isfile(expected_file):
+               getLogger('finprint').info('Found {0}'.format(expected_file))
+               self.upload_8sec_clip(filename, clip_path)
+               os.remove(clip_path)
+
+
+    def upload_8sec_clip(self, filename, clip_path):
+        getLogger('finprint').info('Uploading {0}'.format(filename))
+        try:
+            conn = S3Connection(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+            bucket = conn.get_bucket(AWS_BUCKET_NAME)
+            if not bucket.get_key(filename):
+                key = bucket.new_key(filename)
+                key.set_contents_from_filename(clip_path, headers={'Content-Type': 'video/mp4'})
+                key.set_acl('public-read')
+                print('File successfully uploaded on S3: {0}'.format(filename))
+                getLogger('finprint').info('File successfully uploaded on S3: {0}'.format(filename))
+            else:
+                getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
+
+        except S3ResponseError as e:
+            getLogger('finprint').error(str(e))
+
+    def generate_8sec_video_clip_wid_ffpmpeg(self, filename):
+        curr_snapshot = os.path.basename(filename)
+        clip_path = os.path.join(self.temp_snapshot_dir, curr_snapshot)
+        # vlc calls need a C style string
+        t_start = self.get_position() / 1000
+        if self.get_position() + 8000 > self.get_length():
+            t_end = (self.get_length() - self.get_position()) / 1000
+        else:
+            t_end = 8
+        ffmpeg_exe_path = "ffmpeg_executable/ffmpeg.exe"
+        getLogger('finprint').info('ffpmge_exe_path {0}'.format(ffmpeg_exe_path))
+        print(ffmpeg_exe_path)
+        execute_command = ffmpeg_exe_path+' -i '+self._file_name+ ' -vf scale=800:-1 -c:v libx264  -ss '+ str(t_start) +' -c:a copy -t '+ \
+                          str(t_end) +' -an '+clip_path
+        try :
+         subprocess.call(execute_command)
+        except Exception as e :
+            getLogger('finprint').error(' error in generating video clip {0}'.format(e))
+        return clip_path

@@ -315,6 +315,7 @@ def getdatafiles():
     excluded_dirs = []
     excluded_file_extensions = ['.pyc', '.log']
     image_files = globr('images\\*')
+    ffmpeg_executable = globr('ffmpeg_executable\\*')
     static_files = image_files
     static_files_dict = {}
     for f in static_files:
@@ -335,6 +336,29 @@ def getdatafiles():
         static_files_dict[dirname].append(f)
     for key in static_files_dict:
         data_files.append((key, static_files_dict[key]))
+
+    static_executable_files = ffmpeg_executable
+
+    #adding for ffmpeg_exe
+    for f in static_executable_files:
+        ex = False
+        for excluded in excluded_dirs:
+            if f.startswith(excluded):
+                ex = True
+                continue
+        for excluded in excluded_file_extensions:
+            if f.endswith(excluded):
+                ex = True
+                continue
+        if ex is True:
+            continue
+        dirname = os.path.dirname(f)
+        if dirname not in static_files_dict:
+            static_files_dict[dirname] = []
+        static_files_dict[dirname].append(f)
+    for key in static_files_dict:
+        data_files.append((key, static_files_dict[key]))
+
     return data_files
 
 

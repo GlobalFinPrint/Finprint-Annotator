@@ -5,6 +5,7 @@ from PyQt4.QtGui import *
 from enum import IntEnum
 from annotation_view.util import ObservationColumn
 from global_finprint.global_finprint_server import GlobalFinPrintServer
+from threading import Thread
 import re
 from logging import getLogger
 
@@ -28,11 +29,8 @@ class ContextMenu(QMenu):
         # set
         self._set = current_set
         # animals
-
-
         if self._set is not None:
             self.setStyleSheet('QMenu::item:selected { background-color: lightblue; }')
-
             self._grouping = {}
             for animal in self._set.animals:
                 if animal.group not in self._grouping:
@@ -45,11 +43,9 @@ class ContextMenu(QMenu):
                 group_menu = self._animal_group_menu.addMenu(group)
                 group_menu.addAction(TypeAndReduce(group, self._grouping[group], self._debug, group_menu))
 
-
             self._interest_act = self.addAction('Create non-animal observation')
             self._observations_menu = self.addMenu('Add to existing observation')
             self._cancel_act = self.addAction('Cancel')
-
             if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
                self._observations_menu.menuAction().setEnabled(False)
                self._animal_group_menu.menuAction().setEnabled(False)
@@ -200,7 +196,6 @@ class EventDialog(QDialog):
             for an in self._set.animals:
                 self.animal_dropdown.addItem(str(an), an.id)
             self.animal_dropdown.setCurrentIndex(self.animal_dropdown.findData(self.dialog_values['animal_id']))
-            #self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             self.animal_dropdown.popupAboutToBeShown.connect(self.cascaded_drop_down)
 
             layout.addWidget(animal_label)
@@ -272,7 +267,7 @@ class EventDialog(QDialog):
 
 
         # event notes
-        if kwargs['action'] in [DialogActions.edit_obs,DialogActions.new_obs, DialogActions.add_event] :
+        if kwargs['action'] in [DialogActions.edit_obs, DialogActions.new_obs, DialogActions.add_event] :
             notes_label = QLabel('Image notes:')
             self.text_area = QTextEdit()
             if self.column_name is not None and self.column_name == 'Image notes':
@@ -286,9 +281,14 @@ class EventDialog(QDialog):
             layout.addWidget(notes_label)
             layout.addWidget(self.text_area)
 
+        if kwargs['action'] in [DialogActions.edit_obs, DialogActions.new_obs]:
+            self.capture_video_check = QCheckBox("Capture video")
+            layout.addWidget(self.capture_video_check)
+
+        last_row = QHBoxLayout()
         #*required field note
         asterick_note = QLabel('* Required field')
-        layout.addWidget(asterick_note)
+        last_row.addWidget(asterick_note)
 
         # save/update/cancel buttons
         buttons = QDialogButtonBox()  # TODO style the buttons
@@ -309,9 +309,9 @@ class EventDialog(QDialog):
         else:
             buttons.addButton(update_but, QDialogButtonBox.ActionRole)
         buttons.addButton(cancel_but, QDialogButtonBox.ActionRole)
-        layout.addWidget(buttons)
+        last_row.addWidget(buttons)
+        layout.addLayout(last_row)
         self.setLayout(layout)
-
         if self.column_name is not None and self.column_name == 'Image notes':
             self.text_area.setFocus()
         if self.column_name is not None and self.column_name == 'Observation Note':
@@ -321,11 +321,6 @@ class EventDialog(QDialog):
             self.animal_dropdown.setFocus()
         if self.column_name is not None and self.column_name == 'Tags' or kwargs['action'] == DialogActions.new_obs:
             self.att_dropdown.input_line.setFocus()
-
-        #      #4876FF
-
-
-       # self._layout = layout
 
         self.show()
 
@@ -349,6 +344,13 @@ class EventDialog(QDialog):
             self.parent().parent().refresh_seek_bar()
         # save frame
         self.parent().save_image(filename)
+
+        #save 8_sec_clip
+        if self.capture_video_check is not None and self.capture_video_check.isChecked() == True:
+            file_name = re.split(".png",filename)[0]+".mp4"
+            thread = Thread(target=self.upload_8sec_clip, args=(file_name,))
+            thread.start()
+
         # close and clean up
         self.cleanup()
 
@@ -357,7 +359,7 @@ class EventDialog(QDialog):
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute'] :
             self.dialog_values['attribute'].remove(-1)
         if self.action == DialogActions.edit_obs:
-            self._set.edit_observation(self.selected_obs, self.dialog_values)
+            filename = self._set.edit_observation(self.selected_obs, self.dialog_values)
             if self.selected_evt is not None :
                selected_evt = [child_event for child_event in self.selected_obs.events if child_event.id == self.selected_evt['event_id']][0]
                self._set.edit_event(selected_evt, self.dialog_values)
@@ -365,6 +367,13 @@ class EventDialog(QDialog):
             self._set.edit_event(self.selected_event, self.dialog_values)
         # update observation_table
         self.observation_table().refresh_model()
+
+        # save 8_sec_clip
+        if self.capture_video_check.isChecked() == True:
+            file_name = re.split(".png", filename)[0] + ".mp4"
+            thread = Thread(target=self.upload_8sec_clip, args=(file_name,))
+            thread.start()
+            thread.join()
         # close and clean up
         self.cleanup()
 
@@ -431,6 +440,9 @@ class EventDialog(QDialog):
         self.dialog_values['animal_id']= item.choice.id
         self.cascaded_menu.hide()
 
+    def upload_8sec_clip(self, file_name):
+        self.parent().generate_8sec_clip(file_name)
+
     def find_event_to_update(self):
         obs = sorted(self._set.observations, key=lambda o: o.initial_time())
         count = -1
@@ -443,7 +455,6 @@ class EventDialog(QDialog):
                       self.dialog_values['comment'] = e.observation.comment
                     else :
                       self.dialog_values['comment'] = ""
-
 
                     self.dialog_values['attribute'] = [attr['id'] for attr in e.attribute]
 
