@@ -281,7 +281,7 @@ class EventDialog(QDialog):
             layout.addWidget(notes_label)
             layout.addWidget(self.text_area)
 
-        if kwargs['action'] in [DialogActions.edit_obs, DialogActions.new_obs]:
+        if kwargs['action'] in [DialogActions.edit_obs, DialogActions.new_obs, DialogActions.add_event]:
             self.capture_video_check = QCheckBox("Capture video")
             layout.addWidget(self.capture_video_check)
 
@@ -362,7 +362,7 @@ class EventDialog(QDialog):
             filename = self._set.edit_observation(self.selected_obs, self.dialog_values)
             if self.selected_evt is not None :
                selected_evt = [child_event for child_event in self.selected_obs.events if child_event.id == self.selected_evt['event_id']][0]
-               self._set.edit_event(selected_evt, self.dialog_values)
+               filename = self._set.edit_event(selected_evt, self.dialog_values)
         else:
             self._set.edit_event(self.selected_event, self.dialog_values)
         # update observation_table
