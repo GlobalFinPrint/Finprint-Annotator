@@ -61,5 +61,4 @@ class Config():
             return self._configdict.items(section)
 
 
-
 global_config = Config()

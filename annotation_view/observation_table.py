@@ -237,7 +237,8 @@ class ObservationTable(QTableView):
         self.video_context_menu({
             "action": DialogActions.edit_obs,
             "obs": self.get_event(row).observation,
-            "column_number": self.indexAt(args[0].pos()).column()},
+            "column_number": self.indexAt(args[0].pos()).column(),
+            "row_number": self.indexAt(args[0].pos()).row()},
         )
 
     def item(self, row, col):
@@ -359,7 +360,8 @@ class ObservationTable(QTableView):
         self.video_context_menu({
                 "action": DialogActions.edit_obs,
                 "obs": self.get_event(self.indexAt(pos).row()).observation,
-                "column_number":self.indexAt(pos).column()}
+                "column_number":self.indexAt(pos).column(),
+                "row_number": self.indexAt(pos).row()},
         )
 
     def last_event_name(self):
@@ -368,4 +370,3 @@ class ObservationTable(QTableView):
             last_event_name = self.current_set.observations[0].events[0]
 
         return last_event_name
-

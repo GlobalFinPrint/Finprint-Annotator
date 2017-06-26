@@ -50,6 +50,7 @@ class Set(object):
     def edit_event(self, evt, evt_values):
         result = self._connection.edit_event(self.id, evt.observation.id, evt.id, **evt_values)
         self._obs_from_json(result)
+        return result['filename']
 
     def delete_event(self, evt):
         result = self._connection.delete_event(self.id, evt.observation.id, evt.id)
@@ -63,6 +64,7 @@ class Set(object):
     def edit_observation(self, obs, obs_values):
         result = self._connection.edit_observation(self.id, obs.id, **obs_values)
         self._obs_from_json(result)
+        return result['filename']
 
     def delete_observation(self, obs):
         result = self._connection.delete_observation(self.id, obs.id)
