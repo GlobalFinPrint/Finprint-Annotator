@@ -29,14 +29,14 @@ class AttributeSelector(QVBoxLayout):
         self.input_line = QLineEdit()
         self.attributes = self._make_attr_list(attributes, [] if selected_ids is None else selected_ids)
         self.model = QStandardItemModel(self)
-        self.completer = QCompleter(self)
+        self.completer = CustomQCompleter(self,model=self.model)
         self.selected_items = QButtonGroup(self)
         self.selected_layout = QGridLayout()
         self.observation_list = observation_list
 
         self._refresh_list()
 
-        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.completer.setCompletionMode(QCompleter.PopupCompletion)
         self.completer.setModel(self.model)
         self.completer.setCaseSensitivity(Qt.CaseInsensitive)
         self.completer.setCompletionColumn(0)
@@ -156,3 +156,24 @@ class AttributeSelector(QVBoxLayout):
            if attr['id'] == MARK_ZERO_TIME_ID:
                return attr
 
+
+class CustomQCompleter(QCompleter):
+    def __init__(self, parent=None, model=None):
+        super(CustomQCompleter, self).__init__(parent)
+        self.local_completion_prefix = ""
+        self.source_model = model
+
+    def updateModel(self):
+        local_completion_prefix = self.local_completion_prefix
+        class InnerProxyModel(QSortFilterProxyModel):
+            def filterAcceptsRow(self, sourceRow, sourceParent):
+                index0 = self.sourceModel().index(sourceRow, 0, sourceParent)
+                return local_completion_prefix.lower() in self.sourceModel().data(index0).lower()
+        proxy_model = InnerProxyModel()
+        proxy_model.setSourceModel(self.source_model)
+        super(CustomQCompleter, self).setModel(proxy_model)
+
+    def splitPath(self, path):
+        self.local_completion_prefix = path
+        self.updateModel()
+        return ""
