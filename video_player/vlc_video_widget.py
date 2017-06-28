@@ -693,9 +693,31 @@ class VlcVideoWidget(QStackedWidget):
                 getLogger('finprint').info('File successfully uploaded on S3: {0}'.format(filename))
             else:
                 getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
-
         except S3ResponseError as e:
+            self.retry_count += 1
             getLogger('finprint').error(str(e))
+            getLogger('finprint').error("Will retry in 20 sec......")
+            time.sleep(20)
+            if self.retry_count == 1:
+                print('***** retrying AWS upload again *****')
+                self.upload_8sec_clip( filename, clip_path)
+            else :
+                getLogger('finprint').error("retry not working....")
+                msg = 'There was an error saving the video clip to the server. Retry by editing the observation or continue without creating a video clip.'
+                QMessageBox.question(self.parent(), 'AWS UPLOAD ERROR', msg, QMessageBox.Close)
+        except Exception as e:
+            getLogger('finprint').error(str(e))
+            self.retry_count += 1
+            time.sleep(10)
+            if self.retry_count == 1:
+                print('***** retrying AWS upload again *****')
+                self.upload_8sec_clip(filename, clip_path)
+            else:
+                getLogger('finprint').error("retry not working....")
+                msg = 'There was an error saving the video clip to the server. Retry by editing the observation or continue without creating a video clip.'
+                QMessageBox.question(self.parent(), 'AWS UPLOAD ERROR', msg, QMessageBox.Close)
+
+        self.retry_count = 0
 
     def generate_8sec_video_clip_wid_ffpmpeg(self, filename):
         try:
@@ -722,7 +744,7 @@ class VlcVideoWidget(QStackedWidget):
         except subprocess.CalledProcessError as e:
             self.retry_count += 1
             getLogger('finprint').error('subprocess exception in generating video clip {0}'.format(e))
-            time.sleep(10)
+            time.sleep(20)
             if self.retry_count == 1:
                 print('***** retrying again *****')
                 return self.generate_8sec_video_clip_wid_ffpmpeg(filename)
