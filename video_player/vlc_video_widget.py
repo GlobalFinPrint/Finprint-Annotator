@@ -701,6 +701,12 @@ class VlcVideoWidget(QStackedWidget):
         try:
             curr_snapshot = os.path.basename(filename)
             clip_path = os.path.join(self.temp_snapshot_dir, curr_snapshot)
+            if os.path.exists(clip_path):
+                getLogger('finprint').info('removing duplicates video name from local disk {0}'.format(clip_path))
+                try:
+                  os.remove(clip_path)
+                except Exception :
+                    getLogger('finprint').info('not able to delete video name {0} from local disk '.format(clip_path))
             # vlc calls need a C style string
             t_start = self.get_position() / 1000
             if self.get_position() + 8000 > self.get_length():
