@@ -14,7 +14,6 @@ from .highlighter import Highlighter
 from .context_menu import ContextMenu, EventDialog
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from config import global_config
 from threading import Thread
 from threading import Event as PyEvent
 from tempfile import gettempdir
@@ -157,6 +156,7 @@ class VlcVideoWidget(QStackedWidget):
         self.saturation = 0
         self.brightness = 0
         self.contrast = False
+        self.retry_count = 0
 
         # We will pass a window handle to libvlc, which
         # will be responsible for the actual rendering of the video
@@ -698,21 +698,47 @@ class VlcVideoWidget(QStackedWidget):
             getLogger('finprint').error(str(e))
 
     def generate_8sec_video_clip_wid_ffpmpeg(self, filename):
-        curr_snapshot = os.path.basename(filename)
-        clip_path = os.path.join(self.temp_snapshot_dir, curr_snapshot)
-        # vlc calls need a C style string
-        t_start = self.get_position() / 1000
-        if self.get_position() + 8000 > self.get_length():
-            t_end = (self.get_length() - self.get_position()) / 1000
-        else:
-            t_end = 8
-        ffmpeg_exe_path = "ffmpeg_executable/ffmpeg.exe"
-        getLogger('finprint').info('ffpmge_exe_path {0}'.format(ffmpeg_exe_path))
-        print(ffmpeg_exe_path)
-        execute_command = ffmpeg_exe_path+' -i '+self._file_name+ ' -vf scale=800:-1 -c:v libx264  -ss '+ str(t_start) +' -c:a copy -t '+ \
-                          str(t_end) +' -an '+clip_path
-        try :
-         subprocess.call(execute_command)
+        try:
+            curr_snapshot = os.path.basename(filename)
+            clip_path = os.path.join(self.temp_snapshot_dir, curr_snapshot)
+            if os.path.exists(clip_path):
+                getLogger('finprint').info('removing duplicates video name from local disk {0}'.format(clip_path))
+                try:
+                  os.remove(clip_path)
+                except Exception :
+                    getLogger('finprint').info('not able to delete video name {0} from local disk '.format(clip_path))
+            # vlc calls need a C style string
+            t_start = self.get_position() / 1000
+            if self.get_position() + 8000 > self.get_length():
+                t_end = (self.get_length() - self.get_position()) / 1000
+            else:
+                t_end = 8
+            ffmpeg_exe_path = "ffmpeg_executable/ffmpeg.exe"
+            getLogger('finprint').info('ffpmge_exe_path {0}'.format(ffmpeg_exe_path))
+            print(ffmpeg_exe_path)
+            execute_command = ffmpeg_exe_path+' -i '+self._file_name+ ' -vf scale=800:-1 -c:v libx264  -ss '+ str(t_start) +' -c:a copy -t '+ \
+                              str(t_end) +' -an '+clip_path
+            subprocess.call(execute_command)
+        except subprocess.CalledProcessError as e:
+            self.retry_count += 1
+            getLogger('finprint').error('subprocess exception in generating video clip {0}'.format(e))
+            time.sleep(10)
+            if self.retry_count == 1:
+                print('***** retrying again *****')
+                return self.generate_8sec_video_clip_wid_ffpmpeg(filename)
+            else :
+                msg = 'An error occurred while creating the video clip. Check your network connection and re-try by editing the observation or continue without creating a video.'
+                QMessageBox.question(self.parent(), '8Sec Video Clip Error', msg, QMessageBox.Close)
         except Exception as e :
+            self.retry_count += 1
             getLogger('finprint').error(' error in generating video clip {0}'.format(e))
+            time.sleep(10)
+            if self.retry_count == 1 :
+                print('***** retrying again *****')
+                return self.generate_8sec_video_clip_wid_ffpmpeg(filename)
+            else :
+                msg = 'An error occurred while creating the video clip. Check your network connection and re-try by editing the observation or continue without creating a video.'
+                QMessageBox.question(self.parent(), '8Sec Video Clip Error', msg, QMessageBox.Close)
+
+        self.retry_count = 0
         return clip_path
