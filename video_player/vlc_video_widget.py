@@ -260,9 +260,7 @@ class VlcVideoWidget(QStackedWidget):
     def eventFilter(self, obj, evt):
         if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
             if evt.key() == Qt.Key_Space:
-                print('toggling player')
                 self.toggle_play()
-                print('player toggled')
                 return True
         return False
 
@@ -431,8 +429,6 @@ class VlcVideoWidget(QStackedWidget):
         self._onPositionChange(pos)
         p = (pos) / self.media.get_duration()
         getLogger('finprint').info('set_position {0}'.format(p))
-        print('vlc_video_widget > set_position: pos {0}, media.duration {1}, mediaplayer.duration {2}, set_position {3}'
-              .format(pos, self.media.get_duration(), self.mediaplayer.get_media().get_duration(), p))
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.mediaplayer.set_position(p)
         self.timer_vo.timer_duration_ms = pos
@@ -460,7 +456,6 @@ class VlcVideoWidget(QStackedWidget):
     def pause(self):
         if self.mediaplayer.is_playing():
             paused = self.mediaplayer.pause()
-            print('vlc_video_widget > pause: paused? {0}'.format(paused))
             getLogger('finprint').info('paused')
             self._play_state = PlayState.Paused
             self.playStateChanged.emit(self._play_state)
