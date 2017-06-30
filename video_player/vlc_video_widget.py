@@ -260,7 +260,9 @@ class VlcVideoWidget(QStackedWidget):
     def eventFilter(self, obj, evt):
         if evt.type() == QEvent.KeyPress and obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None:
             if evt.key() == Qt.Key_Space:
+                print('toggling player')
                 self.toggle_play()
+                print('player toggled')
                 return True
         return False
 
@@ -349,7 +351,7 @@ class VlcVideoWidget(QStackedWidget):
             if self._play_state is PlayState.Playing and self._last_progress > PROGRESS_UPDATE_INTERVAL:
                 self._last_progress = pos
                 self.progressUpdate.emit(pos)
-            print('vlc_video_widget > on_timer: pos {0},  get_position {1}'.format(pos, self.get_position()))
+            #print('vlc_video_widget > on_timer: pos {0},  get_position {1}'.format(pos, self.get_position()))
             self._onPositionChange(pos)
 
     def clear(self):
@@ -444,16 +446,27 @@ class VlcVideoWidget(QStackedWidget):
             getLogger('finprint').info('toggle_play: pause')
             self.pause()
 
+    def play(self):
+        # TODO emit if end of stream via callback
+
+        self.clear_extent()
+        self.set_speed(1.0)
+        playStarted = self.mediaplayer.play()
+        print('vlc_video_widget > play: play started? {0}'.format(playStarted))
+        self._play_state = PlayState.Playing
+        self._timer.start()
+        self.playStateChanged.emit(self._play_state)
+
     def pause(self):
         if self.mediaplayer.is_playing():
-            self.mediaplayer.pause()
-        print('vlc_video_widget > pause: get_position {0}'.format(self.get_position()))
-        getLogger('finprint').info('paused')
-        self._play_state = PlayState.Paused
-        self.playStateChanged.emit(self._play_state)
-        self.playbackSpeedChanged.emit(0.0)
-        self._timer.cancel()
-        QTimer.singleShot(500, self.take_videoframe_snapshot)
+            paused = self.mediaplayer.pause()
+            print('vlc_video_widget > pause: paused? {0}'.format(paused))
+            getLogger('finprint').info('paused')
+            self._play_state = PlayState.Paused
+            self.playStateChanged.emit(self._play_state)
+            self.playbackSpeedChanged.emit(0.0)
+            self._timer.cancel()
+            self.take_videoframe_snapshot()
 
     def save_image(self, filename):
         self.curr_s3_upload = filename
@@ -482,15 +495,6 @@ class VlcVideoWidget(QStackedWidget):
                 getLogger('finprint').error('File already exists on S3: {0}'.format(filename))
         except S3ResponseError as e:
             getLogger('finprint').error(str(e))
-
-    def play(self):
-        # TODO emit if end of stream via callback
-        self.clear_extent()
-        self.set_speed(1.0)
-        self.mediaplayer.play()
-        self._play_state = PlayState.Playing
-        self._timer.start()
-        self.playStateChanged.emit(self._play_state)
 
     def is_paused(self):
         return self._play_state == PlayState.Paused
