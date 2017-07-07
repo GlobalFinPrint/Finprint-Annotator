@@ -47,16 +47,20 @@ class AssignmentWidget(QWidget):
             for t in self.trip_list:
                 self._trip_filter.addItem(t['trip'], t['id'])
 
-            self._trip_filter.currentIndexChanged.connect(self.control_set_filter_based_on_trip_selected)
-            #intialising values of set_filters
-            self.control_set_filter_based_on_trip_selected()
-
+            self._trip_filter.currentIndexChanged.connect(self.restrict_filter_based_on_trip_selected)
             filter_layout.addWidget(self._trip_filter)
 
+            self._reef_filter = QComboBox()
+            self._reef_filter.setStyleSheet(stylesheet)
+            self._reef_filter.setMaximumWidth(400)
+            self._reef_filter.addItem('--- Filter by Reef ---')
+            self._reef_filter.currentIndexChanged.connect(self.restrict_filter_based_on_trip_reef_selected)
+            # intialising values of set_filters
+            filter_layout.addWidget(self._reef_filter)
             filter_layout.addWidget(self._set_filter)
+            self.control_set_filter_based_on_trip_selected()
 
             # Filter By Annotator Dropdown
-
             anno_list = GlobalFinPrintServer().annotator_list()['annotators']
             self._anno_filter = QComboBox()
             self._anno_filter.setStyleSheet(stylesheet)
@@ -239,6 +243,8 @@ class AssignmentWidget(QWidget):
         params = {'filtered': True}
         if self._trip_filter.currentIndex() > 0:
             params['trip_id'] = self._assignment_filter.get_trip_filter()["id"]
+        if self._reef_filter.currentIndex() > 0:
+            params['reef_id'] = self._assignment_filter.get_reef_filter()["id"]
         if self._set_filter.currentIndex() > 0:
             params['set_id'] = self._assignment_filter.get_set_filter()["id"]
         if self._anno_filter.currentIndex() > 0:
@@ -257,6 +263,7 @@ class AssignmentWidget(QWidget):
 
     def _clear_filter(self):
         self._trip_filter.setCurrentIndex(0)
+        self._reef_filter.setCurrentIndex(0)
         self._set_filter.setCurrentIndex(0)
         self._anno_filter.setCurrentIndex(0)
         self._status_filter.setCurrentIndex(0)
@@ -278,6 +285,12 @@ class AssignmentWidget(QWidget):
         else:
             _trip_filter = {"id": self._trip_filter.itemData(self._trip_filter.currentIndex()),
                             "name": self._trip_filter.itemText(self._trip_filter.currentIndex())}
+
+        if self._reef_filter.currentIndex() == 0:
+            _reef_filter = {"id": -1 ,"name": self._reef_filter.itemText(self._reef_filter.currentIndex())}
+        else:
+            _reef_filter = {"id": self._reef_filter.itemData(self._reef_filter.currentIndex()),
+                           "name": self._reef_filter.itemText(self._reef_filter.currentIndex())}
 
         if self._set_filter.currentIndex() == 0:
             _set_filter = {"id": -1 ,"name": self._set_filter.itemText(self._set_filter.currentIndex())}
@@ -304,13 +317,15 @@ class AssignmentWidget(QWidget):
                                    "name": self._affiliation_filter.itemText(self._affiliation_filter.currentIndex())}
 
 
-        self._assignment_filter.setFilterValues( _trip_filter,  _set_filter, _anno_filter,
+        self._assignment_filter.setFilterValues( _trip_filter, _reef_filter,  _set_filter, _anno_filter,
                                                  _status_filter,_affiliation_filter, _limit_search)
 
 
     def set_prev_state_of_filters(self):
         self._trip_filter.setCurrentIndex( self.returnZeroIndexIfFilterIsNotApplied(
             self._trip_filter.findData(self._assignment_filter.get_trip_filter()["id"])))
+        self._reef_filter.setCurrentIndex(self.returnZeroIndexIfFilterIsNotApplied(
+            self._reef_filter.findData(self._assignment_filter.get_reef_filter()["id"])))
         self._set_filter.setCurrentIndex( self.returnZeroIndexIfFilterIsNotApplied(
                 self._set_filter.findData( self._assignment_filter.get_set_filter()["id"])))
         self._anno_filter.setCurrentIndex(self.returnZeroIndexIfFilterIsNotApplied(
@@ -321,35 +336,101 @@ class AssignmentWidget(QWidget):
             self._affiliation_filter.findData(self._assignment_filter.get_affiliation_filter()["id"])))
         self._limit_search.setCheckState(self._assignment_filter.get_limit_search()["id"])
         self._filter_change()
+        # adding for dynamic changes to restrict
+       # self.restrict_filter_based_on_trip_reef_selected()
+
+    def restrict_filter_based_on_trip_selected(self):
+        self.control_set_filter_based_on_trip_selected()
+
+    def restrict_filter_based_on_trip_reef_selected(self):
+        reef_id = None
+        trip_id = None
+        if self._trip_filter.currentIndex() > 0:
+            trip_id = self._trip_filter.itemData(self._trip_filter.currentIndex())
+        if self._reef_filter.currentIndex() > 0:
+            reef_id = self._reef_filter.itemData(self._reef_filter.currentIndex())
+
+        reef_set_list = GlobalFinPrintServer().reef_set_list(trip_id, reef_id)
+        self.filter_group_by_set_reef(reef_set_list)
 
     def control_set_filter_based_on_trip_selected(self):
-
-        if self._trip_filter.currentIndex() == 0:
-            self._set_filter.addItem('--- Filter by Set ---')
-            current_trip_list = self.trip_list
-            for t in current_trip_list:
-                self.fill_trip_selected(t)
-        else:
             ''''filtering sets if a trip is selected'''
-            self._set_filter.clear()
-            self._set_filter.addItem('--- Filter by Set ---')
-            self._set_filter.setCurrentIndex(0)
-            t = self.trip_list[self._trip_filter.currentIndex()-1]
-            # Add trip name header
-            self.fill_trip_selected(t)
+            reef_id = None
+            trip_id = None
+            if self._trip_filter.currentIndex() > 0:
+                trip_id = self._trip_filter.itemData(self._trip_filter.currentIndex())
 
-    def fill_trip_selected(self, t):
-        self._set_filter.addItem(t['trip'])
-        # Disable trip name header row
-        self._set_filter.model().item(len(self._set_filter) - 1).setEnabled(False)
-        # set custom font to header to have it look differently
-        self._set_filter.model().item(len(self._set_filter) - 1).setFont(self.headerRowfont)
-        for sn in t['sets']:
-            # Add set names
-            self._set_filter.addItem(sn['set'], sn['id'])
+            reef_set_list = GlobalFinPrintServer().reef_set_list(trip_id, reef_id)
+            self.filter_group_by_set_reef(reef_set_list)
 
     def returnZeroIndexIfFilterIsNotApplied(self,filterIndex):
         if filterIndex == -1 :
             return 0
         else :
            return filterIndex
+
+    def filter_group_by_set_reef(self, reef_set_list):
+       _reef_grouping = {}
+       _sets_grouping = {}
+       sets_dic =  reef_set_list['sets']
+       reefs_dic = None
+       if 'reefs' in reef_set_list :
+           reefs_dic = reef_set_list['reefs']
+
+       if sets_dic :
+           for set_data in sets_dic:
+               if set_data['group'] not in _sets_grouping :
+                   _list = []
+                   _list.append(set_data)
+                   _sets_grouping[set_data['group']] = _list
+               else :
+                   _list1 = _sets_grouping.get(set_data['group'])
+                   _list1.append(set_data)
+                   _sets_grouping[set_data['group']] = _list1
+
+       if reefs_dic:
+            for reef_data in reef_set_list['reefs'] :
+                 if reef_data['reef_group'] not in _reef_grouping:
+                     _list_reef = []
+                     _list_reef.append(reef_data)
+                     _reef_grouping[reef_data['reef_group']]= _list_reef
+                 else:
+                     _list1_reef = _reef_grouping.get(reef_data['reef_group'])
+                     _list1_reef.append(reef_data)
+                     _reef_grouping[reef_data['reef_group']] = _list1_reef
+
+       self.refill_set_reef_filter(_reef_grouping, _sets_grouping)
+
+
+    def refill_set_reef_filter(self, _reef_grouping=None, _sets_grouping=None):
+        if _sets_grouping!= None :
+            self._set_filter.blockSignals(True)
+            self._set_filter.clear()
+            self._set_filter.addItem('--- Filter by Set ---')
+            self._set_filter.setCurrentIndex(0)
+            for key in _sets_grouping :
+                self._set_filter.addItem(key)
+                # Disable trip name header row
+                self._set_filter.model().item(len(self._set_filter) - 1).setEnabled(False)
+                # set custom font to header to have it look differently
+                self._set_filter.model().item(len(self._set_filter) - 1).setFont(self.headerRowfont)
+                for each_set in _sets_grouping[key] :
+                   self._set_filter.addItem(each_set['code'], each_set['id'])
+
+            self._set_filter.blockSignals(False)
+
+        if _reef_grouping :
+            self._reef_filter.blockSignals(True)
+            self._reef_filter.clear()
+            self._reef_filter.addItem('--- Filter by Reef ---')
+            self._reef_filter.setCurrentIndex(0)
+            for key in _reef_grouping:
+                self._reef_filter.addItem(key)
+                # Disable trip name header row
+                self._reef_filter.model().item(len(self._reef_filter) - 1).setEnabled(False)
+                # set custom font to header to have it look differently
+                self._reef_filter.model().item(len(self._reef_filter) - 1).setFont(self.headerRowfont)
+                for each_reef in _reef_grouping[key] :
+                   self._reef_filter.addItem(each_reef['name'], each_reef['id'])
+
+            self._reef_filter.blockSignals(False)

@@ -696,8 +696,8 @@ class VlcVideoWidget(QStackedWidget):
             self.retry_count += 1
             getLogger('finprint').error(str(e))
             getLogger('finprint').error("Will retry in 20 sec......")
-            time.sleep(20)
             if self.retry_count == 1:
+                time.sleep(10)
                 print('***** retrying AWS upload again *****')
                 self.upload_8sec_clip( filename, clip_path)
             else :
@@ -742,8 +742,8 @@ class VlcVideoWidget(QStackedWidget):
             subprocess.call(execute_command)
         except subprocess.CalledProcessError as e:
             self.retry_count += 1
+            time.sleep(5)
             getLogger('finprint').error('subprocess exception in generating video clip {0}'.format(e))
-            time.sleep(20)
             if self.retry_count == 1:
                 print('***** retrying again *****')
                 return self.generate_8sec_video_clip_wid_ffpmpeg(filename)
@@ -753,8 +753,9 @@ class VlcVideoWidget(QStackedWidget):
         except Exception as e :
             self.retry_count += 1
             getLogger('finprint').error(' error in generating video clip {0}'.format(e))
-            time.sleep(10)
+
             if self.retry_count == 1 :
+                time.sleep(5)
                 print('***** retrying again *****')
                 return self.generate_8sec_video_clip_wid_ffpmpeg(filename)
             else :

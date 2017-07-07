@@ -164,3 +164,7 @@ class GlobalFinPrintServer(Singleton):
     def affiliation_list(self):
         r = requests.get(self.address + '/api/affiliations', params={'token': self.user_token})
         return r
+
+    def reef_set_list(self, trip_id=None, reef_id=None):
+        r = requests.get(self.address + '/api/restrict_filter_dropdown', params={'token': self.user_token,'trip_id':trip_id,'reef_id':reef_id})
+        return r.json()
