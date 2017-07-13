@@ -8,10 +8,11 @@ import ast as ast
 
 class AssignmentWidget(QWidget):
     LEAD_COLUMNS = ['ID', 'Set/video name',
-                    'Annotator',
-                    'Date assigned', 'Status', 'Last activity', 'Filename']
-    ANNO_COLUMNS = ['ID', 'Set/video name',
-                    'Date assigned', 'Status', 'Last Activity', 'Filename']
+                    'Annotator', 'Project name',
+                 'Date assigned', 'Status', 'Last activity', 'Filename']
+
+    ANNO_COLUMNS = ['ID', 'Set/video name', 'Project name',
+                   'Date assigned', 'Status', 'Last Activity', 'Filename']
     def __init__(self, sets, assigned=False, assignedByMe=0,):
         super().__init__()
 
@@ -200,7 +201,9 @@ class AssignmentWidget(QWidget):
         ]
         if self.is_lead:
             items += [QTableWidgetItem(set['assigned_to']['user'])]
+
         items += [
+            QTableWidgetItem(set['project_name']),
             QTableWidgetItem(set['assigned_at']),
             QTableWidgetItem(set['status']['name'] + ' ' + convert_position(set['progress'])),
             QTableWidgetItem(set['last_activity']),
