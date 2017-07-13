@@ -164,6 +164,14 @@ class CustomQCompleter(QCompleter):
         self.source_model = model
 
     def updateModel(self):
+        if 'select one or more tags' in self.local_completion_prefix or '---' in self.local_completion_prefix :
+            self.parent().input_line.clear()
+            if len(self.local_completion_prefix) > len(DEFAULT_ATTRIBUTE_TAG) :
+              self.parent().input_line.setText(self.local_completion_prefix[len(DEFAULT_ATTRIBUTE_TAG):])
+              self.local_completion_prefix = self.local_completion_prefix[len(DEFAULT_ATTRIBUTE_TAG):]
+            else :
+              self.local_completion_prefix = ''
+
         local_completion_prefix = self.local_completion_prefix
         class InnerProxyModel(QSortFilterProxyModel):
             def filterAcceptsRow(self, sourceRow, sourceParent):
