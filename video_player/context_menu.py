@@ -225,7 +225,7 @@ class EventDialog(QDialog):
                 list_att_containing_mark_zero = [attr['verbose'] for attr in self._set.attributes if attr['id'] == MARK_ZERO_TIME_ID]
                 if list_att_containing_mark_zero :
                   name_of_Mark_zero_time = list_att_containing_mark_zero[0]
-                  self.att_dropdown.input_line.setText(name_of_Mark_zero_time)
+                  self.att_dropdown.input_line.setText(DEFAULT_ATTRIBUTE_TAG)
                 else :
                   self.att_dropdown.input_line.setText('MARK ZERO TIME')
             else :

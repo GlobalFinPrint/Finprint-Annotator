@@ -78,9 +78,9 @@ class AttributeSelector(QVBoxLayout):
             self.empty_selected()
             self.display_selected()
             if flag == 1 and showCurrent :
-             self.input_line.setText(text)
+             self.input_line.setText(DEFAULT_ATTRIBUTE_TAG)
             else :
-                self.input_line.setText(text)
+                self.input_line.setText(DEFAULT_ATTRIBUTE_TAG)
 
 
 

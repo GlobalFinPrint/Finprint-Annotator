@@ -339,8 +339,6 @@ class AssignmentWidget(QWidget):
             self._affiliation_filter.findData(self._assignment_filter.get_affiliation_filter()["id"])))
         self._limit_search.setCheckState(self._assignment_filter.get_limit_search()["id"])
         self._filter_change()
-        # adding for dynamic changes to restrict
-       # self.restrict_filter_based_on_trip_reef_selected()
 
     def restrict_filter_based_on_trip_selected(self):
         self.control_set_filter_based_on_trip_selected()
