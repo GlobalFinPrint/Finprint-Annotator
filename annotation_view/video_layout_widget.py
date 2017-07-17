@@ -21,6 +21,7 @@ class VideoLayoutWidget(QWidget):
     fullscreen = None
     is_fullscreen = False
     FRAME_STEP = 50  # milli seconds
+    keyPressed = pyqtSignal(QEvent)
 
     def __init__(self, main_window):
         super(VideoLayoutWidget, self).__init__()
@@ -143,6 +144,8 @@ class VideoLayoutWidget(QWidget):
 
         for button in self._speed_buttons:
             button.speedClick.connect(self.on_speed)
+
+        self.keyPressed.connect(self.on_key)
 
     def setup_layout(self):
         # Main container going top to bottom
@@ -460,6 +463,14 @@ class VideoLayoutWidget(QWidget):
 
         self._submit_button.setDisabled(True)
         return False
+
+    def keyPressEvent(self, event):
+        super(VideoLayoutWidget, self).keyPressEvent(event)
+        self.keyPressed.emit(event)
+
+    def on_key(self, event):
+        if event.key() == Qt.Key_F5:
+            self.on_fullscreen()
 
 
 
