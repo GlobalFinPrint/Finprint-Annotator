@@ -222,8 +222,12 @@ class EventDialog(QDialog):
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'], self._set.observations)
             #changes for MARK ZERO TIME observation
             if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
-                name_of_Mark_zero_time = [attr['verbose'] for attr in self._set.attributes if attr['id'] == MARK_ZERO_TIME_ID][0]
-                self.att_dropdown.input_line.setText(name_of_Mark_zero_time)
+                list_att_containing_mark_zero = [attr['verbose'] for attr in self._set.attributes if attr['id'] == MARK_ZERO_TIME_ID]
+                if list_att_containing_mark_zero :
+                  name_of_Mark_zero_time = list_att_containing_mark_zero[0]
+                  self.att_dropdown.input_line.setText(DEFAULT_ATTRIBUTE_TAG)
+                else :
+                  self.att_dropdown.input_line.setText('MARK ZERO TIME')
             else :
                 self.att_dropdown.on_select(DEFAULT_ATTRIBUTE_TAG)
 
@@ -373,7 +377,6 @@ class EventDialog(QDialog):
             file_name = re.split(".png", filename)[0] + ".mp4"
             thread = Thread(target=self.upload_8sec_clip, args=(file_name,))
             thread.start()
-            thread.join()
         # close and clean up
         self.cleanup()
 

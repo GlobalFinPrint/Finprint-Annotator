@@ -78,6 +78,7 @@ class FullScreenLayout(QLayout):
 
 class FullScreen(QWidget):
     FRAME_STEP = 50  # milli seconds
+    keyPressed = pyqtSignal(QEvent)
 
     def __init__(self, set, video_file, small_player):
         super().__init__()
@@ -235,6 +236,8 @@ class FullScreen(QWidget):
         for button in self.speed_buttons:
             button.speedClick.connect(self.on_speed)
 
+        self.keyPressed.connect(self.on_key)
+
     def on_position_change(self, pos):
         self.video_time_label.setText(convert_position(int(pos)))
         self.seek_bar.setValue(int(pos))
@@ -322,3 +325,12 @@ class FullScreen(QWidget):
         self.fullscreen_video_player.contrast = contrast
         if self.fullscreen_video_player.is_paused():
             self.fullscreen_video_player.refresh_frame()
+
+
+    def keyPressEvent(self, event):
+        super(FullScreen, self).keyPressEvent(event)
+        self.keyPressed.emit(event)
+
+    def on_key(self, event):
+        if event.key() == Qt.Key_F5:
+            self.on_fullscreen_toggle()
