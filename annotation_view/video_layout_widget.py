@@ -471,6 +471,3 @@ class VideoLayoutWidget(QWidget):
     def on_key(self, event):
         if event.key() == Qt.Key_F5:
             self.on_fullscreen()
-
-
-
