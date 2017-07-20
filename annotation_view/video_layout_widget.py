@@ -471,6 +471,20 @@ class VideoLayoutWidget(QWidget):
     def on_key(self, event):
         if event.key() == Qt.Key_F5:
             self.on_fullscreen()
+        elif event.key() == Qt.Key_Shift+Qt.Key_Left :
+        #back by one frame
+           self._step_back_button()
+        elif event.key() == Qt.Key_Shift + Qt.Key_Right:
+        # forward by one frame
+           self._step_forward_button()
+        elif event.key() == Qt.Key_Control + Qt.Key_Left:
+        # 5sec rewind
+            self.on_back05()
+        elif event.key() == Qt.Key_Control + Qt.Key_Down:
+        #15 sec rewind
+            self.on_back15()
 
+    def keyReleaseEvent(self, QKeyEvent):
+        super(VideoLayoutWidget, self).keyReleaseEvent(QKeyEvent)
 
 
