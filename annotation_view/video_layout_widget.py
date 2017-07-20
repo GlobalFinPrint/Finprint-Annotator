@@ -487,4 +487,3 @@ class VideoLayoutWidget(QWidget):
     def keyReleaseEvent(self, QKeyEvent):
         super(VideoLayoutWidget, self).keyReleaseEvent(QKeyEvent)
 
-

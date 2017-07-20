@@ -5,7 +5,7 @@ from global_finprint import GlobalFinPrintServer
 
 BUTTONS_PER_ROW = 2
 MARK_ZERO_TIME_ID = 16
-DEFAULT_ATTRIBUTE_TAG = '--- select one or more tags ---'
+DEFAULT_ATTRIBUTE_TAG = '-- search for a tag or use down arrow to see full list --'
 
 class SelectedButton(QPushButton):
     clicked = pyqtSignal(int)
@@ -26,10 +26,10 @@ class AttributeSelector(QVBoxLayout):
     def __init__(self, attributes, selected_ids, observation_list = None):
         super().__init__()
         self.label = QLabel('Tags:')
-        self.input_line = QLineEdit()
+
         self.attributes = self._make_attr_list(attributes, [] if selected_ids is None else selected_ids)
         self.model = QStandardItemModel(self)
-        self.completer = CustomQCompleter(self,model=self.model)
+        self.completer = CustomQCompleter(self, model=self.model)
         self.selected_items = QButtonGroup(self)
         self.selected_layout = QGridLayout()
         self.observation_list = observation_list
@@ -42,13 +42,13 @@ class AttributeSelector(QVBoxLayout):
         self.completer.setCompletionColumn(0)
         self.completer.activated.connect(self.on_select, Qt.QueuedConnection)
 
+        self.input_line = CustomQLineEdit(self.completer)
         self.label.setBuddy(self.input_line)
         self.input_line.setCompleter(self.completer)
 
         self.addWidget(self.label)
         self.addWidget(self.input_line)
         self.addLayout(self.selected_layout)
-
         self.display_selected()
 
     def get_selected_ids(self):
@@ -63,7 +63,7 @@ class AttributeSelector(QVBoxLayout):
                     break
             # Added for DEFAULT_ATTRIBUTE_TAG
             if DEFAULT_ATTRIBUTE_TAG == text or flag == 0:
-                default_att_list = [att for att in self.attributes if att['name']==DEFAULT_ATTRIBUTE_TAG]
+                default_att_list = [att for att in self.attributes if att['name']== DEFAULT_ATTRIBUTE_TAG]
                 if len(default_att_list) == 0 :
                     self.attributes.append({
                         'id': -1 ,
@@ -164,12 +164,16 @@ class CustomQCompleter(QCompleter):
         self.source_model = model
 
     def updateModel(self):
-        if 'select one or more tags' in self.local_completion_prefix or '---' in self.local_completion_prefix :
-            self.parent().input_line.clear()
-            if len(self.local_completion_prefix) > len(DEFAULT_ATTRIBUTE_TAG) :
+        if DEFAULT_ATTRIBUTE_TAG in self.parent().input_line.text() or '--' in self.parent().input_line.text() :
+            if len(self.local_completion_prefix) == len(DEFAULT_ATTRIBUTE_TAG) :
+                self.parent().input_line.clear()
+                self.local_completion_prefix = ''
+            elif len(self.local_completion_prefix) > len(DEFAULT_ATTRIBUTE_TAG) :
+              self.parent().input_line.clear()
               self.parent().input_line.setText(self.local_completion_prefix[len(DEFAULT_ATTRIBUTE_TAG):])
               self.local_completion_prefix = self.local_completion_prefix[len(DEFAULT_ATTRIBUTE_TAG):]
             else :
+              self.parent().input_line.clear()
               self.local_completion_prefix = ''
 
         local_completion_prefix = self.local_completion_prefix
@@ -185,3 +189,14 @@ class CustomQCompleter(QCompleter):
         self.local_completion_prefix = path
         self.updateModel()
         return ""
+
+
+class CustomQLineEdit(QLineEdit):
+    def __init__(self, custom_completer):
+        super().__init__()
+        self._custom_completer = custom_completer
+
+    def mousePressEvent(self, QMouseEvent):
+        super().mousePressEvent(QMouseEvent)
+        self._custom_completer.updateModel()
+        self._custom_completer.complete()

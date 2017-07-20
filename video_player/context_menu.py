@@ -9,7 +9,7 @@ from threading import Thread
 import re
 from logging import getLogger
 
-DEFAULT_ATTRIBUTE_TAG = '--- select one or more tags ---'
+DEFAULT_ATTRIBUTE_TAG = '-- search for a tag or use down arrow to see full list --'
 MARK_ZERO_TIME_ID = 16
 
 class DialogActions(IntEnum):
