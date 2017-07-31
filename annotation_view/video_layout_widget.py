@@ -12,6 +12,8 @@ from .util import convert_position
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+
+
 #taking id of both attribute as constant in all database
 MARK_90_MIN_ID = 24
 MARK_HAUL_TIME_ID = 23
@@ -112,6 +114,9 @@ class VideoLayoutWidget(QWidget):
         self.current_set = None
         self.setup_layout()
         self.wire_events()
+        self.pressed = []
+        self.keylist = []
+        QCoreApplication.instance().installEventFilter(self)
 
     def wire_events(self):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
@@ -466,24 +471,47 @@ class VideoLayoutWidget(QWidget):
 
     def keyPressEvent(self, event):
         super(VideoLayoutWidget, self).keyPressEvent(event)
+
+        self.firstrelease = True
+        astr = "pressed: " + str(event.key())
+        self.keylist.append(event.key())
+
         self.keyPressed.emit(event)
 
     def on_key(self, event):
+        print("key pressed values: ", event.key())
         if event.key() == Qt.Key_F5:
             self.on_fullscreen()
-        elif event.key() == Qt.Key_Shift+Qt.Key_Left :
-        #back by one frame
-           self._step_back_button()
-        elif event.key() == Qt.Key_Shift + Qt.Key_Right:
-        # forward by one frame
-           self._step_forward_button()
-        elif event.key() == Qt.Key_Control + Qt.Key_Left:
-        # 5sec rewind
-            self.on_back05()
-        elif event.key() == Qt.Key_Control + Qt.Key_Down:
-        #15 sec rewind
-            self.on_back15()
 
     def keyReleaseEvent(self, QKeyEvent):
         super(VideoLayoutWidget, self).keyReleaseEvent(QKeyEvent)
+        if self.firstrelease == True:
+            self.processmultikeys(self.keylist)
+
+        self.firstrelease = False
+        if self.keylist :
+            del self.keylist[-1]
+
+    def aggregate_key_event(self, key_pressed):
+        return sum(key_pressed)
+
+    def processmultikeys(self, key_pressed):
+        print("keyspressed: ",key_pressed)
+        aggregate_key_events = self.aggregate_key_event(key_pressed)
+        if aggregate_key_events == Qt.Key_Shift + Qt.Key_Left:
+            # back by one frame
+            print("Qt.Key_Shift ---> Qt.Key_Left pressed ")
+            self.on_step_back()
+        elif aggregate_key_events == Qt.Key_Shift + Qt.Key_Right:
+            # forward by one frame
+            print("Qt.Key_Shift ---> Qt.Key_Right pressed ")
+            self.on_step_forward()
+        elif aggregate_key_events == Qt.Key_Control + Qt.Key_Left:
+            # 5sec rewind
+            print("Qt.Key_Control ---> Qt.Key_Left pressed ")
+            self.on_back05()
+        elif aggregate_key_events == Qt.Key_Control + Qt.Key_Down:
+            # 15 sec rewind
+            print("Qt.Key_Control ---> Qt.Key_Down pressed ")
+            self.on_back15()
 
