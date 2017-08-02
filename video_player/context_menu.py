@@ -216,15 +216,17 @@ class EventDialog(QDialog):
             self.animal_dropdown.currentIndexChanged.connect(self.animal_select)
             layout.addWidget(animal_label)
             layout.addWidget(self.animal_dropdown)
+
         # MaxN addition
-        self.max_n_value = QLineEdit()
-        self.max_n_value.setValidator(QIntValidator())
-        self.max_n_value.setMaximumWidth(40)
-        self.max_n_value.setMaxLength(2)
-        self.max_n_value.setAlignment(Qt.AlignLeft)
-        max_n_label = QFormLayout()
-        max_n_label.addRow('MaxN:', self.max_n_value)
-        layout.addLayout(max_n_label)
+        if kwargs['type_choice'] == 'A':
+            self.max_n_value = QLineEdit()
+            self.max_n_value.setValidator(QIntValidator())
+            self.max_n_value.setMaximumWidth(40)
+            self.max_n_value.setMaxLength(2)
+            self.max_n_value.setAlignment(Qt.AlignLeft)
+            max_n_label = QFormLayout()
+            max_n_label.addRow('MaxN:', self.max_n_value)
+            layout.addLayout(max_n_label)
 
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
