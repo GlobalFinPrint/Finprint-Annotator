@@ -64,9 +64,11 @@ class VideoLayoutWidget(QWidget):
 
         self._back15 = ClickLabel()
         self._back15.setPixmap(QPixmap('images/jump_back-15s.png'))
+        self._back15.setToolTip("15 second rewind (<Control> + Down Arrow)")
 
         self._back05 = ClickLabel()
         self._back05.setPixmap(QPixmap('images/jump_back-5s.png'))
+        self._back05.setToolTip("5 second rewind (<Control> + Left Arrow)")
 
         self._ff_button = ClickLabel()
         self._ff_button.setPixmap(QPixmap('images/video_control-fast_forward.png'))
@@ -74,12 +76,14 @@ class VideoLayoutWidget(QWidget):
 
         self._step_back_button = ClickLabel()
         self._step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
+        self._step_back_button.setToolTip("Back one frame (<Shift> + Left Arrow)")
 
         self._toggle_play_button = ClickLabel()
         self._toggle_play_button.setPixmap(self._play_pixmap)
 
         self._step_forward_button = ClickLabel()
         self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
+        self._step_forward_button.setToolTip("Forward one frame (<Shift> + Right Arrow)")
 
         self._filter_widget = FilterWidget()
         self._video_filter_button = ClickLabel()
@@ -114,8 +118,7 @@ class VideoLayoutWidget(QWidget):
         self.current_set = None
         self.setup_layout()
         self.wire_events()
-        self.pressed = []
-        self.keylist = []
+        self.keylist = set()
         QCoreApplication.instance().installEventFilter(self)
 
     def wire_events(self):
@@ -471,47 +474,39 @@ class VideoLayoutWidget(QWidget):
 
     def keyPressEvent(self, event):
         super(VideoLayoutWidget, self).keyPressEvent(event)
-
         self.firstrelease = True
-        astr = "pressed: " + str(event.key())
-        self.keylist.append(event.key())
-
+        self.keylist.add(event.key())
         self.keyPressed.emit(event)
 
+
     def on_key(self, event):
-        print("key pressed values: ", event.key())
         if event.key() == Qt.Key_F5:
             self.on_fullscreen()
 
-    def keyReleaseEvent(self, QKeyEvent):
-        super(VideoLayoutWidget, self).keyReleaseEvent(QKeyEvent)
+    def keyReleaseEvent(self, evt):
+        super(VideoLayoutWidget, self).keyReleaseEvent(evt)
         if self.firstrelease == True:
-            self.processmultikeys(self.keylist)
+            self.keylist.add(evt.key())
+            self.process_multi_key_press(self.keylist)
 
         self.firstrelease = False
         if self.keylist :
-            del self.keylist[-1]
+            self.keylist.pop()
 
     def aggregate_key_event(self, key_pressed):
         return sum(key_pressed)
 
-    def processmultikeys(self, key_pressed):
-        print("keyspressed: ",key_pressed)
+    def process_multi_key_press(self, key_pressed):
         aggregate_key_events = self.aggregate_key_event(key_pressed)
         if aggregate_key_events == Qt.Key_Shift + Qt.Key_Left:
-            # back by one frame
-            print("Qt.Key_Shift ---> Qt.Key_Left pressed ")
             self.on_step_back()
         elif aggregate_key_events == Qt.Key_Shift + Qt.Key_Right:
-            # forward by one frame
-            print("Qt.Key_Shift ---> Qt.Key_Right pressed ")
             self.on_step_forward()
         elif aggregate_key_events == Qt.Key_Control + Qt.Key_Left:
-            # 5sec rewind
-            print("Qt.Key_Control ---> Qt.Key_Left pressed ")
             self.on_back05()
         elif aggregate_key_events == Qt.Key_Control + Qt.Key_Down:
-            # 15 sec rewind
-            print("Qt.Key_Control ---> Qt.Key_Down pressed ")
             self.on_back15()
 
+    def mousePressEvent(self, mouse_evt):
+       super(VideoLayoutWidget, self).mousePressEvent(mouse_evt)
+       self.setFocus()

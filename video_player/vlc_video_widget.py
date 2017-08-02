@@ -262,9 +262,6 @@ class VlcVideoWidget(QStackedWidget):
             if evt.key() == Qt.Key_Space:
                 self.toggle_play()
                 return True
-            if evt.key() in [Qt.Key_Left, Qt.Key_Down, Qt.Key_Right]:
-                #propagate to another class
-
 
         return False
 
