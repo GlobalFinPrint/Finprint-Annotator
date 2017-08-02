@@ -1,4 +1,4 @@
-from .util import convert_position
+from .util import convert_position, MultiKeyPressHandler
 from .components import ClickLabel, SpeedButton, GenericButton
 from .filter_widget import FilterWidget
 from .video_seek_widget import VideoSeekWidget
@@ -6,7 +6,7 @@ from video_player import VlcVideoWidget, PlayState
 from global_finprint import GlobalFinPrintServer
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
-from logging import getLogger
+
 
 
 class FullScreenLayout(QLayout):
@@ -349,25 +349,11 @@ class FullScreen(QWidget):
         super(FullScreen, self).keyReleaseEvent(evt)
         if self.firstrelease == True:
             self.keylist.add(evt.key())
-            self.process_multi_key_press(self.keylist)
+            MultiKeyPressHandler().process_multi_key_press(self)
 
         self.firstrelease = False
         if self.keylist :
             self.keylist.pop()
-
-    def aggregate_key_event(self, key_pressed):
-        return sum(key_pressed)
-
-    def process_multi_key_press(self, key_pressed):
-        aggregate_key_events = self.aggregate_key_event(key_pressed)
-        if aggregate_key_events == Qt.Key_Shift + Qt.Key_Left:
-            self.on_step_back()
-        elif aggregate_key_events == Qt.Key_Shift + Qt.Key_Right:
-            self.on_step_forward()
-        elif aggregate_key_events == Qt.Key_Control + Qt.Key_Left:
-            self.on_back05()
-        elif aggregate_key_events == Qt.Key_Control + Qt.Key_Down:
-            self.on_back15()
 
     def mousePressEvent(self, mouse_evt):
         super(FullScreen, self).mousePressEvent(mouse_evt)
