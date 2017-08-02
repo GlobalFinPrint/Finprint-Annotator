@@ -120,12 +120,15 @@ class FullScreen(QWidget):
 
         self.back15 = ClickLabel()
         self.back15.setPixmap(QPixmap('images/jump_back-15s.png'))
+        self.back15.setToolTip("15 second rewind (<Control> + Down Arrow)")
 
         self.back05 = ClickLabel()
         self.back05.setPixmap(QPixmap('images/jump_back-5s.png'))
+        self.back05.setToolTip("5 second rewind (<Control> + Left Arrow)")
 
         self.step_back_button = ClickLabel()
         self.step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
+        self.step_back_button.setToolTip("Back one frame (<Shift> + Left Arrow)")
 
         self._play_pixmap = QPixmap('images/video_control-play.png')
         self._pause_pixmap = QPixmap('images/video_control-pause.png')
@@ -134,6 +137,7 @@ class FullScreen(QWidget):
 
         self.step_forward_button = ClickLabel()
         self.step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
+        self.step_forward_button.setToolTip("Forward one frame (<Shift> + Right Arrow)")
 
         self.fast_forward_button = ClickLabel()
         self.fast_forward_button.setPixmap(QPixmap('images/video_control-fast_forward.png'))
@@ -190,6 +194,7 @@ class FullScreen(QWidget):
         # wire events for interactivity
         self.wire_events()
 
+
     def revive(self, set, video_file, small_player):
         set_changed = self.current_set != set
         self.current_set = set
@@ -237,6 +242,8 @@ class FullScreen(QWidget):
             button.speedClick.connect(self.on_speed)
 
         self.keyPressed.connect(self.on_key)
+        # multi key press event handling set
+        self.keylist = set()
 
     def on_position_change(self, pos):
         self.video_time_label.setText(convert_position(int(pos)))
@@ -329,20 +336,39 @@ class FullScreen(QWidget):
 
     def keyPressEvent(self, event):
         super(FullScreen, self).keyPressEvent(event)
+        self.firstrelease = True
+        self.keylist.add(event.key())
         self.keyPressed.emit(event)
 
     def on_key(self, event):
         if event.key() == Qt.Key_F5:
             self.on_fullscreen_toggle()
-        elif event.key() == Qt.Key_Shift + Qt.Key_Left :
-        #back by one frame
-           self.on_step_back()
-        elif event.key() == Qt.Key_Shift + Qt.Key_Right:
-        # forward by one frame
-           self.on_step_forward()
-        elif event.key() == Qt.Key_Control + Qt.Key_Left:
-        # 5sec rewind
+
+
+    def keyReleaseEvent(self, evt):
+        super(FullScreen, self).keyReleaseEvent(evt)
+        if self.firstrelease == True:
+            self.keylist.add(evt.key())
+            self.process_multi_key_press(self.keylist)
+
+        self.firstrelease = False
+        if self.keylist :
+            self.keylist.pop()
+
+    def aggregate_key_event(self, key_pressed):
+        return sum(key_pressed)
+
+    def process_multi_key_press(self, key_pressed):
+        aggregate_key_events = self.aggregate_key_event(key_pressed)
+        if aggregate_key_events == Qt.Key_Shift + Qt.Key_Left:
+            self.on_step_back()
+        elif aggregate_key_events == Qt.Key_Shift + Qt.Key_Right:
+            self.on_step_forward()
+        elif aggregate_key_events == Qt.Key_Control + Qt.Key_Left:
             self.on_back05()
-        elif event.key() == Qt.Key_Control + Qt.Key_Down:
-        #15 sec rewind
+        elif aggregate_key_events == Qt.Key_Control + Qt.Key_Down:
             self.on_back15()
+
+    def mousePressEvent(self, mouse_evt):
+        super(FullScreen, self).mousePressEvent(mouse_evt)
+        self.setFocus()

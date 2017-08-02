@@ -118,8 +118,8 @@ class VideoLayoutWidget(QWidget):
         self.current_set = None
         self.setup_layout()
         self.wire_events()
+        # multi key press event handling set
         self.keylist = set()
-        QCoreApplication.instance().installEventFilter(self)
 
     def wire_events(self):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
