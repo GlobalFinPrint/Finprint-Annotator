@@ -262,6 +262,7 @@ class VlcVideoWidget(QStackedWidget):
             if evt.key() == Qt.Key_Space:
                 self.toggle_play()
                 return True
+
         return False
 
     def load(self, file_name):

@@ -5,7 +5,6 @@ from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set, QueryException
 from .login_widget import LoginWidget
 from .assignment_widget import AssignmentWidget
-from finprint_annotator.assignment_filter import AssignmentFilterDTO
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 from sys import argv
