@@ -142,7 +142,7 @@ class VideoSeekWidget(QSlider):
 
     def return_position_in_millisecond_for_mark_zero_time(self):
         # GLOB-529: to bound the slider not to pass by MARK_ZERO_TIME by just sliding the marker
-        mark_zero_time = MarkZeroTimeSelector(self._set.attributes).return_mark_zero_time_id()['name']
+        mark_zero_time = MarkZeroTimeSelector(self._set.attributes).get_mark_zero_time_attr()['name']
         zero_time_duration = False
         for observation in self._set.observations:
             for events in observation.events:

@@ -157,7 +157,7 @@ class EventDialog(QDialog):
 
 
         # mark zero time id extraction
-        self.mark_zero_time_id = MarkZeroTimeSelector(self._set.attributes).return_mark_zero_time_id()['id']
+        self.mark_zero_time_id = MarkZeroTimeSelector(self._set.attributes).get_mark_zero_time_attr()['id']
 
         # set dialog data for submit
         if 'obs' in kwargs:

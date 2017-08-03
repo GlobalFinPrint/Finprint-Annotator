@@ -34,7 +34,7 @@ class AttributeSelector(QVBoxLayout):
         self.selected_items = QButtonGroup(self)
         self.selected_layout = QGridLayout()
         self.observation_list = observation_list
-        self.mark_zero_time_id = MarkZeroTimeSelector(attributes).return_mark_zero_time_id()['id']
+        self.mark_zero_time_id = MarkZeroTimeSelector(attributes).get_mark_zero_time_attr()['id']
 
         self._refresh_list()
 

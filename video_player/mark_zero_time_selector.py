@@ -3,12 +3,15 @@
 MARK_ZERO_TIME_GLOBAL_ID = 16
 
 class MarkZeroTimeSelector :
+    '''
+    extracts primary id of mark zero using global parent id of mark zero
+    '''
     def __init__(self, attributes):
         self._attributes = attributes
 
-    def return_mark_zero_time_id(self):
+    def get_mark_zero_time_attr(self):
         '''
-        Need local mark zero time id to be saved while saving observation or an event
+        get local mark zero time id to be saved while saving observation or an event
         '''
         _list_of_tags = []
         for attr in self._attributes:
