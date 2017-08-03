@@ -1,4 +1,5 @@
-from .util import convert_position, MultiKeyPressHandler
+from .util import convert_position
+from .key_press_handler import MultiKeyPressHandler
 from .components import ClickLabel, SpeedButton, GenericButton
 from .filter_widget import FilterWidget
 from .video_seek_widget import VideoSeekWidget
@@ -120,14 +121,17 @@ class FullScreen(QWidget):
 
         self.back15 = ClickLabel()
         self.back15.setPixmap(QPixmap('images/jump_back-15s.png'))
+        # adding hover text
         self.back15.setToolTip("15 second rewind (<Control> + Down Arrow)")
 
         self.back05 = ClickLabel()
         self.back05.setPixmap(QPixmap('images/jump_back-5s.png'))
+        # adding hover text
         self.back05.setToolTip("5 second rewind (<Control> + Left Arrow)")
 
         self.step_back_button = ClickLabel()
         self.step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
+        # adding hover text
         self.step_back_button.setToolTip("Back one frame (<Shift> + Left Arrow)")
 
         self._play_pixmap = QPixmap('images/video_control-play.png')
@@ -137,6 +141,7 @@ class FullScreen(QWidget):
 
         self.step_forward_button = ClickLabel()
         self.step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
+        # adding hover text
         self.step_forward_button.setToolTip("Forward one frame (<Shift> + Right Arrow)")
 
         self.fast_forward_button = ClickLabel()
@@ -335,6 +340,11 @@ class FullScreen(QWidget):
 
 
     def keyPressEvent(self, event):
+        '''
+        overriding system keyReleaseEvent ,
+        adds keyEvent in keyList when later key is
+        released in case of multi key press
+        '''
         super(FullScreen, self).keyPressEvent(event)
         self.firstrelease = True
         self.keylist.add(event.key())
@@ -346,6 +356,11 @@ class FullScreen(QWidget):
 
 
     def keyReleaseEvent(self, evt):
+        '''
+        overriding system keyReleaseEvent ,
+        adds keyEvent in keyList when later key is
+        released in case of multi key press
+        '''
         super(FullScreen, self).keyReleaseEvent(evt)
         if self.firstrelease == True:
             self.keylist.add(evt.key())
@@ -356,5 +371,8 @@ class FullScreen(QWidget):
             self.keylist.pop()
 
     def mousePressEvent(self, mouse_evt):
+        '''
+        set focus to full screen widget when mouse is pressed on
+        '''
         super(FullScreen, self).mousePressEvent(mouse_evt)
         self.setFocus()
