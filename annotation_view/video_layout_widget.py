@@ -23,7 +23,7 @@ MARK_HAUL_TIME_GLOBAL_ID = 23
 class VideoLayoutWidget(QWidget):
     fullscreen = None
     is_fullscreen = False
-    FRAME_STEP = 50  # milli seconds
+    FRAME_STEP = 70  # milli seconds
     keyPressed = pyqtSignal(QEvent)
 
     def __init__(self, main_window):
