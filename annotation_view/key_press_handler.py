@@ -7,7 +7,7 @@ class MultiKeyPressHandler:
 
     def process_multi_key_press(self, obj):
         '''
-        handles event based on multi key press
+        Handles event based on multi key press
         both for full screen and normal screen
         '''
         aggregate_key_events = self.aggregate_key_event(obj.keylist)

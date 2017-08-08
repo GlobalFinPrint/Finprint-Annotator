@@ -120,23 +120,32 @@ class EventDialog(QDialog):
         self.selected_evt = None
         self._set = None
         self.capture_video_check = None
+        self.max_n_value = QLineEdit()
+        self.type_choice = None
+        self.max_n_value.installEventFilter(self)
 
     def launch(self, kwargs):
         self.action = kwargs['action']
         if kwargs['action'] == DialogActions.new_obs:
             if kwargs['type_choice'] == 'A':
+                self.type_choice = 'A'
                 title = 'New animal observation'
             else:
+                self.type_choice = 'I'
                 title = 'New non-animal observation'
         elif kwargs['action'] == DialogActions.add_event:
             if kwargs['obs'].type_choice == 'A':
+                self.type_choice = 'A'
                 title = 'Add event to animal observation'
             else:
+                self.type_choice = 'I'
                 title = 'Add event to non-animal observation'
         elif kwargs['action'] == DialogActions.edit_obs:
             if kwargs['obs'].type_choice == 'A':
+                self.type_choice = 'A'
                 title = 'Edit animal observation'
             else:
+                self.type_choice = 'I'
                 title = 'Edit non-animal observation'
         elif kwargs['action'] == DialogActions.edit_event:
             title = 'Edit event'
@@ -146,7 +155,7 @@ class EventDialog(QDialog):
 
         self.dialog_values['note'] = ''
         self.dialog_values['attribute'] = None
-        self.dialog_values['measurables'] = None
+        self.dialog_values['measurables'] = list()
         self._set = kwargs['set']
 
         if 'row_number' in kwargs:
@@ -219,7 +228,6 @@ class EventDialog(QDialog):
 
         # MaxN addition
         if kwargs['type_choice'] == 'A':
-            self.max_n_value = QLineEdit()
             self.max_n_value.setValidator(QIntValidator())
             self.max_n_value.setMaximumWidth(40)
             self.max_n_value.setMaxLength(2)
@@ -227,6 +235,11 @@ class EventDialog(QDialog):
             max_n_label = QFormLayout()
             max_n_label.addRow('MaxN:', self.max_n_value)
             layout.addLayout(max_n_label)
+            # populate prev measurables value if present
+            if kwargs['action'] not in [DialogActions.new_obs] and self.selected_evt :
+                self.populating_prev_measurables_value(self.selected_evt['event_id'])
+            if not self.max_n_value.text() :
+                self.dialog_values['attribute'] = None
 
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
@@ -254,7 +267,7 @@ class EventDialog(QDialog):
         if kwargs['action'] == DialogActions.edit_obs:
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'],
                                                   self._set.observations)
-            if len(self.dialog_values['attribute']) != 0:
+            if self.dialog_values['attribute']:
                 for attr in self._set.attributes:
                     if attr['id'] in self.dialog_values['attribute']:
                         self.att_dropdown.on_select(attr['verbose'], True)
@@ -346,6 +359,8 @@ class EventDialog(QDialog):
         self.show()
 
     def pushed_save(self):
+        if self.type_choice and self.type_choice == 'A' and self.max_n_value.text():
+            self.dialog_values['measurables'].append(int(self.max_n_value.text()))
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute']:
             self.dialog_values['attribute'].remove(-1)
 
@@ -376,6 +391,8 @@ class EventDialog(QDialog):
         self.cleanup()
 
     def pushed_update(self):
+        if self.type_choice and self.type_choice== 'A' and self.max_n_value.text():
+            self.dialog_values['measurables'].append(int(self.max_n_value.text()))
         # added for default tag
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute']:
             self.dialog_values['attribute'].remove(-1)
@@ -483,9 +500,15 @@ class EventDialog(QDialog):
                     count = count + 1
 
     def mousePressEvent(self, *args, **kwargs):
+        '''
+        MAXN_IMAGE_FRAME_ID need to be added in tag section, when mouse is clicked out of maxN section
+        '''
+        self.select_max_n_attribute()
+
+
+    def select_max_n_attribute(self):
         _list_of_tags = []
         if self.max_n_value.text():
-            self.dialog_values['measurables'] = [int(self.max_n_value.text())]
             for attr in self._set.attributes:
                 if 'children' in attr:
                     for child in attr['children']:
@@ -502,9 +525,45 @@ class EventDialog(QDialog):
         else:
             self.att_dropdown.on_select(DEFAULT_ATTRIBUTE_TAG)
 
+    def eventFilter(self, source, event):
+        '''
+        MAXN_IMAGE_FRAME_ID need to be added in tag section, when maxN label comes out of focus
+        '''
+        if (event.type() == QEvent.FocusOut and
+                    source is self.max_n_value):
+                self.select_max_n_attribute()
+
+        return False
+
+    def get_event_details_with_measurables(self):
+        return GlobalFinPrintServer().observations(self._set.id)
+
+    def populating_prev_measurables_value(self, selected_event_id):
+        observation_details_with_measurables = self.get_event_details_with_measurables()
+        if observation_details_with_measurables and observation_details_with_measurables['observations']:
+            for obs in observation_details_with_measurables['observations']:
+                for event in obs['events']:
+                    if event['id'] == selected_event_id:
+                        for measurable in event['measurables']:
+                            if measurable['measurable_name'] == 'MaxN':
+                                self.max_n_value.setText(measurable['value'])
+                                # (weak assumption)For now considering MaxN as only Measurables
+                                self.dialog_values['event_measurable_id'] = measurable['id']
+                        return
+
+
+    def get_selected_event_id(self):
+        for event in self.selected_event :
+            if hasattr(event, 'first_flag'):
+                return event.id
+
 
 class ComboBox(QComboBox):
     popupAboutToBeShown = pyqtSignal()
 
     def showPopup(self):
         self.popupAboutToBeShown.emit()
+
+
+
+
