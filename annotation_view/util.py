@@ -15,11 +15,12 @@ class ColumnsEnum(IntEnum):
     type = 2
     annotator = 3
     organism = 4
-    observation_comment = 5
-    duration = 6
-    frame_capture = 7
-    event_notes = 8
-    attributes = 9
+    attributes = 5
+    observation_comment = 6
+    duration = 7
+    frame_capture = 8
+    event_notes = 9
+
 
 class ObservationColumn :
   @staticmethod
@@ -29,10 +30,11 @@ class ObservationColumn :
              'Type',
              'Annotator',
              'Organism',
+             'Tags',
              'Observation Note',
              'Duration',
              'Frame capture',
-             'Image notes',
-             'Tags']
+             'Image notes'
+             ]
 
 

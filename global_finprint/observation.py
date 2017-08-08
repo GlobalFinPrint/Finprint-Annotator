@@ -57,11 +57,12 @@ class Event(object):
             self.observation.type_choice,
             'TODO Annotator',
             str(self.observation.animal),
+            ', '.join([a['name'] for a in self.attribute]),
             self.observation.comment,
             self.observation.duration,
             'TODO frame capture',  # just keep empty for now
-            self.note,
-            ', '.join([a['name'] for a in self.attribute])
+            self.note
+
         ]
 
     def __str__(self):
