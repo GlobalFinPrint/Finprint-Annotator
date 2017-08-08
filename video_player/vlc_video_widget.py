@@ -433,7 +433,7 @@ class VlcVideoWidget(QStackedWidget):
         self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.mediaplayer.set_position(p)
         self.timer_vo.timer_duration_ms = pos
-        QTimer.singleShot(500, self.take_videoframe_snapshot)
+
 
     def toggle_play(self):
         if self._play_state in [PlayState.Paused, PlayState.SeekForward, PlayState.SeekBack]:
@@ -463,6 +463,8 @@ class VlcVideoWidget(QStackedWidget):
             self.playbackSpeedChanged.emit(0.0)
             self._timer.cancel()
             self.take_videoframe_snapshot()
+        else :
+            QTimer.singleShot(500, self.take_videoframe_snapshot)
 
     def save_image(self, filename):
         self.curr_s3_upload = filename

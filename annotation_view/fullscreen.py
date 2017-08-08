@@ -78,7 +78,7 @@ class FullScreenLayout(QLayout):
 
 
 class FullScreen(QWidget):
-    FRAME_STEP = 50  # milli seconds
+    FRAME_STEP = 70  # milli seconds
     keyPressed = pyqtSignal(QEvent)
 
     def __init__(self, set, video_file, small_player):
