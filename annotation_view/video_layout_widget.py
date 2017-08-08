@@ -16,8 +16,8 @@ from PyQt4.QtGui import *
 
 
 #taking id of both attribute as constant in all database
-MARK_90_MIN_ID = 24
-MARK_HAUL_TIME_ID = 23
+MARK_90_MIN_GLOBAL_ID = 24
+MARK_HAUL_TIME_GLOBAL_ID = 23
 
 
 class VideoLayoutWidget(QWidget):
@@ -464,12 +464,12 @@ class VideoLayoutWidget(QWidget):
         #instead of having constant for mark_haul_time,mark_90Mins_time
         #we are fetcheing by row number from sets.attributes which is pulled directly from database
         #which its always constant
-        #taking id or MARK_HAUL_TIME=23 and MARK_90_MIN = 24
+        #taking id or MARK_HAUL_TIME_GLOBAL_ID=23 and MARK_90_MIN_GLOBAL_ID = 24
         #set.attributes = {list} <class 'list'>:
         for observation in set.observations :
            for events in observation.events:
                for attribute in events.attribute :
-                   if "id" in attribute and attribute["id"] in [MARK_HAUL_TIME_ID, MARK_90_MIN_ID] :
+                   if "global_parent_id" in attribute and attribute["global_parent_id"] in [MARK_HAUL_TIME_GLOBAL_ID, MARK_90_MIN_GLOBAL_ID] :
                         self._submit_button.setDisabled(False)
                         return True
 

@@ -8,10 +8,12 @@ from global_finprint.global_finprint_server import GlobalFinPrintServer
 from threading import Thread
 import re
 from logging import getLogger
+from .mark_zero_time_selector import MarkZeroTimeSelector
+
 
 DEFAULT_ATTRIBUTE_TAG = '-- search for a tag or use down arrow to see full list --'
-MARK_ZERO_TIME_ID = 16
-MAXN_IMAGE_FRAME_ID = 13
+MARK_ZERO_TIME_GLOBAL_ID = 16
+MAXN_IMAGE_FRAME_GLOBAL_ID = 13
 
 
 class DialogActions(IntEnum):
@@ -123,6 +125,7 @@ class EventDialog(QDialog):
         self.max_n_value = QLineEdit()
         self.type_choice = None
         self.max_n_value.installEventFilter(self)
+        self.mark_zero_time_id = None
 
     def launch(self, kwargs):
         self.action = kwargs['action']
@@ -160,6 +163,10 @@ class EventDialog(QDialog):
 
         if 'row_number' in kwargs:
             self.row_number = kwargs['row_number']
+
+
+        # mark zero time id extraction
+        self.mark_zero_time_id = MarkZeroTimeSelector(self._set.attributes).get_mark_zero_time_attr()['id']
 
         # set dialog data for submit
         if 'obs' in kwargs:
@@ -244,19 +251,13 @@ class EventDialog(QDialog):
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
             if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
-                self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
+                self.dialog_values['attribute'] = [self.mark_zero_time_id]
 
             self.att_dropdown = AttributeSelector(self._set.attributes, self.dialog_values['attribute'],
                                                   self._set.observations)
             # changes for MARK ZERO TIME observation
             if len(self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
-                list_att_containing_mark_zero = [attr['verbose'] for attr in self._set.attributes if
-                                                 attr['id'] == MARK_ZERO_TIME_ID]
-                if list_att_containing_mark_zero:
-                    name_of_Mark_zero_time = list_att_containing_mark_zero[0]
-                    self.att_dropdown.input_line.setText(DEFAULT_ATTRIBUTE_TAG)
-                else:
-                    self.att_dropdown.input_line.setText('MARK ZERO TIME')
+                self.att_dropdown.input_line.setText(DEFAULT_ATTRIBUTE_TAG)
             else:
                 self.att_dropdown.on_select(DEFAULT_ATTRIBUTE_TAG)
 
@@ -426,11 +427,11 @@ class EventDialog(QDialog):
 
     def attribute_select(self):
         self.dialog_values['attribute'] = self.att_dropdown.get_selected_ids()
-        if MARK_ZERO_TIME_ID not in self.dialog_values['attribute'] and len(
+        if self.mark_zero_time_id not in self.dialog_values['attribute'] and len(
                 self._set.observations) == 0 and not GlobalFinPrintServer().is_lead():
             msg = 'You must create a MARK ZERO TIME observation first'
             QMessageBox.question(self, 'MARK ZERO OBSERVATION', msg, QMessageBox.Close)
-            self.dialog_values['attribute'] = [MARK_ZERO_TIME_ID]
+            self.dialog_values['attribute'] = [self.mark_zero_time_id]
 
     def animal_select(self):
         self.dialog_values['animal_id'] = self.animal_dropdown.itemData(self.animal_dropdown.currentIndex())
@@ -512,10 +513,10 @@ class EventDialog(QDialog):
             for attr in self._set.attributes:
                 if 'children' in attr:
                     for child in attr['children']:
-                        if child['id'] == MAXN_IMAGE_FRAME_ID:
+                        if child['global_parent_id'] == MAXN_IMAGE_FRAME_GLOBAL_ID:
                             _list_of_tags.append(child['verbose'])
                 else:
-                    if attr['id'] == MAXN_IMAGE_FRAME_ID:
+                    if attr['global_parent_id'] == MAXN_IMAGE_FRAME_GLOBAL_ID:
                         _list_of_tags.append(attr['verbose'])
 
             if _list_of_tags:
