@@ -537,9 +537,15 @@ class EventDialog(QDialog):
         return False
 
     def get_event_details_with_measurables(self):
+        '''
+        Getting previous value of measurables associated per event
+        '''
         return GlobalFinPrintServer().observations(self._set.id)
 
     def populating_prev_measurables_value(self, selected_event_id):
+        '''
+        Selecting the clicked event to populate the previous value of measurables elements
+        '''
         observation_details_with_measurables = self.get_event_details_with_measurables()
         if observation_details_with_measurables and observation_details_with_measurables['observations']:
             for obs in observation_details_with_measurables['observations']:
