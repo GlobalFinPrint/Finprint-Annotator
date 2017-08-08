@@ -1,6 +1,7 @@
 from math import floor
 from enum import IntEnum
 
+
 def convert_position(pos):
     s, m = divmod(floor(pos), 1000)
     h, s = divmod(s, 60)

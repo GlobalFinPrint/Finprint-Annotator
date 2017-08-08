@@ -9,18 +9,21 @@ from .fullscreen import FullScreen
 from .components import ClickLabel, SpeedButton, GenericButton
 from .observation_table import ObservationTable
 from .util import convert_position
+from .key_press_handler import MultiKeyPressHandler
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 
+
+
 #taking id of both attribute as constant in all database
-MARK_90_MIN_ID = 24
-MARK_HAUL_TIME_ID = 23
+MARK_90_MIN_GLOBAL_ID = 24
+MARK_HAUL_TIME_GLOBAL_ID = 23
 
 
 class VideoLayoutWidget(QWidget):
     fullscreen = None
     is_fullscreen = False
-    FRAME_STEP = 50  # milli seconds
+    FRAME_STEP = 70  # milli seconds
     keyPressed = pyqtSignal(QEvent)
 
     def __init__(self, main_window):
@@ -62,9 +65,12 @@ class VideoLayoutWidget(QWidget):
 
         self._back15 = ClickLabel()
         self._back15.setPixmap(QPixmap('images/jump_back-15s.png'))
+        self._back15.setToolTip("15 second rewind (<Control> + Down Arrow)")
 
         self._back05 = ClickLabel()
         self._back05.setPixmap(QPixmap('images/jump_back-5s.png'))
+        # adding hover text
+        self._back05.setToolTip("5 second rewind (<Control> + Left Arrow)")
 
         self._ff_button = ClickLabel()
         self._ff_button.setPixmap(QPixmap('images/video_control-fast_forward.png'))
@@ -72,12 +78,16 @@ class VideoLayoutWidget(QWidget):
 
         self._step_back_button = ClickLabel()
         self._step_back_button.setPixmap(QPixmap('images/video_control-step_back.png'))
+        # adding hover text
+        self._step_back_button.setToolTip("Back one frame (<Shift> + Left Arrow)")
 
         self._toggle_play_button = ClickLabel()
         self._toggle_play_button.setPixmap(self._play_pixmap)
 
         self._step_forward_button = ClickLabel()
         self._step_forward_button.setPixmap(QPixmap('images/video_control-step_forward.png'))
+        #adding hover text
+        self._step_forward_button.setToolTip("Forward one frame (<Shift> + Right Arrow)")
 
         self._filter_widget = FilterWidget()
         self._video_filter_button = ClickLabel()
@@ -112,6 +122,8 @@ class VideoLayoutWidget(QWidget):
         self.current_set = None
         self.setup_layout()
         self.wire_events()
+        # multi key press event handling set
+        self.keylist = set()
 
     def wire_events(self):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
@@ -452,12 +464,12 @@ class VideoLayoutWidget(QWidget):
         #instead of having constant for mark_haul_time,mark_90Mins_time
         #we are fetcheing by row number from sets.attributes which is pulled directly from database
         #which its always constant
-        #taking id or MARK_HAUL_TIME=23 and MARK_90_MIN = 24
+        #taking id or MARK_HAUL_TIME_GLOBAL_ID=23 and MARK_90_MIN_GLOBAL_ID = 24
         #set.attributes = {list} <class 'list'>:
         for observation in set.observations :
            for events in observation.events:
                for attribute in events.attribute :
-                   if "id" in attribute and attribute["id"] in [MARK_HAUL_TIME_ID, MARK_90_MIN_ID] :
+                   if "global_parent_id" in attribute and attribute["global_parent_id"] in [MARK_HAUL_TIME_GLOBAL_ID, MARK_90_MIN_GLOBAL_ID] :
                         self._submit_button.setDisabled(False)
                         return True
 
@@ -465,9 +477,37 @@ class VideoLayoutWidget(QWidget):
         return False
 
     def keyPressEvent(self, event):
+        '''
+        overriding system keyPressEvent to handle multikey press
+        '''
         super(VideoLayoutWidget, self).keyPressEvent(event)
+        self.firstrelease = True
+        self.keylist.add(event.key())
         self.keyPressed.emit(event)
+
 
     def on_key(self, event):
         if event.key() == Qt.Key_F5:
             self.on_fullscreen()
+
+    def keyReleaseEvent(self, evt):
+        '''
+        overriding system keyReleaseEvent ,
+        adds keyEvent in keyList when later key is
+        released in case of multi key press
+        '''
+        super(VideoLayoutWidget, self).keyReleaseEvent(evt)
+        if self.firstrelease == True:
+            self.keylist.add(evt.key())
+            MultiKeyPressHandler().process_multi_key_press(self)
+
+        self.firstrelease = False
+        if self.keylist :
+            self.keylist.pop()
+
+    def mousePressEvent(self, mouse_evt):
+       '''
+       changes focus to video layout when mouse is pressed
+       '''
+       super(VideoLayoutWidget, self).mousePressEvent(mouse_evt)
+       self.setFocus()

@@ -1,10 +1,11 @@
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from global_finprint import GlobalFinPrintServer
+from .mark_zero_time_selector import MarkZeroTimeSelector
 
 
 BUTTONS_PER_ROW = 2
-MARK_ZERO_TIME_ID = 16
+MARK_ZERO_TIME_GLOBAL_ID = 16
 DEFAULT_ATTRIBUTE_TAG = '-- search for a tag or use down arrow to see full list --'
 
 class SelectedButton(QPushButton):
@@ -33,6 +34,7 @@ class AttributeSelector(QVBoxLayout):
         self.selected_items = QButtonGroup(self)
         self.selected_layout = QGridLayout()
         self.observation_list = observation_list
+        self.mark_zero_time_id = MarkZeroTimeSelector(attributes).get_mark_zero_time_attr()['id']
 
         self._refresh_list()
 
@@ -104,7 +106,7 @@ class AttributeSelector(QVBoxLayout):
                  spot += 1
 
     def _unselect_tag(self, id):
-      if self.observation_list is None or  id !=MARK_ZERO_TIME_ID or self.observation_list is not None and len(self.observation_list) > 0 or GlobalFinPrintServer().is_lead():
+      if self.observation_list is None or  id != self.mark_zero_time_id or self.observation_list is not None and len(self.observation_list) > 0 or GlobalFinPrintServer().is_lead():
         for attr in self.attributes:
             if attr['id'] == id:
                 attr['selected'] = False
@@ -153,7 +155,7 @@ class AttributeSelector(QVBoxLayout):
 
     def return_mark_zero_attr(self):
         for attr in self.attributes  :
-           if attr['id'] == MARK_ZERO_TIME_ID:
+           if attr['global_parent_id'] == MARK_ZERO_TIME_GLOBAL_ID:
                return attr
 
 
