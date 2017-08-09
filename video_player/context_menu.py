@@ -362,6 +362,7 @@ class EventDialog(QDialog):
     def pushed_save(self):
         if self.type_choice and self.type_choice == 'A' and self.max_n_value.text():
             self.dialog_values['measurables'].append(int(self.max_n_value.text()))
+            self.select_max_n_attribute()
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute']:
             self.dialog_values['attribute'].remove(-1)
 
@@ -394,6 +395,7 @@ class EventDialog(QDialog):
     def pushed_update(self):
         if self.type_choice and self.type_choice== 'A' and self.max_n_value.text():
             self.dialog_values['measurables'].append(int(self.max_n_value.text()))
+            self.select_max_n_attribute()
         # added for default tag
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute']:
             self.dialog_values['attribute'].remove(-1)
