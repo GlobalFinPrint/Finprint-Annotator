@@ -28,9 +28,15 @@ class MultiKeyPressHandler:
         '''
         if evt.key() in [Qt.Key_F1, Qt.Key_Escape]:
             filter_widget.hide()
-        if evt.modifiers() & Qt.ShiftModifier :
+            return True
+        elif evt.modifiers() & Qt.ShiftModifier :
             filter_widget.hide()
+            return True
         elif evt.modifiers() & Qt.ControlModifier :
             filter_widget.hide()
+            return True
         elif evt.modifiers() & Qt.ShiftModifier and evt.modifiers() & Qt.ControlModifier :
             filter_widget.hide()
+            return True
+
+        return False

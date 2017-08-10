@@ -332,6 +332,13 @@ class FullScreen(QWidget):
                 self.layout.hidden_controls = not self.layout.hidden_controls
                 self.layout.update()
                 return True
+        if evt.type() == QEvent.KeyPress and obj is not self.video_filter_button and QApplication.activeModalWidget() is None:
+            # handles shortcut key press
+            self.keyboard_shortcut_event(evt)
+        elif evt.type() == QEvent.MouseButtonPress  and QApplication.activeModalWidget() is None:
+            # event capture for mouse click
+            self.setFocus()
+
         return False
 
     def on_video_filter_button(self):
@@ -377,24 +384,11 @@ class FullScreen(QWidget):
         if self.keylist :
             self.keylist.pop()
 
-
-    def eventFilter(self, source, evt):
-        if evt.type() == QEvent.KeyPress and source is not self.video_filter_button and QApplication.activeModalWidget() is None:
-            # handles shortcut key press
-            self.keyboard_shortcut_event(evt)
-        elif evt.type() == QEvent.MouseButtonPress \
-             and QApplication.activeModalWidget() is None:
-            # event capture for mouse click inside filter widget layout should not hide control box
-            self.setFocus()
-            if evt.pos() not in [self.filter_widget.rect(), self.video_filter_button.rect()]:
-                self.filter_widget.hide()
-
-        return False
-
     def keyboard_shortcut_event(self, evt):
         '''
         Considering that keyboard shortcut in windows
         as per explained is anything which involves shift modifier
         or control modifier or both or F1.
         '''
-        MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self.filter_widget)
+        if self._filter_widget.isVisible() and MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self.filter_widget):
+            self.video_filter_button.setPixmap(QPixmap('images/filters.png'))

@@ -90,7 +90,7 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button.setToolTip("Forward one frame (<Shift> + Right Arrow)")
 
         self._filter_widget = FilterWidget()
-        #self._video_filter_label = QLabel("Note: controls only applied to paused video")
+        self._video_filter_label = QLabel("Note: controls only applied to paused video")
         self._video_filter_button = ClickLabel()
         self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
         self._video_filter_button.setToolTip("Note: controls only applied to paused video")
@@ -515,12 +515,9 @@ class VideoLayoutWidget(QWidget):
            and QApplication.activeModalWidget() is None:
             # handles keyboard shortcut
             self.keyboard_shortcut_event(evt)
-        elif evt.type() == QEvent.MouseButtonPress \
-             and QApplication.activeModalWidget() is None:
-            # event capture for mouse click inside filter widget layout should not hide control box
+        elif evt.type() == QEvent.MouseButtonPress and QApplication.activeModalWidget() is None:
+            # event capture for mouse click
             self.setFocus()
-            if evt.pos() not in [self._filter_widget.rect(), self._video_filter_button.rect()]:
-                self._filter_widget.hide()
 
         return False
 
@@ -530,7 +527,8 @@ class VideoLayoutWidget(QWidget):
         as per explained is anything which involves shift modifier
         or control modifier or both or F1.
         '''
-        MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self._filter_widget)
+        if self._filter_widget.isVisible() and MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self._filter_widget) :
+            self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
 
 
 
