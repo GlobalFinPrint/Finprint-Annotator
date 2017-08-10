@@ -99,10 +99,9 @@ class FullScreen(QWidget):
         self.video_length_label.setStyleSheet('color: #838C9E; font-size: 13px; padding-top: 10px;')
 
         self.filter_widget = FilterWidget()
-        self.video_filter_label = QLabel("Note: controls only applied to paused video")
         self.video_filter_button = ClickLabel()
         self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
-        self.video_filter_button.setToolTip("Note: controls only applied to paused video")
+
 
         self.fullscreen_button = ClickLabel()
         self.fullscreen_button.setPixmap(QPixmap('images/fullscreen-minimize.png'))
@@ -159,7 +158,6 @@ class FullScreen(QWidget):
         controls_layout = QVBoxLayout()
         first_row = QHBoxLayout()
         first_row.addStretch(1)
-        first_row.addWidget(self.video_filter_label)
         first_row.addWidget(self.video_filter_button)
         first_row.addWidget(self.fullscreen_button)
         controls_layout.addLayout(first_row)
@@ -392,3 +390,4 @@ class FullScreen(QWidget):
         '''
         if self.filter_widget.isVisible() :
             MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self.filter_widget)
+            self.video_filter_button.setPixmap(QPixmap('images/filters.png'))

@@ -81,9 +81,11 @@ class FilterWidget(QWidget):
         super().__init__()
         self.saturation_slider = FilterSlider('Saturation', 0, 100)
         self.brightness_slider = FilterSlider('Brightness', 0, 100)
+        self._video_control_note = QLabel("Note: controls only applied to paused \n video")
         self.contrast_toggle = ContrastToggle()
 
         self.layout = QVBoxLayout()
+        self.layout.addWidget(self._video_control_note)
         self.layout.addWidget(self.saturation_slider)
         self.layout.addWidget(self.brightness_slider)
         self.layout.addWidget(self.contrast_toggle)

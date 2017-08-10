@@ -90,10 +90,8 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button.setToolTip("Forward one frame (<Shift> + Right Arrow)")
 
         self._filter_widget = FilterWidget()
-        self._video_filter_label = QLabel("Note: controls only applied to paused video")
         self._video_filter_button = ClickLabel()
         self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
-        self._video_filter_button.setToolTip("Note: controls only applied to paused video")
 
         self._fullscreen_button = ClickLabel()
         self._fullscreen_button.setPixmap(QPixmap('images/fullscreen.png'))
@@ -210,7 +208,6 @@ class VideoLayoutWidget(QWidget):
         # Secondary controls
         secondary_controls_box = QHBoxLayout()
         secondary_controls_box.addSpacing(25)
-        #secondary_controls_box.addWidget(self._video_filter_label)
         secondary_controls_box.addWidget(self._video_filter_button)
         secondary_controls_box.addWidget(self._fullscreen_button)
         secondary_controls_box.addStretch(1)
@@ -517,6 +514,9 @@ class VideoLayoutWidget(QWidget):
             self.keyboard_shortcut_event(evt)
         elif evt.type() == QEvent.MouseButtonPress and QApplication.activeModalWidget() is None:
             # event capture for mouse click
+            if not self._filter_widget.rect().contains(evt.pos()):
+                self._filter_widget.hide()
+                self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
             self.setFocus()
 
         return False
@@ -529,6 +529,7 @@ class VideoLayoutWidget(QWidget):
         '''
         if self._filter_widget.isVisible():
             MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self._filter_widget)
+            self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
 
 
 
