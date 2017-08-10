@@ -90,8 +90,7 @@ class FilterWidget(QWidget):
         self.setLayout(self.layout)
 
         self.setStyleSheet('background-color: white;')
-        self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint)
-
+        self.setWindowFlags(Qt.CustomizeWindowHint)
         self.saturation_slider.change.connect(self.on_change)
         self.brightness_slider.change.connect(self.on_change)
         self.contrast_toggle.change.connect(self.on_change)
@@ -118,3 +117,4 @@ class FilterWidget(QWidget):
         self.change.emit(self.saturation_slider.value(),
                          self.brightness_slider.value(),
                          self.contrast_toggle.checked())
+

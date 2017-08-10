@@ -555,7 +555,7 @@ class VlcVideoWidget(QStackedWidget):
         self._refresh_frame_cv()
 
     def _refresh_frame_cv(self):
-        if self._play_state is PlayState.Paused:
+        if self._play_state is PlayState.Paused and self.current_snapshot :
             # grab a cv representation of the image
             # that has not been filtered
             curr_img = self.current_snapshot
