@@ -527,8 +527,9 @@ class VideoLayoutWidget(QWidget):
         as per explained is anything which involves shift modifier
         or control modifier or both or F1.
         '''
-        if self._filter_widget.isVisible() and MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self._filter_widget) :
-            self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
+        if self._filter_widget.isVisible():
+            MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self._filter_widget)
+
 
 
 
