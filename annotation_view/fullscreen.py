@@ -335,7 +335,11 @@ class FullScreen(QWidget):
             self.keyboard_shortcut_event(evt)
         elif evt.type() == QEvent.MouseButtonPress  and QApplication.activeModalWidget() is None:
             # event capture for mouse click
+            if not self.filter_widget.rect().contains(evt.pos()):
+                self.filter_widget.hide()
+                self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
             self.setFocus()
+            return False
 
         return False
 

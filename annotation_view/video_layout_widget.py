@@ -518,6 +518,7 @@ class VideoLayoutWidget(QWidget):
                 self._filter_widget.hide()
                 self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
             self.setFocus()
+            return False
 
         return False
 
