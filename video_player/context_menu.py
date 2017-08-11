@@ -245,8 +245,8 @@ class EventDialog(QDialog):
             # populate prev measurables value if present
             if kwargs['action'] not in [DialogActions.new_obs] and self.selected_evt :
                 self.populating_prev_measurables_value(self.selected_evt['event_id'])
-            if not self.max_n_value.text() :
-                self.dialog_values['attribute'] = None
+            if kwargs['action'] == DialogActions.add_event :
+                self.dialog_values['attribute']= None
 
         # attributes
         if kwargs['action'] != DialogActions.edit_obs:
@@ -531,12 +531,11 @@ class EventDialog(QDialog):
     def eventFilter(self, source, event):
         '''
         MAXN_IMAGE_FRAME_ID need to be added in tag section, when maxN label comes out of focus
+        or If MousePressEvent is called
         '''
-        if (event.type() == QEvent.FocusOut and
-                    source is self.max_n_value):
-                self.select_max_n_attribute()
-
-        return False
+        if (event.type() == QEvent.FocusOut and source is self.max_n_value):
+            self.select_max_n_attribute()
+            return True
 
     def get_event_details_with_measurables(self):
         '''
