@@ -74,6 +74,8 @@ class TimerVO :
         ''' Duration of current timer in seconds '''
         self.timer_duration_ms = dur
 
+    def initilaizeTimer(self):
+        self.timer_duration_ms = 0
 
 class AnnotationImage(QWidget):
     def __init__(self):
@@ -356,6 +358,8 @@ class VlcVideoWidget(QStackedWidget):
     def clear(self):
         print('vlc_video_widget > clear: get_position {0}'.format(self.get_position()))
         self._timer.cancel()
+        self.clear_extent()
+        self.annotationImage.clear()
         self.update()
 
     def get_highlight_extent(self):

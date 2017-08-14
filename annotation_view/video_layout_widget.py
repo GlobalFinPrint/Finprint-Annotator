@@ -46,6 +46,7 @@ class VideoLayoutWidget(QWidget):
 
         # UI widgets
         self.vid_box = None
+        self.top_box = None
         self._video_label = QLabel('')
         self._video_label.setStyleSheet("""color:rgb(74,74,74); font: 75 12pt "Arial";""")
         self._video_player = VlcVideoWidget(parent=self, onPositionChange=self.on_position_change)
@@ -124,6 +125,9 @@ class VideoLayoutWidget(QWidget):
         self.wire_events()
         # multi key press event handling set
         self.keylist = set()
+        self.firstrelease = None
+        # installing eventFilter for controlling sat/brightness popup hide and show
+        QCoreApplication.instance().installEventFilter(self)
 
     def wire_events(self):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
@@ -165,14 +169,17 @@ class VideoLayoutWidget(QWidget):
         container.setDirection(QBoxLayout.TopToBottom)
 
         # Top section L/R
-        top_box = QHBoxLayout()
+        self.top_box = QHBoxLayout()
 
         # Video screen and slider
-        vid_box = QVBoxLayout()
-        vid_box.addWidget(self._video_label)
-        vid_box.addWidget(self._video_player)
+        self.vid_box = QVBoxLayout()
+        self._duration_label.show()
+        self._playback_speed_label.show()
+        self._video_player.clear()
+        self.vid_box.addWidget(self._video_label)
+        self.vid_box.addWidget(self._video_player)
 
-        vid_box.addWidget(self._slider)
+        self.vid_box.addWidget(self._slider)
 
         pos_layout = QHBoxLayout()
         pos_layout.addWidget(self._pos_label)  # TODO move this under the cursor
@@ -180,11 +187,11 @@ class VideoLayoutWidget(QWidget):
         pos_layout.addStretch(1)
         pos_layout.addWidget(self._duration_label)
 
-        vid_box.addLayout(pos_layout)
-        vid_box.addStretch(1)
+        self.vid_box.addLayout(pos_layout)
+        self.vid_box.addStretch(1)
 
         # add to top box
-        top_box.addLayout(vid_box)
+        self.top_box.addLayout(self.vid_box)
 
         # Video controls
         video_controls_box = QHBoxLayout()
@@ -220,10 +227,10 @@ class VideoLayoutWidget(QWidget):
         button_box.addWidget(self._approve_button)
 
         # add to top box
-        top_box.addLayout(button_box)
+        self.top_box.addLayout(button_box)
 
         # add top box to main layout
-        container.addLayout(top_box)
+        container.addLayout(self.top_box)
 
         # Observation table
         bottom_box = QVBoxLayout()
@@ -311,6 +318,10 @@ class VideoLayoutWidget(QWidget):
 
         self._observation_table.load_set(set)
         self._data_loading = False
+        self._pos_label.setText("00:00:000")
+        self._pos_label.show()
+        self._duration_label.show()
+        self._playback_speed_label.show()
 
     def on_playstate_changed(self, play_state):
         getLogger('finprint').info('layout widget: playstate changed: {0}'.format(play_state))
@@ -330,9 +341,15 @@ class VideoLayoutWidget(QWidget):
         if self.current_set is not None:
             self.current_set.update_progress(progress)
 
+
+
     def clear(self):
         self._video_label.setText('')
         self._slider.hide()
+        self._pos_label.hide()
+        self._duration_label.hide()
+        self._duration_label.clear()
+        self._playback_speed_label.hide()
         self._video_player.clear()
         self._submit_button.setDisabled(True)
         self._submit_button.setVisible(False)
@@ -485,7 +502,6 @@ class VideoLayoutWidget(QWidget):
         self.keylist.add(event.key())
         self.keyPressed.emit(event)
 
-
     def on_key(self, event):
         if event.key() == Qt.Key_F5:
             self.on_fullscreen()
@@ -505,9 +521,31 @@ class VideoLayoutWidget(QWidget):
         if self.keylist :
             self.keylist.pop()
 
-    def mousePressEvent(self, mouse_evt):
-       '''
-       changes focus to video layout when mouse is pressed
-       '''
-       super(VideoLayoutWidget, self).mousePressEvent(mouse_evt)
-       self.setFocus()
+    def eventFilter(self, source, evt):
+        if evt.type() == QEvent.KeyPress and source is not self._video_filter_button \
+           and QApplication.activeModalWidget() is None:
+            # handles keyboard shortcut
+            self.keyboard_shortcut_event(evt)
+        elif evt.type() == QEvent.MouseButtonPress and QApplication.activeModalWidget() is None:
+            # event capture for mouse click
+            if not self._filter_widget.rect().contains(evt.pos()):
+                self._filter_widget.hide()
+                self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
+            self.setFocus()
+            return False
+
+        return False
+
+    def keyboard_shortcut_event(self, evt):
+        '''
+        Considering that keyboard shortcut in windows
+        as per explained is anything which involves shift modifier
+        or control modifier or both or F1.
+        '''
+        if self._filter_widget.isVisible():
+            MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self._filter_widget)
+            self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
+
+
+
+

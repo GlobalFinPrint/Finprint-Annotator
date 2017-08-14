@@ -161,15 +161,12 @@ class MainWindow(QMainWindow):
         self.props_diag.close()
 
     def _save_props_dialog(self):
-        if self.video_source.text() != config.global_config.get('VIDEOS', 'alt_media_dir'):
-            message = 'Warning: updating the video folder location will clear your currently selected assignment ' \
-                      '(no annotations will be lost). Are you sure you wish to update this?'
-            confirm = QMessageBox.question(self.props_diag, 'Confirm', message, 'Yes', 'Cancel')
-            if confirm == 1:  # user pressed Cancel
-                return
         config.global_config.set_item('VIDEOS', 'alt_media_dir', self.video_source.text())
         self.props_diag.close()
         self._vid_layout.clear()
+        # refresh or open new assignment widget if not there (GLOB-729)
+        self.assign_diag.close()
+        self._launch_assigned_set_list_diag()
 
     def _launch_assigned_set_list_diag(self):
         sets = GlobalFinPrintServer().set_list()['sets']
