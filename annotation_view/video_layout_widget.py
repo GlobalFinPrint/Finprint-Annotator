@@ -173,8 +173,6 @@ class VideoLayoutWidget(QWidget):
 
         # Video screen and slider
         self.vid_box = QVBoxLayout()
-        self._duration_label.show()
-        self._playback_speed_label.show()
         self._video_player.clear()
         self.vid_box.addWidget(self._video_label)
         self.vid_box.addWidget(self._video_player)
@@ -318,10 +316,10 @@ class VideoLayoutWidget(QWidget):
 
         self._observation_table.load_set(set)
         self._data_loading = False
+        self._playback_speed_label.show()
         self._pos_label.setText("00:00:000")
         self._pos_label.show()
         self._duration_label.show()
-        self._playback_speed_label.show()
 
     def on_playstate_changed(self, play_state):
         getLogger('finprint').info('layout widget: playstate changed: {0}'.format(play_state))
@@ -345,12 +343,11 @@ class VideoLayoutWidget(QWidget):
 
     def clear(self):
         self._video_label.setText('')
-        self._slider.hide()
-        self._pos_label.hide()
-        self._duration_label.hide()
-        self._duration_label.clear()
-        self._playback_speed_label.hide()
         self._video_player.clear()
+        self._slider.hide()
+        self._pos_label.clear()
+        self._duration_label.clear()
+        self._playback_speed_label.clear()
         self._submit_button.setDisabled(True)
         self._submit_button.setVisible(False)
         self._approve_button.setDisabled(True)

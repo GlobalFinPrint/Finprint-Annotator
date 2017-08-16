@@ -74,8 +74,6 @@ class TimerVO :
         ''' Duration of current timer in seconds '''
         self.timer_duration_ms = dur
 
-    def initilaizeTimer(self):
-        self.timer_duration_ms = 0
 
 class AnnotationImage(QWidget):
     def __init__(self):
@@ -272,6 +270,7 @@ class VlcVideoWidget(QStackedWidget):
 
         self.clear_extent()
 
+
         getLogger('finprint').info("Loading loading video {0}".format(self._file_name))
         self.media = self.instance.media_new(self._file_name)
         self.mediaplayer.set_media(self.media)
@@ -313,11 +312,17 @@ class VlcVideoWidget(QStackedWidget):
 
         # XXX hack to display the first few frames, which alters the bahavior of
         # VLC with respect to video scrubbing
-        self.mediaplayer.set_time(20)
+        #self.mediaplayer.set_time(20)
+        print(" playing for 20 msec")
         self.mediaplayer.play()
-        QTimer.singleShot(500, self.mediaplayer.pause)
+        QTimer.singleShot(500, self.after_load)
 
         return True
+
+    def after_load(self):
+        self.mediaplayer.pause()
+        self.clear_extent()
+        self.annotationImage.clear()
 
     def _target_width(self):
         try:
@@ -352,7 +357,6 @@ class VlcVideoWidget(QStackedWidget):
             if self._play_state is PlayState.Playing and self._last_progress > PROGRESS_UPDATE_INTERVAL:
                 self._last_progress = pos
                 self.progressUpdate.emit(pos)
-            #print('vlc_video_widget > on_timer: pos {0},  get_position {1}'.format(pos, self.get_position()))
             self._onPositionChange(pos)
 
     def clear(self):
@@ -361,6 +365,7 @@ class VlcVideoWidget(QStackedWidget):
         self.clear_extent()
         self.annotationImage.clear()
         self.update()
+
 
     def get_highlight_extent(self):
         ext = Extent()
