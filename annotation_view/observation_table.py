@@ -18,11 +18,12 @@ class ObservationTableModel(QAbstractTableModel):
         type = 2
         annotator = 3
         organism = 4
-        observation_comment = 5
-        duration = 6
-        frame_capture = 7
-        event_notes = 8
-        attributes = 9
+        attributes = 5
+        observation_comment = 6
+        duration = 7
+        frame_capture = 8
+        event_notes = 9
+
 
     def __init__(self):
         self.rows = []
@@ -206,6 +207,7 @@ class ObservationTable(QTableView):
         self.setColumnHidden(self.Columns.annotator, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.frame_capture, True)  # hide for now
         self.setColumnWidth(self.Columns.organism, 250)
+        self.setColumnWidth(self.Columns.attributes, 250)
         self.setColumnWidth(self.Columns.observation_comment, (self.windows_size-250)/2)
         self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
         self.setColumnWidth(self.Columns.event_notes, (self.windows_size-250)/2)
