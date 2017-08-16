@@ -15,11 +15,12 @@ class ColumnsEnum(IntEnum):
     type = 2
     annotator = 3
     organism = 4
-    attributes = 5
-    observation_comment = 6
-    duration = 7
-    frame_capture = 8
-    event_notes = 9
+    max_n = 5
+    attributes = 6
+    observation_comment = 7
+    duration = 8
+    frame_capture = 9
+    event_notes = 10
 
 
 class ObservationColumn :
@@ -30,6 +31,7 @@ class ObservationColumn :
              'Type',
              'Annotator',
              'Organism',
+             'MaxN',
              'Tags',
              'Observation Note',
              'Duration',

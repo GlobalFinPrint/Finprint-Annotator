@@ -356,6 +356,8 @@ class EventDialog(QDialog):
             self.animal_dropdown.setFocus()
         if self.column_name is not None and self.column_name == 'Tags' or kwargs['action'] == DialogActions.new_obs:
             self.att_dropdown.input_line.setFocus()
+        if self.column_name is not None and self.column_name == 'MaxN' or kwargs['action'] == DialogActions.new_obs and kwargs['type_choice'] == 'A':
+            self.max_n_value.setFocus()
 
         self.show()
 
