@@ -360,9 +360,10 @@ class EventDialog(QDialog):
         self.show()
 
     def pushed_save(self):
-        if self.type_choice and self.type_choice == 'A' and self.max_n_value.text():
-            self.dialog_values['measurables'].append(int(self.max_n_value.text()))
-            self.select_max_n_attribute()
+        if self.type_choice and self.type_choice== 'A' and self.max_n_value.text():
+            # (Weak assumption) only considering maxN as measurable attribute for now
+             self.dialog_values['measurables'].append(int(self.max_n_value.text()))
+
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute']:
             self.dialog_values['attribute'].remove(-1)
 
@@ -393,9 +394,13 @@ class EventDialog(QDialog):
         self.cleanup()
 
     def pushed_update(self):
-        if self.type_choice and self.type_choice== 'A' and self.max_n_value.text():
-            self.dialog_values['measurables'].append(int(self.max_n_value.text()))
-            self.select_max_n_attribute()
+        if self.type_choice and self.type_choice== 'A' :
+            # (Weak assumption) only considering maxN as only measurable attribute
+            if self.max_n_value.text() :
+                self.dialog_values['measurables'].append(int(self.max_n_value.text()))
+            else :
+                self.dialog_values['measurables'].append(self.max_n_value.text())
+
         # added for default tag
         if self.dialog_values['attribute'] is not None and -1 in self.dialog_values['attribute']:
             self.dialog_values['attribute'].remove(-1)
@@ -502,40 +507,39 @@ class EventDialog(QDialog):
                 else:
                     count = count + 1
 
-    def mousePressEvent(self, *args, **kwargs):
-        '''
-        MAXN_IMAGE_FRAME_ID need to be added in tag section, when mouse is clicked out of maxN section
-        '''
-        self.select_max_n_attribute()
-
 
     def select_max_n_attribute(self):
         _list_of_tags = []
-        if self.max_n_value.text():
-            for attr in self._set.attributes:
-                if 'children' in attr:
-                    for child in attr['children']:
-                        if child['global_parent_id'] == MAXN_IMAGE_FRAME_GLOBAL_ID:
-                            _list_of_tags.append(child['verbose'])
-                else:
-                    if attr['global_parent_id'] == MAXN_IMAGE_FRAME_GLOBAL_ID:
-                        _list_of_tags.append(attr['verbose'])
+        for attr in self._set.attributes:
+            if 'children' in attr:
+                for child in attr['children']:
+                    if child['global_parent_id'] == MAXN_IMAGE_FRAME_GLOBAL_ID:
+                        _list_of_tags.append(child)
+            else:
+                if attr['global_parent_id'] == MAXN_IMAGE_FRAME_GLOBAL_ID:
+                    _list_of_tags.append(attr)
 
             if _list_of_tags:
-                self.att_dropdown.on_select(_list_of_tags[0])
+                self.att_dropdown.on_select(_list_of_tags[0]['verbose'])
+                return _list_of_tags[0]
             else:
                 self.att_dropdown.on_select(DEFAULT_ATTRIBUTE_TAG)
-        else:
-            self.att_dropdown.on_select(DEFAULT_ATTRIBUTE_TAG)
 
     def eventFilter(self, source, event):
         '''
         MAXN_IMAGE_FRAME_ID need to be added in tag section, when maxN label comes out of focus
-        or If MousePressEvent is called
+        or KeyPress event inside maxN input box
         '''
-        if (event.type() == QEvent.FocusOut and source is self.max_n_value):
-            self.select_max_n_attribute()
+        if (event.type() and event.type() in [QEvent.FocusOut ,QEvent.KeyRelease] and self.max_n_value and source is self.max_n_value):
+            if self.max_n_value.text() :
+                self.select_max_n_attribute()
+            else :
+                max_n_attr_id = self.select_max_n_attribute()['id']
+                self.unselect_tag_attribute(max_n_attr_id)
+
             return True
+
+        return False
 
     def get_event_details_with_measurables(self):
         '''
@@ -565,6 +569,12 @@ class EventDialog(QDialog):
             if hasattr(event, 'first_flag'):
                 return event.id
 
+    def unselect_tag_attribute(self, id):
+        '''
+        Used in case if maxN value is made empty,
+        remove MaxN/Image Frame attribute from poup
+        '''
+        self.att_dropdown._unselect_tag(self.select_max_n_attribute()['id'])
 
 class ComboBox(QComboBox):
     popupAboutToBeShown = pyqtSignal()
