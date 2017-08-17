@@ -81,7 +81,7 @@ class FilterWidget(QWidget):
         super().__init__()
         self.saturation_slider = FilterSlider('Saturation', 0, 100)
         self.brightness_slider = FilterSlider('Brightness', 0, 100)
-        self._video_control_note = QLabel("Note: controls only applied to paused \n video")
+        self._video_control_note = QLabel("Note: controls only applied to paused video")
         self.contrast_toggle = ContrastToggle()
 
         self.layout = QVBoxLayout()
@@ -119,4 +119,18 @@ class FilterWidget(QWidget):
         self.change.emit(self.saturation_slider.value(),
                          self.brightness_slider.value(),
                          self.contrast_toggle.checked())
+
+
+    def mousePressEvent(self, event):
+        # captures intial position of mouse press
+        self.offset = event.pos()
+
+    def mouseMoveEvent(self, event):
+        # moves the whole filter widget layout to next
+        # position when mouse is released
+        new_pos_x = event.globalX()
+        new_pos_y = event.globalY()
+        old_pos_x = self.offset.x()
+        old_pos_y = self.offset.y()
+        self.move(new_pos_x - old_pos_x, new_pos_y - old_pos_y)
 
