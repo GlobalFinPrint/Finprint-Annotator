@@ -20,11 +20,23 @@ class Event(object):
         self.extent = Extent()
         self.observation = None
         self.create_datetime = None
+        self.max_n = None
 
     def load(self, evt_dict, obs):
         self.id = evt_dict['id']
         self.event_time = evt_dict['event_time']
         self.attribute = evt_dict['attribute']
+        # adding new column in observation table
+        if 'measurables' in evt_dict and evt_dict['measurables']:
+            self.flag = True
+            for measurable in evt_dict['measurables'] :
+                if self.flag and measurable['measurable_name'] == 'MaxN' :
+                    self.max_n = measurable['value']
+                    self.flag = False
+
+        else :
+            self.max_n=''
+
         self.note = evt_dict['note']
         if 'extent' in evt_dict:
             self.extent.from_wkt(evt_dict['extent'])
@@ -37,7 +49,8 @@ class Event(object):
             'event_time': self.event_time,
             'attribute': self.attribute,
             'note': self.note,
-            'extent': self.extent.to_wkt()
+            'extent': self.extent.to_wkt(),
+            'max_n': self.max_n
         }
 
     def to_columns(self):
@@ -58,6 +71,7 @@ class Event(object):
             'TODO Annotator',
             str(self.observation.animal),
             ', '.join([a['name'] for a in self.attribute]),
+            str(self.max_n),
             self.observation.comment,
             self.observation.duration,
             'TODO frame capture',  # just keep empty for now
