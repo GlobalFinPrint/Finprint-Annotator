@@ -530,7 +530,7 @@ class EventDialog(QDialog):
         MAXN_IMAGE_FRAME_ID need to be added in tag section, when maxN label comes out of focus
         or KeyPress event inside maxN input box
         '''
-        if (event.type() and event.type() in [QEvent.FocusOut ,QEvent.KeyRelease] and source is self.max_n_value and self.max_n_value):
+        if (event.type() and event.type() in [QEvent.FocusOut ,QEvent.KeyRelease] and self.max_n_value and source is self.max_n_value):
             if self.max_n_value.text() :
                 self.select_max_n_attribute()
             else :
