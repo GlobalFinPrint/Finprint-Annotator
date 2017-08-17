@@ -70,8 +70,8 @@ class Event(object):
             self.observation.type_choice,
             'TODO Annotator',
             str(self.observation.animal),
-            str(self.max_n),
             ', '.join([a['name'] for a in self.attribute]),
+            str(self.max_n),
             self.observation.comment,
             self.observation.duration,
             'TODO frame capture',  # just keep empty for now

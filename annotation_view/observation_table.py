@@ -18,8 +18,8 @@ class ObservationTableModel(QAbstractTableModel):
         type = 2
         annotator = 3
         organism = 4
-        max_n = 5
-        attributes = 6
+        attributes = 5
+        max_n = 6
         observation_comment = 7
         duration = 8
         frame_capture = 9
