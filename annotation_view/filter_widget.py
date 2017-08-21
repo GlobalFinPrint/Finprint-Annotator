@@ -78,6 +78,8 @@ class FilterWidget(QWidget):
     change = pyqtSignal(int, int, bool)
 
     def __init__(self):
+        #parent = parnt
+        #super(FilterWidget, self).__init__(parent)
         super().__init__()
         self.saturation_slider = FilterSlider('Saturation', 0, 100)
         self.brightness_slider = FilterSlider('Brightness', 0, 100)
@@ -96,21 +98,22 @@ class FilterWidget(QWidget):
         self.saturation_slider.change.connect(self.on_change)
         self.brightness_slider.change.connect(self.on_change)
         self.contrast_toggle.change.connect(self.on_change)
+        self.offset = None
 
     def toggle(self, filter_button):
-        if self.isVisible():
-            self.hide()
-            return 'images/filters.png'
-        else:
-            self.reveal(filter_button)
-            return 'images/filters-active.png'
+            if self.isVisible():
+                self.hide()
+                return False
+            else:
+                self.reveal(filter_button)
+                return True
 
     def reveal(self, filter_button):
         # XXX make this widget align to the button container
         # top, as in some high resolution displays, the bottom of the
         # widget is off the screen
         xy = filter_button.parent().mapToGlobal(QPoint(
-            filter_button.x(), filter_button.y() - 75
+            filter_button.x()-30, filter_button.y() - 110
         ))
         self.setGeometry(xy.x() - 205, xy.y() - 105, 200, 100)
         self.show()
@@ -128,9 +131,14 @@ class FilterWidget(QWidget):
     def mouseMoveEvent(self, event):
         # moves the whole filter widget layout to next
         # position when mouse is released
-        new_pos_x = event.globalX()
-        new_pos_y = event.globalY()
-        old_pos_x = self.offset.x()
-        old_pos_y = self.offset.y()
-        self.move(new_pos_x - old_pos_x, new_pos_y - old_pos_y)
+        if self.offset :
+            new_pos_x = event.globalX()
+            new_pos_y = event.globalY()
+            old_pos_x = self.offset.x()
+            old_pos_y = self.offset.y()
+            self.move(new_pos_x - old_pos_x, new_pos_y - old_pos_y)
+
+
+    def unblock_toggle(self):
+        self.block_toggle_flag = False
 

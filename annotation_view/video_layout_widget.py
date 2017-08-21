@@ -126,7 +126,8 @@ class VideoLayoutWidget(QWidget):
         self.keylist = set()
         self.firstrelease = None
         # installing eventFilter for controlling sat/brightness popup hide and show
-        QCoreApplication.instance().installEventFilter(self)
+        self._filter_widget.installEventFilter(self)
+        self._video_filter_button.installEventFilter(self)
 
     def wire_events(self):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
@@ -141,7 +142,7 @@ class VideoLayoutWidget(QWidget):
         self._back05.clicked.connect(self.on_back05)
 
         self._filter_widget.change.connect(self.on_filter_change)
-        self._video_filter_button.clicked.connect(self.on_video_filter_button)
+        #self._video_filter_button.clicked.connect(self.on_video_filter_button)
         self._fullscreen_button.clicked.connect(self.on_fullscreen)
 
         self._video_player.playStateChanged.connect(self.on_playstate_changed)
@@ -452,10 +453,6 @@ class VideoLayoutWidget(QWidget):
             self.fullscreen = FullScreen(*args)
         self.is_fullscreen = True
 
-    def on_video_filter_button(self):
-        img = self._filter_widget.toggle(self._video_filter_button)
-        self._video_filter_button.setPixmap(QPixmap(img))
-
     def on_filter_change(self, saturation, brightness, contrast):
         self._video_player.saturation = saturation
         self._video_player.brightness = brightness
@@ -508,19 +505,33 @@ class VideoLayoutWidget(QWidget):
             self.keylist.pop()
 
     def eventFilter(self, source, evt):
-        if evt.type() == QEvent.KeyPress and source is not self._video_filter_button \
-           and QApplication.activeModalWidget() is None:
-            # handles keyboard shortcut
-            self.keyboard_shortcut_event(evt)
-        elif evt.type() == QEvent.MouseButtonPress and QApplication.activeModalWidget() is None:
-            # event capture for mouse click
-            if not self._filter_widget.rect().contains(evt.pos()):
-                self._filter_widget.hide()
+        '''
+        This EventFilter is installed only for filter widget event capture
+        '''
+        if source is self._filter_widget:
+            if evt.type() == QEvent.KeyPress and QApplication.activeModalWidget() is None:
+                # handles keyboard shortcut
+                self.keyboard_shortcut_event(evt)
+                # Stop bubbling
+                return True
+        elif source is self._video_filter_button and evt.type() == QEvent.MouseButtonPress:
+            filter_widget_visible = self._filter_widget.toggle(self._video_filter_button)
+            if filter_widget_visible:
+                self._video_filter_button.setPixmap(QPixmap('images/filters-active.png'))
+            else:
                 self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
-            self.setFocus()
-            return False
+            # Stop bubbling
+            return True
 
+        # bubble up
         return False
+
+    def mousePressEvent(self, evt):
+        print(" video layout > mouse press event")
+        self.setFocus()
+        if self._filter_widget.isVisible():
+            self._filter_widget.hide()
+            self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
 
     def keyboard_shortcut_event(self, evt):
         '''
@@ -531,7 +542,3 @@ class VideoLayoutWidget(QWidget):
         if self._filter_widget.isVisible():
             MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self._filter_widget)
             self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
-
-
-
-
