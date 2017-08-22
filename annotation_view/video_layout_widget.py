@@ -527,7 +527,6 @@ class VideoLayoutWidget(QWidget):
         return False
 
     def mousePressEvent(self, evt):
-        print(" video layout > mouse press event")
         self.setFocus()
         if self._filter_widget.isVisible():
             self._filter_widget.hide()

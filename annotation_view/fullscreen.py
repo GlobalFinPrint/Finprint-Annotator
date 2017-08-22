@@ -204,7 +204,6 @@ class FullScreen(QWidget):
         self.filter_widget.installEventFilter(self)
         self.video_filter_button.installEventFilter(self)
 
-
     def revive(self, set, video_file, small_player):
         set_changed = self.current_set != set
         self.current_set = set
@@ -327,6 +326,7 @@ class FullScreen(QWidget):
         '''
         This EventFilter is installed only for filter widget/ video filter button event capture
         '''
+        print("fullscreen >>> eventFilter")
         if source is self.filter_widget:
             if evt.type() == QEvent.KeyPress and QApplication.activeModalWidget() is None:
                 # handles keyboard shortcut
@@ -348,10 +348,8 @@ class FullScreen(QWidget):
     def mousePressEvent(self, mouse_evt):
         print("fullscreen > mousePressEvent")
         self.setFocus()
-        filter_widget_visible = self.filter_widget.toggle(self.video_filter_button)
-        if filter_widget_visible:
-            self.video_filter_button.setPixmap(QPixmap('images/filters-active.png'))
-        else:
+        if self.filter_widget.isVisible():
+            self.filter_widget.hide()
             self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
 
 
