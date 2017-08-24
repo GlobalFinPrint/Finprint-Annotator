@@ -19,3 +19,24 @@ class MultiKeyPressHandler:
             obj.on_back05()
         elif aggregate_key_events == Qt.Key_Control + Qt.Key_Down:
             obj.on_back15()
+
+    def handle_keyboard_shortcut_event(self, evt, filter_widget):
+        '''
+        Considering that keyboard shortcut in windows
+        as per explained is ,anything which involves shift modifier
+        or control modifier or both or F1 keyPress.
+        '''
+        if evt.key() in [Qt.Key_F1, Qt.Key_Escape]:
+            filter_widget.hide()
+            return True
+        elif evt.modifiers() & Qt.ShiftModifier :
+            filter_widget.hide()
+            return True
+        elif evt.modifiers() & Qt.ControlModifier :
+            filter_widget.hide()
+            return True
+        elif evt.modifiers() & Qt.ShiftModifier and evt.modifiers() & Qt.ControlModifier :
+            filter_widget.hide()
+            return True
+
+        return False
