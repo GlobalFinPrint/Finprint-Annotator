@@ -69,7 +69,72 @@ class InnoScript:
                 flags = 'ignoreversion'
                 print(r'Source: "%s"; DestDir: "{app}\%s"; Flags: %s' % (path, os.path.dirname(path), flags), file=ofi)
 
+            print(r"[INI]", file=ofi)
+            print(r'Filename: "{app}\config.ini"; Section: "VIDEOS"; Key: "alt_media_dir"; String: "{code:GetVideoDir|0}"',file=ofi)
+
+            install_code = r"""
+                                [Code]
+                                var
+                                  VideoDirPage: TInputDirWizardPage;
+
+                                procedure InitializeWizard;
+                                begin
+                                  { Create the pages }
+                                  VideoDirPage := CreateInputDirPage(wpSelectDir,
+                                    'Select BRUV Video Destination Location',
+                                    'Where should the Finprint-Annotator look for BRUV videos to view?',
+                                    'Setup will set the default file path to BRUV videos to the following folder.'+
+                                    'To continue, click Next. If you would like to select a different folder, click Browse.',
+                                    False, '');
+                                  VideoDirPage.Add('');
+
+                                  { Set default values, using settings that were stored last time if possible }
+
+                                  VideoDirPage.Values[0] := GetPreviousData('VideoDir', '');
+                                end;
+
+                                procedure RegisterPreviousData(PreviousDataKey: Integer);
+                                begin
+                                  { Store the settings so we can restore them next time }
+                                  SetPreviousData(PreviousDataKey, 'VideoDir', VideoDirPage.Values[0]);
+                                end;
+
+                                function NextButtonClick(CurPageID: Integer): Boolean;
+                                begin
+                                  {
+                                    Validate certain pages before allowing the user to proceed
+                                    Weak assumption that there are 3 pages involved in installation
+                                  }
+                                  if not(CurPageID = VideoDirPage.ID) then
+                                     if not(CurPageID = wpReady) then
+                                    VideoDirPage.Values[0] := WizardDirValue + '\videos'
+
+                                  Result := True;
+                                end;
+
+                                function UpdateReadyMemo(Space, NewLine, MemoUserInfoInfo, MemoDirInfo, MemoTypeInfo,
+                                                         MemoComponentsInfo, MemoGroupInfo, MemoTasksInfo: String): String;
+                                var
+                                  S: String;
+                                begin
+                                  { Fill the 'Ready Memo' with the normal settings and the custom settings }
+                                  S := '';
+                                  S := S + MemoDirInfo + NewLine;
+                                  S := S + Space + VideoDirPage.Values[0] + ' (video data files)' + NewLine;
+
+                                  Result := S;
+                                end;
+
+                                function GetVideoDir(Param: String): String;
+                                begin
+                                  { Return the selected Video directory path }
+                                  Result := VideoDirPage.Values[StrToInt(Param)];
+                                end;
+                                """
+            print(install_code, file=ofi)
+
             print(r"[InstallDelete]", file=ofi)
+
             for path in self.files_to_delete:
                 print(r'Type: filesandordirs; Name: "{app}\%s"' % path, file=ofi)
 
