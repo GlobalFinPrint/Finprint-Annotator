@@ -89,9 +89,9 @@ class VideoLayoutWidget(QWidget):
         #adding hover text
         self._step_forward_button.setToolTip("Forward one frame (<Shift> + Right Arrow)")
 
-        self._filter_widget = FilterWidget()
         self._video_filter_button = ClickLabel()
         self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
+        self._filter_widget = FilterWidget(self._video_filter_button)
 
         self._fullscreen_button = ClickLabel()
         self._fullscreen_button.setPixmap(QPixmap('images/fullscreen.png'))
@@ -514,6 +514,7 @@ class VideoLayoutWidget(QWidget):
                 self.keyboard_shortcut_event(evt)
                 # Stop bubbling
                 return True
+
         elif source is self._video_filter_button and evt.type() == QEvent.MouseButtonPress:
             filter_widget_visible = self._filter_widget.toggle(self._video_filter_button)
             if filter_widget_visible:
@@ -522,6 +523,7 @@ class VideoLayoutWidget(QWidget):
                 self._video_filter_button.setPixmap(QPixmap('images/filters.png'))
             # Stop bubbling
             return True
+
 
         # bubble up
         return False
