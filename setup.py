@@ -10,7 +10,6 @@ from distutils.core import setup
 from py2exe.distutils_buildexe import py2exe
 import win32api, win32con
 import config
-import configparser
 
 
 
