@@ -77,9 +77,7 @@ class ContrastToggle(QWidget):
 class FilterWidget(QWidget):
     change = pyqtSignal(int, int, bool)
 
-    def __init__(self):
-        #parent = parnt
-        #super(FilterWidget, self).__init__(parent)
+    def __init__(self, video_filter_button):
         super().__init__()
         self.saturation_slider = FilterSlider('Saturation', 0, 100)
         self.brightness_slider = FilterSlider('Brightness', 0, 100)
@@ -99,6 +97,9 @@ class FilterWidget(QWidget):
         self.brightness_slider.change.connect(self.on_change)
         self.contrast_toggle.change.connect(self.on_change)
         self.offset = None
+        self._video_filter_button = video_filter_button
+        self.installEventFilter(self)
+
 
     def toggle(self, filter_button):
             if self.isVisible():
@@ -128,17 +129,34 @@ class FilterWidget(QWidget):
         # captures intial position of mouse press
         self.offset = event.pos()
 
-    def mouseMoveEvent(self, event):
-        # moves the whole filter widget layout to next
-        # position when mouse is released
-        if self.offset :
-            new_pos_x = event.globalX()
-            new_pos_y = event.globalY()
+    def eventFilter(self, source, evt):
+        '''
+        This EventFilter is installed only for filter widget event capture
+        '''
+        if evt.type() \
+           and evt.type() == QEvent.MouseMove \
+           and self.offset:
+            new_pos_x = evt.globalX()
+            new_pos_y = evt.globalY()
             old_pos_x = self.offset.x()
             old_pos_y = self.offset.y()
             self.move(new_pos_x - old_pos_x, new_pos_y - old_pos_y)
+            # Stop bubbling
+            return True
+        elif evt.type() \
+             and evt.type() == QEvent.WindowDeactivate:
+            # avoid race condition between event filter installed in video layout widget
+            # and full screen widget over the same object
+            QTimer.singleShot(100, self.hide)
+            # Stop bubbling
+            return True
+        else :
+            return False
 
 
-    def unblock_toggle(self):
-        self.block_toggle_flag = False
-
+    def hide(self):
+        '''
+        Have to change color of button to darker one so overriding
+        '''
+        super(FilterWidget, self).hide()
+        self._video_filter_button.setPixmap(QPixmap('images/filters.png'))

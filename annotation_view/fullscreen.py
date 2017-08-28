@@ -98,9 +98,9 @@ class FullScreen(QWidget):
         self.video_length_label = QLabel()
         self.video_length_label.setStyleSheet('color: #838C9E; font-size: 13px; padding-top: 10px;')
 
-        self.filter_widget = FilterWidget()
         self.video_filter_button = ClickLabel()
         self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
+        self.filter_widget = FilterWidget(self.video_filter_button)
 
 
         self.fullscreen_button = ClickLabel()
@@ -326,7 +326,6 @@ class FullScreen(QWidget):
         '''
         This EventFilter is installed only for filter widget/ video filter button event capture
         '''
-        print("fullscreen >>> eventFilter")
         if source is self.filter_widget:
             if evt.type() == QEvent.KeyPress and QApplication.activeModalWidget() is None:
                 # handles keyboard shortcut
