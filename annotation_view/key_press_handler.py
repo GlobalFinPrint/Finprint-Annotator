@@ -3,7 +3,11 @@ from PyQt4.QtGui import *
 
 class MultiKeyPressHandler:
 
-    def register_application_shortcut_key(self, layout_obj = None):
+    def register_layout_shortcut_event(self, layout_obj = None):
+        '''
+        Register keyboard shortcut with their functionality with each
+        layout as layout_obj
+        '''
         step_back_shortcut = QAction(layout_obj)
         step_back_shortcut.setShortcut(QKeySequence("Shift+Left"))
         layout_obj.connect(step_back_shortcut, SIGNAL("activated()"), layout_obj.on_step_back)
