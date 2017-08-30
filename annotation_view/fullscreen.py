@@ -252,8 +252,7 @@ class FullScreen(QWidget):
 
         self.keyPressed.connect(self.on_key)
         # multi key press event handling set
-        self.keylist = set()
-        self.firstrelease = False
+        MultiKeyPressHandler().register_layout_shortcut_key_event(layout_obj=self)
 
     def on_position_change(self, pos):
         self.video_time_label.setText(convert_position(int(pos)))
@@ -373,29 +372,11 @@ class FullScreen(QWidget):
             self.layout.hidden_controls = not self.layout.hidden_controls
             self.layout.update()
         else :
-            self.firstrelease = True
-            self.keylist.add(event.key())
             self.keyPressed.emit(event)
 
     def on_key(self, event):
         if event.key() == Qt.Key_F5:
             self.on_fullscreen_toggle()
-
-
-    def keyReleaseEvent(self, evt):
-        '''
-        overriding system keyReleaseEvent ,
-        adds keyEvent in keyList when later key is
-        released in case of multi key press
-        '''
-        super(FullScreen, self).keyReleaseEvent(evt)
-        if self.firstrelease == True:
-            self.keylist.add(evt.key())
-            MultiKeyPressHandler().process_multi_key_press(self)
-
-        self.firstrelease = False
-        if self.keylist :
-            self.keylist.pop()
 
     def keyboard_shortcut_event(self, evt):
         '''

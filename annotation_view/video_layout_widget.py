@@ -122,12 +122,11 @@ class VideoLayoutWidget(QWidget):
         self.current_set = None
         self.setup_layout()
         self.wire_events()
-        # multi key press event handling set
-        self.keylist = set()
-        self.firstrelease = None
+
         # installing eventFilter for controlling sat/brightness popup hide and show
         self._filter_widget.installEventFilter(self)
         self._video_filter_button.installEventFilter(self)
+
 
     def wire_events(self):
         self._toggle_play_button.clicked.connect(self.on_toggle_play)
@@ -162,6 +161,9 @@ class VideoLayoutWidget(QWidget):
             button.speedClick.connect(self.on_speed)
 
         self.keyPressed.connect(self.on_key)
+
+        # wiring shortcuts
+        MultiKeyPressHandler().register_layout_shortcut_key_event(layout_obj=self)
 
     def setup_layout(self):
         # Main container going top to bottom
@@ -478,31 +480,14 @@ class VideoLayoutWidget(QWidget):
 
     def keyPressEvent(self, event):
         '''
-        overriding system keyPressEvent to handle multikey press
+        overriding system keyPressEvent to handle key press
         '''
-        super(VideoLayoutWidget, self).keyPressEvent(event)
-        self.firstrelease = True
-        self.keylist.add(event.key())
         self.keyPressed.emit(event)
 
     def on_key(self, event):
         if event.key() == Qt.Key_F5:
             self.on_fullscreen()
 
-    def keyReleaseEvent(self, evt):
-        '''
-        overriding system keyReleaseEvent ,
-        adds keyEvent in keyList when later key is
-        released in case of multi key press
-        '''
-        super(VideoLayoutWidget, self).keyReleaseEvent(evt)
-        if self.firstrelease == True:
-            self.keylist.add(evt.key())
-            MultiKeyPressHandler().process_multi_key_press(self)
-
-        self.firstrelease = False
-        if self.keylist :
-            self.keylist.pop()
 
     def eventFilter(self, source, evt):
         '''
