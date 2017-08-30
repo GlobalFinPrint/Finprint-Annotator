@@ -196,6 +196,11 @@ class ObservationTable(QTableView):
         font = self.horizontalHeader().font()
         font.setPointSize(12)
         self.horizontalHeader().setFont(font)
+        # register shortcut event with Observation layout
+        go_to_event_shortcut = QAction(self)
+        go_to_event_shortcut.setShortcut(QKeySequence("Ctrl+G"))
+        self.connect(go_to_event_shortcut, SIGNAL("activated()"), self.handle_go_to_event_shotcut)
+        self.addAction(go_to_event_shortcut)
 
     def set_data(self):
         # set model
@@ -373,3 +378,10 @@ class ObservationTable(QTableView):
             last_event_name = self.current_set.observations[0].events[0]
 
         return last_event_name
+
+    def handle_go_to_event_shotcut(self):
+        '''
+        emits go to event
+        '''
+        self.goToEvent.emit(self.get_event(self.selectionModel().selectedRows()[0].row()))
+
