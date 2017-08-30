@@ -1,24 +1,30 @@
 from PyQt4.QtCore import *
+from PyQt4.QtGui import *
 
 class MultiKeyPressHandler:
 
-    def aggregate_key_event(self, key_pressed):
-        return sum(key_pressed)
+    def register_layout_shortcut_key_event(self, layout_obj = None):
+        '''
+        Register keyboard shortcut with their functionality with each
+        layout as layout_obj
+        '''
+        step_back_shortcut = QAction(layout_obj)
+        step_back_shortcut.setShortcut(QKeySequence("Shift+Left"))
+        layout_obj.connect(step_back_shortcut, SIGNAL("activated()"), layout_obj.on_step_back)
+        layout_obj.addAction(step_back_shortcut)
+        step_forward_shortcut = QAction(layout_obj)
+        step_forward_shortcut.setShortcut(QKeySequence("Shift+Right"))
+        layout_obj.connect(step_forward_shortcut, SIGNAL("activated()"), layout_obj.on_step_forward)
+        layout_obj.addAction(step_forward_shortcut)
+        step_back_5sec_shortcut = QAction(layout_obj)
+        step_back_5sec_shortcut.setShortcut(QKeySequence("Ctrl+Left"))
+        layout_obj.connect(step_back_5sec_shortcut, SIGNAL("activated()"), layout_obj.on_back05)
+        layout_obj.addAction(step_back_5sec_shortcut)
+        step_back_15sec_shortcut = QAction(layout_obj)
+        step_back_15sec_shortcut.setShortcut(QKeySequence("Ctrl+Down"))
+        layout_obj.connect(step_back_15sec_shortcut, SIGNAL("activated()"), layout_obj.on_back15)
+        layout_obj.addAction(step_back_15sec_shortcut)
 
-    def process_multi_key_press(self, obj):
-        '''
-        Handles event based on multi key press
-        both for full screen and normal screen
-        '''
-        aggregate_key_events = self.aggregate_key_event(obj.keylist)
-        if aggregate_key_events == Qt.Key_Shift + Qt.Key_Left:
-            obj.on_step_back()
-        elif aggregate_key_events == Qt.Key_Shift + Qt.Key_Right:
-            obj.on_step_forward()
-        elif aggregate_key_events == Qt.Key_Control + Qt.Key_Left:
-            obj.on_back05()
-        elif aggregate_key_events == Qt.Key_Control + Qt.Key_Down:
-            obj.on_back15()
 
     def handle_keyboard_shortcut_event(self, evt, filter_widget):
         '''
