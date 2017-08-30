@@ -483,6 +483,7 @@ class VideoLayoutWidget(QWidget):
         super(VideoLayoutWidget, self).keyPressEvent(event)
         self.firstrelease = True
         self.keylist.add(event.key())
+        # emits key press event for full screen for now
         self.keyPressed.emit(event)
 
     def on_key(self, event):

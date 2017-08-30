@@ -196,6 +196,9 @@ class ObservationTable(QTableView):
         font = self.horizontalHeader().font()
         font.setPointSize(12)
         self.horizontalHeader().setFont(font)
+        # multi key press event handling set
+        self.keylist = set()
+        self.firstrelease = None
 
     def set_data(self):
         # set model
@@ -243,6 +246,37 @@ class ObservationTable(QTableView):
             "column_number": self.indexAt(args[0].pos()).column(),
             "row_number": self.indexAt(args[0].pos()).row()},
         )
+
+    def keyPressEvent(self, event):
+        '''
+        overriding system keyPressEvent to handle multikey press
+        '''
+        self.firstrelease = True
+        self.keylist.add(event.key())
+
+    def keyReleaseEvent(self, evt):
+        '''
+        overriding system keyReleaseEvent ,
+        adds keyEvent in keyList when later key is
+        released in case of multi key press
+        '''
+        if self.firstrelease == True:
+            self.keylist.add(evt.key())
+            self.process_multi_key_press()
+
+        self.firstrelease = False
+        if self.keylist:
+            self.keylist.pop()
+
+    def process_multi_key_press(self):
+        '''
+        MultiKey press handler Implementation
+        '''
+        aggregate_key_events = sum(self.keylist)
+        if aggregate_key_events == Qt.Key_Control + Qt.Key_G:
+           # selecting the row number and firing goToEvent
+           self.goToEvent.emit(self.get_event(self.selectionModel().selectedRows()[0].row()))
+
 
     def item(self, row, col):
         return self.source_model.index(row, col).data()
