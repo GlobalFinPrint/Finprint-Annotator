@@ -383,5 +383,6 @@ class ObservationTable(QTableView):
         '''
         emits go to event
         '''
-        self.goToEvent.emit(self.get_event(self.selectionModel().selectedRows()[0].row()))
+        if self.selectionModel().selectedRows() :
+            self.goToEvent.emit(self.get_event(self.selectionModel().selectedRows()[0].row()))
 
