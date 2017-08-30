@@ -163,7 +163,7 @@ class VideoLayoutWidget(QWidget):
         self.keyPressed.connect(self.on_key)
 
         # wiring shortcuts
-        MultiKeyPressHandler().register_application_shortcut_key(layout_obj=self)
+        MultiKeyPressHandler().register_layout_shortcut_key_event(layout_obj=self)
 
     def setup_layout(self):
         # Main container going top to bottom

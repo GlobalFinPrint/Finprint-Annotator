@@ -3,7 +3,7 @@ from PyQt4.QtGui import *
 
 class MultiKeyPressHandler:
 
-    def register_layout_shortcut_event(self, layout_obj = None):
+    def register_layout_shortcut_key_event(self, layout_obj = None):
         '''
         Register keyboard shortcut with their functionality with each
         layout as layout_obj

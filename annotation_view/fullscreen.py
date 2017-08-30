@@ -252,7 +252,7 @@ class FullScreen(QWidget):
 
         self.keyPressed.connect(self.on_key)
         # multi key press event handling set
-        MultiKeyPressHandler().register_application_shortcut_key(layout_obj=self)
+        MultiKeyPressHandler().register_layout_shortcut_key_event(layout_obj=self)
 
     def on_position_change(self, pos):
         self.video_time_label.setText(convert_position(int(pos)))
