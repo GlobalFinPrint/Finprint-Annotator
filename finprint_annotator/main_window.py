@@ -1,5 +1,5 @@
-import itertools
 import config
+import webbrowser
 from pydispatch import dispatcher
 from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set, QueryException
@@ -93,8 +93,19 @@ class MainWindow(QMainWindow):
             fullscreenAction.setStatusTip('View video in fullscreen mode')
             fullscreenAction.triggered.connect(self._attempt_fullscreen)
             viewMenu.addAction(fullscreenAction)
+            # adding "help" menu bar for User guide menu
+            viewMenu = menubar.addMenu('&Help')
+            user_guide_link = QAction('Annotator user guide', self)
+            user_guide_link.setShortcut(QKeySequence('Ctrl+L'))
+            user_guide_link.setStatusTip('View Annotator user guide')
+            user_guide_link.triggered.connect(self._show_user_guide)
+            viewMenu.addAction(user_guide_link)
 
         self.setMenuBar(menubar)
+
+       # user_guide_shortcut = QAction(self)
+       # user_guide_shortcut.setShortcut(QKeySequence('Ctrl+G'))
+      #  self.connect(user_guide_shortcut, SIGNAL("activated()"), self._show_user_guide)
 
     # TODO: The login widget should just be the dialog
     def _launch_login_dialog(self):
@@ -216,3 +227,13 @@ class MainWindow(QMainWindow):
                 self._vid_layout.on_fullscreen()
             else:
                 self._vid_layout.fullscreen.on_fullscreen_toggle()
+
+    def _show_user_guide(self):
+        print(" user guide to be shown in browser")
+        QDesktopServices.openUrl(QUrl("C:\Vulcan\Finprint-Annotator\Annotator User Guide.docx"))
+        new = 2  # open in a new tab, if possible
+
+        # open a public URL, in this case, the webbrowser docs
+        #url = "file:// C:\Vulcan\Finprint-Annotator\Annotator User Guide.docx"
+        url = "C:\Vulcan\Finprint-Annotator\Annotator User Guide.docx"
+        webbrowser.open(url, new=new)
