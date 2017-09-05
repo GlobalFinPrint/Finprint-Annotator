@@ -14,6 +14,7 @@ class Set(object):
         self.code = ''
         self.status_id = None
         self.progress = 0
+        self.max_n = ''
 
         if id is not None:
             data = self._connection.set_detail(id)

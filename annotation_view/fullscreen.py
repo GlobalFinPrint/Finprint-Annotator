@@ -98,9 +98,10 @@ class FullScreen(QWidget):
         self.video_length_label = QLabel()
         self.video_length_label.setStyleSheet('color: #838C9E; font-size: 13px; padding-top: 10px;')
 
-        self.filter_widget = FilterWidget()
         self.video_filter_button = ClickLabel()
         self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
+        self.filter_widget = FilterWidget(self.video_filter_button)
+
 
         self.fullscreen_button = ClickLabel()
         self.fullscreen_button.setPixmap(QPixmap('images/fullscreen-minimize.png'))
@@ -199,6 +200,9 @@ class FullScreen(QWidget):
         # wire events for interactivity
         self.wire_events()
 
+        # installing eventFilter for controlling sat/brightness popup hide and show
+        self.filter_widget.installEventFilter(self)
+        self.video_filter_button.installEventFilter(self)
 
     def revive(self, set, video_file, small_player):
         set_changed = self.current_set != set
@@ -227,7 +231,8 @@ class FullScreen(QWidget):
         self.playback_speed_label.setText('(0x)')
         #intializing TimerVO with present time
         self.fullscreen_video_player.set_position(self.small_player.get_position())
-        QCoreApplication.instance().installEventFilter(self)
+        self.filter_widget.installEventFilter(self)
+        self.video_filter_button.installEventFilter(self)
         QCoreApplication.instance().installEventFilter(self.fullscreen_video_player)
 
     def wire_events(self):
@@ -240,7 +245,6 @@ class FullScreen(QWidget):
         self.fast_forward_button.clicked.connect(self.on_fast_forward)
         self.step_back_button.clicked.connect(self.on_step_back)
         self.step_forward_button.clicked.connect(self.on_step_forward)
-        self.video_filter_button.clicked.connect(self.on_video_filter_button)
         self.fullscreen_button.clicked.connect(self.on_fullscreen_toggle)
         self.seek_bar.tickSelected.connect(self.on_slider_tick)
         for button in self.speed_buttons:
@@ -248,7 +252,7 @@ class FullScreen(QWidget):
 
         self.keyPressed.connect(self.on_key)
         # multi key press event handling set
-        self.keylist = set()
+        MultiKeyPressHandler().register_layout_shortcut_key_event(layout_obj=self)
 
     def on_position_change(self, pos):
         self.video_time_label.setText(convert_position(int(pos)))
@@ -302,7 +306,8 @@ class FullScreen(QWidget):
         #setting scrub postion with new changed position of normal screen where it paused
         self.small_player.scrub_position(self.fullscreen_video_player.get_position())
         self.small_player.parent()._observation_table.refresh_model()
-        QCoreApplication.instance().removeEventFilter(self)
+        self.filter_widget.removeEventFilter(self)
+        self.video_filter_button.removeEventFilter(self)
         QCoreApplication.instance().installEventFilter(self.small_player)
         self.hide()
         self.fullscreen_video_player.clear()
@@ -316,20 +321,35 @@ class FullScreen(QWidget):
     def refresh_seek_bar(self):
         self.seek_bar.load_set(self.current_set)
 
-    def eventFilter(self, obj, evt):
-        if obj.__class__ != QLineEdit and QApplication.activeModalWidget() is None and evt.type() == QEvent.KeyPress:
-            if evt.key() == Qt.Key_Escape:
-                self.on_fullscreen_toggle()
+    def eventFilter(self, source, evt):
+        '''
+        This EventFilter is installed only for filter widget/ video filter button event capture
+        '''
+        if source is self.filter_widget:
+            if evt.type() == QEvent.KeyPress and QApplication.activeModalWidget() is None:
+                # handles keyboard shortcut
+                self.keyboard_shortcut_event(evt)
+                # Stop bubbling
                 return True
-            elif evt.key() == Qt.Key_T:
-                self.layout.hidden_controls = not self.layout.hidden_controls
-                self.layout.update()
-                return True
+        elif source is self.video_filter_button and evt.type() == QEvent.MouseButtonPress:
+            filter_widget_visible = self.filter_widget.toggle(self.video_filter_button)
+            if filter_widget_visible:
+                self.video_filter_button.setPixmap(QPixmap('images/filters-active.png'))
+            else:
+                self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
+            # Stop bubbling
+            return True
+
+        # bubble up
         return False
 
-    def on_video_filter_button(self):
-        img = self.filter_widget.toggle(self.video_filter_button)
-        self.video_filter_button.setPixmap(QPixmap(img))
+    def mousePressEvent(self, mouse_evt):
+        print("fullscreen > mousePressEvent")
+        self.setFocus()
+        if self.filter_widget.isVisible():
+            self.filter_widget.hide()
+            self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
+
 
     def on_filter_change(self, saturation, brightness, contrast):
         self.fullscreen_video_player.saturation = saturation
@@ -346,33 +366,24 @@ class FullScreen(QWidget):
         released in case of multi key press
         '''
         super(FullScreen, self).keyPressEvent(event)
-        self.firstrelease = True
-        self.keylist.add(event.key())
-        self.keyPressed.emit(event)
+        if event.key() == Qt.Key_Escape:
+            self.on_fullscreen_toggle()
+        elif event.key() == Qt.Key_T:
+            self.layout.hidden_controls = not self.layout.hidden_controls
+            self.layout.update()
+        else :
+            self.keyPressed.emit(event)
 
     def on_key(self, event):
         if event.key() == Qt.Key_F5:
             self.on_fullscreen_toggle()
 
-
-    def keyReleaseEvent(self, evt):
+    def keyboard_shortcut_event(self, evt):
         '''
-        overriding system keyReleaseEvent ,
-        adds keyEvent in keyList when later key is
-        released in case of multi key press
+        Considering that keyboard shortcut in windows
+        as per explained is anything which involves shift modifier
+        or control modifier or both or F1.
         '''
-        super(FullScreen, self).keyReleaseEvent(evt)
-        if self.firstrelease == True:
-            self.keylist.add(evt.key())
-            MultiKeyPressHandler().process_multi_key_press(self)
-
-        self.firstrelease = False
-        if self.keylist :
-            self.keylist.pop()
-
-    def mousePressEvent(self, mouse_evt):
-        '''
-        set focus to full screen widget when mouse is pressed on
-        '''
-        super(FullScreen, self).mousePressEvent(mouse_evt)
-        self.setFocus()
+        if self.filter_widget.isVisible() :
+            MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self.filter_widget)
+            self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
