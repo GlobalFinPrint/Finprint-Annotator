@@ -385,4 +385,3 @@ class ObservationTable(QTableView):
         '''
         if self.selectionModel().selectedRows() :
             self.goToEvent.emit(self.get_event(self.selectionModel().selectedRows()[0].row()))
-

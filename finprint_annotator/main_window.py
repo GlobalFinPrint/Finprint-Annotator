@@ -164,7 +164,7 @@ class MainWindow(QMainWindow):
         config.global_config.set_item('VIDEOS', 'alt_media_dir', self.video_source.text())
         self.props_diag.close()
         self._vid_layout.clear()
-        # refresh or open new assignment widget if not there (GLOB-729)
+        # launches new assignment list if video location is changed(GLOB-729)
         self.assign_diag.close()
         self._launch_assigned_set_list_diag()
 
