@@ -86,11 +86,12 @@ class AnnotationImage(QWidget):
         self.initUI()
 
     def initUI(self):
+        self.setStyleSheet('background-color: white;')
         self.show()
 
     def clear(self):
         self.curr_image = None
-        self.highlighter.clear()
+        self.clearExtent()
 
     def clearExtent(self):
         self.highlighter.clear()
@@ -310,9 +311,10 @@ class VlcVideoWidget(QStackedWidget):
         if opts and self._fullscreen :
             self.media.add_options(opts)
 
+        self.show()
         # XXX hack to display the first few frames, which alters the bahavior of
         # VLC with respect to video scrubbing
-        #self.mediaplayer.set_time(20)
+        self.mediaplayer.set_time(20)
         print(" playing for 20 msec")
         self.mediaplayer.play()
         QTimer.singleShot(500, self.after_load)
@@ -362,8 +364,13 @@ class VlcVideoWidget(QStackedWidget):
     def clear(self):
         print('vlc_video_widget > clear: get_position {0}'.format(self.get_position()))
         self._timer.cancel()
-        self.clear_extent()
         self.annotationImage.clear()
+        self.removeWidget(self.annotationImage)
+        self.annotationImage.hide()
+        self.annotationImage = None
+        self.annotationImage = AnnotationImage()
+        self.addWidget(self.annotationImage)
+        self.hide()
         self.update()
 
 
@@ -412,6 +419,7 @@ class VlcVideoWidget(QStackedWidget):
     def take_videoframe_snapshot(self):
         getLogger('finprint').info('take videoframe snapshot')
         self.annotationImage.clear()
+        self.annotationImage.show()
         pix = QPixmap.grabWindow(self.videoframe.winId())
         snap = pix.scaledToHeight(self.videoframe.height())
         self.annotationImage.curr_image = snap.toImage()
@@ -455,6 +463,7 @@ class VlcVideoWidget(QStackedWidget):
     def play(self):
         # TODO emit if end of stream via callback
 
+        self.show()
         self.clear_extent()
         self.set_speed(1.0)
         playStarted = self.mediaplayer.play()

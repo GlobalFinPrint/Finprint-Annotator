@@ -347,6 +347,7 @@ class VideoLayoutWidget(QWidget):
     def clear(self):
         self._video_label.setText('')
         self._video_player.clear()
+        self._slider.setValue(0)
         self._slider.hide()
         self._pos_label.clear()
         self._duration_label.clear()
