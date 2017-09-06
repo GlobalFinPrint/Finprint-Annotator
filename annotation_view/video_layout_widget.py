@@ -46,6 +46,7 @@ class VideoLayoutWidget(QWidget):
 
         # UI widgets
         self.vid_box = None
+        self.top_box = None
         self._video_label = QLabel('')
         self._video_label.setStyleSheet("""color:rgb(74,74,74); font: 75 12pt "Arial";""")
         self._video_player = VlcVideoWidget(parent=self, onPositionChange=self.on_position_change)
@@ -171,14 +172,15 @@ class VideoLayoutWidget(QWidget):
         container.setDirection(QBoxLayout.TopToBottom)
 
         # Top section L/R
-        top_box = QHBoxLayout()
+        self.top_box = QHBoxLayout()
 
         # Video screen and slider
-        vid_box = QVBoxLayout()
-        vid_box.addWidget(self._video_label)
-        vid_box.addWidget(self._video_player)
+        self.vid_box = QVBoxLayout()
+        self._video_player.clear()
+        self.vid_box.addWidget(self._video_label)
+        self.vid_box.addWidget(self._video_player)
 
-        vid_box.addWidget(self._slider)
+        self.vid_box.addWidget(self._slider)
 
         pos_layout = QHBoxLayout()
         pos_layout.addWidget(self._pos_label)  # TODO move this under the cursor
@@ -186,11 +188,11 @@ class VideoLayoutWidget(QWidget):
         pos_layout.addStretch(1)
         pos_layout.addWidget(self._duration_label)
 
-        vid_box.addLayout(pos_layout)
-        vid_box.addStretch(1)
+        self.vid_box.addLayout(pos_layout)
+        self.vid_box.addStretch(1)
 
         # add to top box
-        top_box.addLayout(vid_box)
+        self.top_box.addLayout(self.vid_box)
 
         # Video controls
         video_controls_box = QHBoxLayout()
@@ -226,10 +228,10 @@ class VideoLayoutWidget(QWidget):
         button_box.addWidget(self._approve_button)
 
         # add to top box
-        top_box.addLayout(button_box)
+        self.top_box.addLayout(button_box)
 
         # add top box to main layout
-        container.addLayout(top_box)
+        container.addLayout(self.top_box)
 
         # Observation table
         bottom_box = QVBoxLayout()
@@ -317,6 +319,10 @@ class VideoLayoutWidget(QWidget):
 
         self._observation_table.load_set(set)
         self._data_loading = False
+        self._playback_speed_label.show()
+        self._pos_label.setText("00:00:000")
+        self._pos_label.show()
+        self._duration_label.show()
 
     def on_playstate_changed(self, play_state):
         getLogger('finprint').info('layout widget: playstate changed: {0}'.format(play_state))
@@ -336,10 +342,16 @@ class VideoLayoutWidget(QWidget):
         if self.current_set is not None:
             self.current_set.update_progress(progress)
 
+
+
     def clear(self):
         self._video_label.setText('')
-        self._slider.hide()
         self._video_player.clear()
+        self._slider.setValue(0)
+        self._slider.hide()
+        self._pos_label.clear()
+        self._duration_label.clear()
+        self._playback_speed_label.clear()
         self._submit_button.setDisabled(True)
         self._submit_button.setVisible(False)
         self._approve_button.setDisabled(True)
