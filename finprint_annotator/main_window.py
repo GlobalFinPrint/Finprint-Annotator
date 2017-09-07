@@ -228,8 +228,9 @@ class MainWindow(QMainWindow):
                 self._vid_layout.fullscreen.on_fullscreen_toggle()
 
     def _show_user_guide(self):
-        print(" user guide to be shown in browser")
-        QDesktopServices.openUrl(QUrl("C:\Vulcan\Finprint-Annotator\Annotator User Guide.docx"))
-        new = 2  # open in a new tab, if possible
-        url = "C:\Vulcan\Finprint-Annotator\Annotator User Guide.docx"
-        webbrowser.open(url, new=new)
+       '''
+       takes user guide Url and opens a new tab browser containing user guide
+       '''
+       user_guide_url = global_config.get('GLOBAL_FINPRINT_SERVER', 'address')+'/help/client/'
+       new = 2  # open in a new tab, if possible
+       webbrowser.open(user_guide_url, new=new)
