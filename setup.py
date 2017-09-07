@@ -72,6 +72,9 @@ class InnoScript:
             print(r"[INI]", file=ofi)
             print(r'Filename: "{app}\config.ini"; Section: "VIDEOS"; Key: "alt_media_dir"; String: "{code:GetVideoDir|0}"',file=ofi)
 
+            print(r"[Dirs]", file=ofi)
+            print(r'Name: "{code:GetVideoDir|0}"',file=ofi)
+
             install_code = r"""
                                 [Code]
                                 var
