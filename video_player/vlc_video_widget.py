@@ -86,7 +86,6 @@ class AnnotationImage(QWidget):
         self.initUI()
 
     def initUI(self):
-        self.setStyleSheet('background-color: white;')
         self.show()
 
     def clear(self):
@@ -325,6 +324,7 @@ class VlcVideoWidget(QStackedWidget):
         self.mediaplayer.pause()
         self.clear_extent()
         self.annotationImage.clear()
+        self.take_videoframe_snapshot()
 
     def _target_width(self):
         try:
@@ -363,6 +363,9 @@ class VlcVideoWidget(QStackedWidget):
 
     def clear(self):
         print('vlc_video_widget > clear: get_position {0}'.format(self.get_position()))
+        #self.pause()
+        # TODO: clear/reset vlc media player
+        self.mediaplayer.stop()
         self._timer.cancel()
         self.annotationImage.clear()
         self.removeWidget(self.annotationImage)
@@ -370,6 +373,8 @@ class VlcVideoWidget(QStackedWidget):
         self.annotationImage = None
         self.annotationImage = AnnotationImage()
         self.addWidget(self.annotationImage)
+        # set videoframe as default visibile widget
+        self.setCurrentIndex(VIDEOFRAME_INDEX)
         self.hide()
         self.update()
 

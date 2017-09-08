@@ -323,6 +323,12 @@ class VideoLayoutWidget(QWidget):
         self._pos_label.setText("00:00:000")
         self._pos_label.show()
         self._duration_label.show()
+        # enabling 0.5x, 1.5x, 3x speed buttons
+        for button in self._speed_buttons:
+            button.setDisabled(False)
+
+        self._fullscreen_button.setDisabled(False)
+        self._video_filter_button.setDisabled(False)
 
     def on_playstate_changed(self, play_state):
         getLogger('finprint').info('layout widget: playstate changed: {0}'.format(play_state))
@@ -352,12 +358,23 @@ class VideoLayoutWidget(QWidget):
         self._pos_label.clear()
         self._duration_label.clear()
         self._playback_speed_label.clear()
+
+        # Disable media controls
+        self.disable_controls()
+
+        self._observation_table.empty()
+        self.current_set = None
+
+    def disable_controls(self):
         self._submit_button.setDisabled(True)
         self._submit_button.setVisible(False)
+
         self._approve_button.setDisabled(True)
         self._approve_button.setVisible(False)
+
         self._reject_button.setDisabled(True)
         self._reject_button.setVisible(False)
+
         self._rew_button.setDisabled(True)
         self._back15.setDisabled(True)
         self._back05.setDisabled(True)
@@ -365,8 +382,12 @@ class VideoLayoutWidget(QWidget):
         self._step_forward_button.setDisabled(True)
         self._step_back_button.setDisabled(True)
         self._toggle_play_button.setDisabled(True)
-        self._observation_table.empty()
-        self.current_set = None
+        # Disable 0.5x, 1.5x, 3x speed buttons
+        for button in self._speed_buttons:
+            button.setDisabled(True)
+        self._fullscreen_button.setDisabled(True)
+        self._video_filter_button.setDisabled(True)
+
 
     def on_slider_tick(self, position, obs):
         events = sorted(obs.events, key=lambda e: e.create_datetime)

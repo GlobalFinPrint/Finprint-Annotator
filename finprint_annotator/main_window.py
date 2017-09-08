@@ -96,7 +96,7 @@ class MainWindow(QMainWindow):
             # adding "help" menu bar for User guide menu
             viewMenu = menubar.addMenu('&Help')
             user_guide_link = QAction('Annotator user guide', self)
-            user_guide_link.setShortcut(QKeySequence('Ctrl+R'))
+            user_guide_link.setShortcut(QKeySequence('Ctrl+H'))
             user_guide_link.setStatusTip('View Annotator user guide')
             user_guide_link.triggered.connect(self._show_user_guide)
             self.addAction(user_guide_link)
