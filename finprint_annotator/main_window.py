@@ -96,7 +96,7 @@ class MainWindow(QMainWindow):
 
             # adding Play Space Bar shortcut with new menu as Control in tool bar
             viewMenu = menubar.addMenu('&Control')
-            play_pause_shortcut = QAction('Play Space Bar', self)
+            play_pause_shortcut = QAction('Play/Pause Space Bar', self)
             play_pause_shortcut.setShortcut(QKeySequence(Qt.Key_Space))
             play_pause_shortcut.triggered.connect(self._enable_shortcut_for_play_pause)
             self.addAction(play_pause_shortcut)
@@ -129,6 +129,12 @@ class MainWindow(QMainWindow):
             step_back_15sec_shortcut.triggered.connect(self._enable_shortcut_for_15sec_rewind)
             self.addAction(step_back_15sec_shortcut)
             viewMenu.addAction(step_back_15sec_shortcut)
+
+            # adding 15 Second Rewind Ctrl+ ↓ shortcut
+            go_to_event_shortcut = QAction('Go to Event Ctrl+ G', self)
+            go_to_event_shortcut.setShortcut(QKeySequence("Ctrl+G"))
+            go_to_event_shortcut.triggered.connect(self._enable_shortcut_for_got_to_event)
+            self.addAction(go_to_event_shortcut)
 
             # adding "help" menu bar for User guide menu
             viewMenu = menubar.addMenu('&Help')
