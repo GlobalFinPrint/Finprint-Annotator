@@ -77,39 +77,44 @@ class ContrastToggle(QWidget):
 class FilterWidget(QWidget):
     change = pyqtSignal(int, int, bool)
 
-    def __init__(self):
+    def __init__(self, video_filter_button):
         super().__init__()
         self.saturation_slider = FilterSlider('Saturation', 0, 100)
         self.brightness_slider = FilterSlider('Brightness', 0, 100)
+        self._video_control_note = QLabel("Note: controls only applied to paused video")
         self.contrast_toggle = ContrastToggle()
 
         self.layout = QVBoxLayout()
+        self.layout.addWidget(self._video_control_note)
         self.layout.addWidget(self.saturation_slider)
         self.layout.addWidget(self.brightness_slider)
         self.layout.addWidget(self.contrast_toggle)
         self.setLayout(self.layout)
 
         self.setStyleSheet('background-color: white;')
-        self.setWindowFlags(Qt.CustomizeWindowHint | Qt.WindowStaysOnTopHint)
-
+        self.setWindowFlags(Qt.CustomizeWindowHint)
         self.saturation_slider.change.connect(self.on_change)
         self.brightness_slider.change.connect(self.on_change)
         self.contrast_toggle.change.connect(self.on_change)
+        self.offset = None
+        self._video_filter_button = video_filter_button
+        self.installEventFilter(self)
+
 
     def toggle(self, filter_button):
-        if self.isVisible():
-            self.hide()
-            return 'images/filters.png'
-        else:
-            self.reveal(filter_button)
-            return 'images/filters-active.png'
+            if self.isVisible():
+                self.hide()
+                return False
+            else:
+                self.reveal(filter_button)
+                return True
 
     def reveal(self, filter_button):
         # XXX make this widget align to the button container
         # top, as in some high resolution displays, the bottom of the
         # widget is off the screen
         xy = filter_button.parent().mapToGlobal(QPoint(
-            filter_button.x(), filter_button.y() - 75
+            filter_button.x()-30, filter_button.y() - 110
         ))
         self.setGeometry(xy.x() - 205, xy.y() - 105, 200, 100)
         self.show()
@@ -118,3 +123,40 @@ class FilterWidget(QWidget):
         self.change.emit(self.saturation_slider.value(),
                          self.brightness_slider.value(),
                          self.contrast_toggle.checked())
+
+
+    def mousePressEvent(self, event):
+        # captures intial position of mouse press
+        self.offset = event.pos()
+
+    def eventFilter(self, source, evt):
+        '''
+        This EventFilter is installed only for filter widget event capture
+        '''
+        if evt.type() \
+           and evt.type() == QEvent.MouseMove \
+           and self.offset:
+            new_pos_x = evt.globalX()
+            new_pos_y = evt.globalY()
+            old_pos_x = self.offset.x()
+            old_pos_y = self.offset.y()
+            self.move(new_pos_x - old_pos_x, new_pos_y - old_pos_y)
+            # Stop bubbling
+            return True
+        elif evt.type() \
+             and evt.type() == QEvent.WindowDeactivate:
+            # avoid race condition between event filter installed in video layout widget
+            # and full screen widget over the same object
+            QTimer.singleShot(100, self.hide)
+            # Stop bubbling
+            return True
+        else :
+            return False
+
+
+    def hide(self):
+        '''
+        Have to change color of button to darker one so overriding
+        '''
+        super(FilterWidget, self).hide()
+        self._video_filter_button.setPixmap(QPixmap('images/filters.png'))

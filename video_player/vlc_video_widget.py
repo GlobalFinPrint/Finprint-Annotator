@@ -86,11 +86,12 @@ class AnnotationImage(QWidget):
         self.initUI()
 
     def initUI(self):
+        self.setStyleSheet('background-color: white;')
         self.show()
 
     def clear(self):
         self.curr_image = None
-        self.highlighter.clear()
+        self.clearExtent()
 
     def clearExtent(self):
         self.highlighter.clear()
@@ -270,6 +271,7 @@ class VlcVideoWidget(QStackedWidget):
 
         self.clear_extent()
 
+
         getLogger('finprint').info("Loading loading video {0}".format(self._file_name))
         self.media = self.instance.media_new(self._file_name)
         self.mediaplayer.set_media(self.media)
@@ -309,13 +311,20 @@ class VlcVideoWidget(QStackedWidget):
         if opts and self._fullscreen :
             self.media.add_options(opts)
 
+        self.show()
         # XXX hack to display the first few frames, which alters the bahavior of
         # VLC with respect to video scrubbing
         self.mediaplayer.set_time(20)
+        print(" playing for 20 msec")
         self.mediaplayer.play()
-        QTimer.singleShot(500, self.mediaplayer.pause)
+        QTimer.singleShot(500, self.after_load)
 
         return True
+
+    def after_load(self):
+        self.mediaplayer.pause()
+        self.clear_extent()
+        self.annotationImage.clear()
 
     def _target_width(self):
         try:
@@ -350,13 +359,20 @@ class VlcVideoWidget(QStackedWidget):
             if self._play_state is PlayState.Playing and self._last_progress > PROGRESS_UPDATE_INTERVAL:
                 self._last_progress = pos
                 self.progressUpdate.emit(pos)
-            #print('vlc_video_widget > on_timer: pos {0},  get_position {1}'.format(pos, self.get_position()))
             self._onPositionChange(pos)
 
     def clear(self):
         print('vlc_video_widget > clear: get_position {0}'.format(self.get_position()))
         self._timer.cancel()
+        self.annotationImage.clear()
+        self.removeWidget(self.annotationImage)
+        self.annotationImage.hide()
+        self.annotationImage = None
+        self.annotationImage = AnnotationImage()
+        self.addWidget(self.annotationImage)
+        self.hide()
         self.update()
+
 
     def get_highlight_extent(self):
         ext = Extent()
@@ -403,6 +419,7 @@ class VlcVideoWidget(QStackedWidget):
     def take_videoframe_snapshot(self):
         getLogger('finprint').info('take videoframe snapshot')
         self.annotationImage.clear()
+        self.annotationImage.show()
         pix = QPixmap.grabWindow(self.videoframe.winId())
         snap = pix.scaledToHeight(self.videoframe.height())
         self.annotationImage.curr_image = snap.toImage()
@@ -446,6 +463,7 @@ class VlcVideoWidget(QStackedWidget):
     def play(self):
         # TODO emit if end of stream via callback
 
+        self.show()
         self.clear_extent()
         self.set_speed(1.0)
         playStarted = self.mediaplayer.play()
@@ -555,7 +573,7 @@ class VlcVideoWidget(QStackedWidget):
         self._refresh_frame_cv()
 
     def _refresh_frame_cv(self):
-        if self._play_state is PlayState.Paused:
+        if self._play_state is PlayState.Paused and self.current_snapshot :
             # grab a cv representation of the image
             # that has not been filtered
             curr_img = self.current_snapshot

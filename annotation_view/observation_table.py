@@ -18,11 +18,13 @@ class ObservationTableModel(QAbstractTableModel):
         type = 2
         annotator = 3
         organism = 4
-        observation_comment = 5
-        duration = 6
-        frame_capture = 7
-        event_notes = 8
-        attributes = 9
+        attributes = 5
+        max_n = 6
+        observation_comment = 7
+        duration = 8
+        frame_capture = 9
+        event_notes = 10
+
 
     def __init__(self):
         self.rows = []
@@ -130,7 +132,7 @@ class ObservationTableCell(QStyledItemDelegate):
         if column_id == 0: #space after first coloumn of each row
             painter.drawLine(rect.topLeft(), rect.bottomLeft())
 
-        elif column_id == 9: #space after last coloumn of each row
+        elif column_id == 10: #space after last coloumn of each row
             painter.drawLine(rect.topRight(), rect.bottomRight())
 
         pen = QPen(QColor('white'), 2, Qt.SolidLine)
@@ -194,6 +196,11 @@ class ObservationTable(QTableView):
         font = self.horizontalHeader().font()
         font.setPointSize(12)
         self.horizontalHeader().setFont(font)
+        # register shortcut event with Observation layout
+        go_to_event_shortcut = QAction(self)
+        go_to_event_shortcut.setShortcut(QKeySequence("Ctrl+G"))
+        self.connect(go_to_event_shortcut, SIGNAL("activated()"), self.handle_go_to_event_shotcut)
+        self.addAction(go_to_event_shortcut)
 
     def set_data(self):
         # set model
@@ -206,6 +213,7 @@ class ObservationTable(QTableView):
         self.setColumnHidden(self.Columns.annotator, True)  # TODO leave on for debug mode?
         self.setColumnHidden(self.Columns.frame_capture, True)  # hide for now
         self.setColumnWidth(self.Columns.organism, 250)
+        self.setColumnWidth(self.Columns.attributes, 250)
         self.setColumnWidth(self.Columns.observation_comment, (self.windows_size-250)/2)
         self.setColumnHidden(self.Columns.duration, not GlobalFinPrintServer().is_lead())
         self.setColumnWidth(self.Columns.event_notes, (self.windows_size-250)/2)
@@ -370,3 +378,10 @@ class ObservationTable(QTableView):
             last_event_name = self.current_set.observations[0].events[0]
 
         return last_event_name
+
+    def handle_go_to_event_shotcut(self):
+        '''
+        emits go to event
+        '''
+        if self.selectionModel().selectedRows() :
+            self.goToEvent.emit(self.get_event(self.selectionModel().selectedRows()[0].row()))

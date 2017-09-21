@@ -1,5 +1,5 @@
-import itertools
 import config
+import webbrowser
 from pydispatch import dispatcher
 from annotation_view import VideoLayoutWidget
 from global_finprint import GlobalFinPrintServer, Set, QueryException
@@ -93,8 +93,18 @@ class MainWindow(QMainWindow):
             fullscreenAction.setStatusTip('View video in fullscreen mode')
             fullscreenAction.triggered.connect(self._attempt_fullscreen)
             viewMenu.addAction(fullscreenAction)
+            # adding "help" menu bar for User guide menu
+            viewMenu = menubar.addMenu('&Help')
+            user_guide_link = QAction('Annotator user guide', self)
+            user_guide_link.setShortcut(QKeySequence('Ctrl+R'))
+            user_guide_link.setStatusTip('View Annotator user guide')
+            user_guide_link.triggered.connect(self._show_user_guide)
+            self.addAction(user_guide_link)
+            viewMenu.addAction(user_guide_link)
 
         self.setMenuBar(menubar)
+
+
 
     # TODO: The login widget should just be the dialog
     def _launch_login_dialog(self):
@@ -161,15 +171,12 @@ class MainWindow(QMainWindow):
         self.props_diag.close()
 
     def _save_props_dialog(self):
-        if self.video_source.text() != config.global_config.get('VIDEOS', 'alt_media_dir'):
-            message = 'Warning: updating the video folder location will clear your currently selected assignment ' \
-                      '(no annotations will be lost). Are you sure you wish to update this?'
-            confirm = QMessageBox.question(self.props_diag, 'Confirm', message, 'Yes', 'Cancel')
-            if confirm == 1:  # user pressed Cancel
-                return
         config.global_config.set_item('VIDEOS', 'alt_media_dir', self.video_source.text())
         self.props_diag.close()
         self._vid_layout.clear()
+        # launches new assignment list if video location is changed(GLOB-729)
+        self.assign_diag.close()
+        self._launch_assigned_set_list_diag()
 
     def _launch_assigned_set_list_diag(self):
         sets = GlobalFinPrintServer().set_list()['sets']
@@ -216,3 +223,11 @@ class MainWindow(QMainWindow):
                 self._vid_layout.on_fullscreen()
             else:
                 self._vid_layout.fullscreen.on_fullscreen_toggle()
+
+    def _show_user_guide(self):
+       '''
+       takes user guide Url and opens a new tab browser containing user guide
+       '''
+       user_guide_url = global_config.get('GLOBAL_FINPRINT_SERVER', 'address')+'/help/client/'
+       new = 2  # open in a new tab, if possible
+       webbrowser.open(user_guide_url, new=new)
