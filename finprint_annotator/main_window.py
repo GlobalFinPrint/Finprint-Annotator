@@ -87,16 +87,68 @@ class MainWindow(QMainWindow):
         fileMenu.addAction(quitAction)
 
         if GlobalFinPrintServer().logged_in:
-            viewMenu = menubar.addMenu('&View')
+            self.fullscreen_menu = QMenu('&View')
+            menubar.addMenu(self.fullscreen_menu)
+
+            #hiding before video is loaded
+            self.fullscreen_menu.setDisabled(True)
             fullscreenAction = QAction('Video f&ullscreen', self)
             fullscreenAction.setShortcut('Ctrl+U')
             fullscreenAction.setStatusTip('View video in fullscreen mode')
             fullscreenAction.triggered.connect(self._attempt_fullscreen)
-            viewMenu.addAction(fullscreenAction)
+            self.addAction(fullscreenAction)
+            self.fullscreen_menu.addAction(fullscreenAction)
+
+            # adding Play Space Bar shortcut with new menu as Control in tool bar
+            self.control_menu = QMenu('Controls')
+            menubar.addMenu(self.control_menu)
+            # hide menu of control until video loads
+            self.control_menu.setDisabled(True)
+            play_pause_shortcut = QAction('Play/Pause Space Bar', self)
+            play_pause_shortcut.setShortcut(QKeySequence(Qt.Key_Space))
+            play_pause_shortcut.triggered.connect(self._enable_shortcut_for_play_pause)
+            self.addAction(play_pause_shortcut)
+            self.control_menu.addAction(play_pause_shortcut)
+
+            # adding Previous Frame Shift+ ← shortcut
+            step_back_shortcut = QAction('Previous Frame Shift+ ←', self)
+            step_back_shortcut.setShortcut(QKeySequence("Shift+Left"))
+            step_back_shortcut.triggered.connect(self._enable_shortcut_for_step_backward)
+            self.addAction(step_back_shortcut)
+            self.control_menu.addAction(step_back_shortcut)
+
+            # adding Next Frame Shift+ → shortcut
+            step_forward_shortcut = QAction('Next Frame Shift+ →', self)
+            step_forward_shortcut.setShortcut(QKeySequence("Shift+Right"))
+            step_forward_shortcut.triggered.connect(self._enable_shortcut_for_step_forward)
+            self.addAction(step_forward_shortcut)
+            self.control_menu.addAction(step_forward_shortcut)
+
+            # adding 5 Second Rewind Ctrl+ ← shortcut
+            step_back_5sec_shortcut = QAction('5 Second Rewind Ctrl+ ←', self)
+            step_back_5sec_shortcut.setShortcut(QKeySequence("Ctrl+Left"))
+            step_back_5sec_shortcut.triggered.connect(self._enable_shortcut_for_5sec_rewind)
+            self.addAction(step_back_5sec_shortcut)
+            self.control_menu.addAction(step_back_5sec_shortcut)
+
+            # adding 15 Second Rewind Ctrl+ ↓ shortcut
+            step_back_15sec_shortcut = QAction('15 Second Rewind Ctrl+ ↓', self)
+            step_back_15sec_shortcut.setShortcut(QKeySequence("Ctrl+Down"))
+            step_back_15sec_shortcut.triggered.connect(self._enable_shortcut_for_15sec_rewind)
+            self.addAction(step_back_15sec_shortcut)
+            self.control_menu.addAction(step_back_15sec_shortcut)
+
+            # adding 15 Second Rewind Ctrl+ ↓ shortcut
+            go_to_event_shortcut = QAction('Go to Event Ctrl+ G', self)
+            go_to_event_shortcut.setShortcut(QKeySequence("Ctrl+G"))
+            go_to_event_shortcut.triggered.connect(self._enable_shortcut_for_got_to_event)
+            self.addAction(go_to_event_shortcut)
+            self.control_menu.addAction(go_to_event_shortcut)
+
             # adding "help" menu bar for User guide menu
             viewMenu = menubar.addMenu('&Help')
             user_guide_link = QAction('Annotator user guide', self)
-            user_guide_link.setShortcut(QKeySequence('Ctrl+R'))
+            user_guide_link.setShortcut(QKeySequence('Ctrl+H'))
             user_guide_link.setStatusTip('View Annotator user guide')
             user_guide_link.triggered.connect(self._show_user_guide)
             self.addAction(user_guide_link)
@@ -174,9 +226,14 @@ class MainWindow(QMainWindow):
         config.global_config.set_item('VIDEOS', 'alt_media_dir', self.video_source.text())
         self.props_diag.close()
         self._vid_layout.clear()
+        # hiding before video is loaded
+        self.control_menu.setDisabled(True)
+        # hiding before video is loaded
+        self.fullscreen_menu.setDisabled(True)
         # launches new assignment list if video location is changed(GLOB-729)
         self.assign_diag.close()
         self._launch_assigned_set_list_diag()
+
 
     def _launch_assigned_set_list_diag(self):
         sets = GlobalFinPrintServer().set_list()['sets']
@@ -216,6 +273,10 @@ class MainWindow(QMainWindow):
         self.assign_diag.close()
         s = Set(value)
         self._vid_layout.load_set(s)
+        # enable controls menu once video is loaded
+        self.control_menu.setDisabled(False)
+        # hiding before video is loaded
+        self.fullscreen_menu.setDisabled(False)
 
     def _attempt_fullscreen(self, *args):
         if self._vid_layout._video_player:
@@ -231,3 +292,51 @@ class MainWindow(QMainWindow):
        user_guide_url = global_config.get('GLOBAL_FINPRINT_SERVER', 'address')+'/help/client/'
        new = 2  # open in a new tab, if possible
        webbrowser.open(user_guide_url, new=new)
+
+
+    def _enable_shortcut_for_application(self):
+            if self._vid_layout._video_player:
+                if self._vid_layout.is_fullscreen is False:
+                    self._vid_layout.on_fullscreen()
+                else:
+                    self._vid_layout.fullscreen.on_fullscreen_toggle()
+
+    def _enable_shortcut_for_step_forward(self):
+        if self._vid_layout._video_player:
+            if self._vid_layout.is_fullscreen is False:
+                self._vid_layout.on_step_forward()
+            else:
+                self._vid_layout.fullscreen.on_step_forward()
+
+    def _enable_shortcut_for_step_backward(self):
+        if self._vid_layout._video_player:
+            if self._vid_layout.is_fullscreen is False:
+                self._vid_layout.on_step_back()
+            else:
+                self._vid_layout.fullscreen.on_step_back()
+
+
+    def _enable_shortcut_for_5sec_rewind(self):
+        if self._vid_layout._video_player:
+            if self._vid_layout.is_fullscreen is False:
+                self._vid_layout.on_back05()
+            else:
+                self._vid_layout.fullscreen.on_back05()
+
+
+    def _enable_shortcut_for_15sec_rewind(self):
+        if self._vid_layout._video_player:
+            if self._vid_layout.is_fullscreen is False:
+                self._vid_layout.on_back15()
+            else:
+                self._vid_layout.fullscreen.on_back15()
+
+
+    def _enable_shortcut_for_got_to_event(self):
+        if self._vid_layout._observation_table:
+          self._vid_layout._observation_table.handle_go_to_event_shotcut()
+
+
+    def _enable_shortcut_for_play_pause(self):
+        if self._vid_layout._video_player :
+            self._vid_layout._video_player.toggle_play()

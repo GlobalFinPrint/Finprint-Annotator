@@ -200,6 +200,9 @@ class FullScreen(QWidget):
         # wire events for interactivity
         self.wire_events()
 
+        # wire shortcut events for full screen
+        self.register_layout_shortcut_key_event()
+
         # installing eventFilter for controlling sat/brightness popup hide and show
         self.filter_widget.installEventFilter(self)
         self.video_filter_button.installEventFilter(self)
@@ -251,8 +254,6 @@ class FullScreen(QWidget):
             button.speedClick.connect(self.on_speed)
 
         self.keyPressed.connect(self.on_key)
-        # multi key press event handling set
-        MultiKeyPressHandler().register_layout_shortcut_key_event(layout_obj=self)
 
     def on_position_change(self, pos):
         self.video_time_label.setText(convert_position(int(pos)))
@@ -387,3 +388,28 @@ class FullScreen(QWidget):
         if self.filter_widget.isVisible() :
             MultiKeyPressHandler().handle_keyboard_shortcut_event(evt, self.filter_widget)
             self.video_filter_button.setPixmap(QPixmap('images/filters.png'))
+
+    def register_layout_shortcut_key_event(self):
+        # adding Previous Frame Shift+ ← shortcut
+        step_back_shortcut = QAction('Previous Frame Shift+ ←', self)
+        step_back_shortcut.setShortcut(QKeySequence("Shift+Left"))
+        step_back_shortcut.triggered.connect(self.on_step_back)
+        self.addAction(step_back_shortcut)
+
+        # adding Next Frame Shift+ → shortcut
+        step_forward_shortcut = QAction('Next Frame Shift+ →', self)
+        step_forward_shortcut.setShortcut(QKeySequence("Shift+Right"))
+        step_forward_shortcut.triggered.connect(self.on_step_forward)
+        self.addAction(step_forward_shortcut)
+
+        # adding 5 Second Rewind Ctrl+ ← shortcut
+        step_back_5sec_shortcut = QAction('5 Second Rewind Ctrl+ ←', self)
+        step_back_5sec_shortcut.setShortcut(QKeySequence("Ctrl+Left"))
+        step_back_5sec_shortcut.triggered.connect(self.on_back05)
+        self.addAction(step_back_5sec_shortcut)
+
+        # adding 15 Second Rewind Ctrl+ ↓ shortcut
+        step_back_15sec_shortcut = QAction('15 Second Rewind Ctrl+ ↓', self)
+        step_back_15sec_shortcut.setShortcut(QKeySequence("Ctrl+Down"))
+        step_back_15sec_shortcut.triggered.connect(self.on_back15)
+        self.addAction(step_back_15sec_shortcut)
