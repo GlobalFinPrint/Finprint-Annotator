@@ -110,7 +110,7 @@ class InnoScript:
                                   }
                                   if not(CurPageID = VideoDirPage.ID) then
                                      if not(CurPageID = wpReady) then
-                                    VideoDirPage.Values[0] := WizardDirValue + '\videos'
+                                    VideoDirPage.Values[0] := WizardDirValue + '\videos';
 
                                   Result := True;
                                 end;
