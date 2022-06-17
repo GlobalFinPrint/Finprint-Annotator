@@ -1,5 +1,5 @@
 requests==2.9.1
-numpy==1.11.3
+numpy==1.21.0
 imutils==0.3.4
 pydispatcher==2.0.5
 boto==2.40.0
